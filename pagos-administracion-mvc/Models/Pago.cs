@@ -11,8 +11,8 @@ namespace pagos_administracion_mvc.Models
         public DateTime Fecha {  get; set; }
         public EstadoPago Estado { get; set; }
 
-        public string MercadoPagoPaymentId { get; set; }
-        public string MercadoPagoPreferenceId { get; set; }
+        public string MercadoPagoPaymentId { get; set; } = string.Empty;
+        public string MercadoPagoPreferenceId { get; set; } = string.Empty;
     }
     
 }

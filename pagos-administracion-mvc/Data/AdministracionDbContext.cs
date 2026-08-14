@@ -10,6 +10,17 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Alumno>Alumnos { get; set; }
         public DbSet<Cuota> Cuotas { get; set; }
         public DbSet<Pago> Pagos { get; set; }
-        public DbSet<Enums> Enums { get; set; }  
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Cuota>()
+                .Property(c => c.Monto)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Pago>()
+                .Property(p => p.Monto)
+                .HasColumnType("decimal(18,2)");
+        }
     }
 }
