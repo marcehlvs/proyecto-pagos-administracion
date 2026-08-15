@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using pagos_administracion_mvc.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,8 +12,8 @@ builder.Services.AddDbContext<AdministracionDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection")));
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "Identity/Account/Login";
-    options.AccessDeniedPath = "Identity/Account/AccessDenied";
+    options.LoginPath = "/Identity/Account/Login";
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromMinutes(30);  
     options.SlidingExpiration = true;
 }); 
@@ -39,7 +40,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapRazorPages();
 app.MapStaticAssets();
 app.MapControllerRoute(
     name: "default",
@@ -51,6 +52,7 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AdministracionDbContext>();
     DbInitializer.Initialize(context);
+    await DbInitializer.SeedRolesAdminAsync(scope.ServiceProvider); 
 }
 
 app.Run();
