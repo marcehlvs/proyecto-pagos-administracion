@@ -1,0 +1,66 @@
+@model pagos_administracion_mvc.Models.Pago
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>Pago</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="CuotaId" class="control-label"></label>
+                <input asp-for="CuotaId" class="form-control" />
+                <span asp-validation-for="CuotaId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Cuota" class="control-label"></label>
+                <input asp-for="Cuota" class="form-control" />
+                <span asp-validation-for="Cuota" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Monto" class="control-label"></label>
+                <input asp-for="Monto" class="form-control" />
+                <span asp-validation-for="Monto" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Fecha" class="control-label"></label>
+                <input asp-for="Fecha" class="form-control" />
+                <span asp-validation-for="Fecha" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Estado" class="control-label"></label>
+                <input asp-for="Estado" class="form-control" />
+                <span asp-validation-for="Estado" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="MercadoPagoPaymentId" class="control-label"></label>
+                <input asp-for="MercadoPagoPaymentId" class="form-control" />
+                <span asp-validation-for="MercadoPagoPaymentId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="MercadoPagoPreferenceId" class="control-label"></label>
+                <input asp-for="MercadoPagoPreferenceId" class="form-control" />
+                <span asp-validation-for="MercadoPagoPreferenceId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
