@@ -6,7 +6,7 @@ namespace pagos_administracion_mvc.Models
     {
         public int Id { get; set; }
         public int AlumnoId { get; set; }
-        public Alumno Alumno { get; set; }
+        public Alumno Alumno { get; set; } = null!;
         public int Mes { get; set; }
         public int Anio { get; set; }
         public decimal Monto { get; set; } 

@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Models;
 
 namespace pagos_administracion_mvc.Data
 {
-    public class AdministracionDbContext : DbContext
+    public class AdministracionDbContext : IdentityDbContext
     {
         public AdministracionDbContext(DbContextOptions<AdministracionDbContext> options)
             : base(options){}
@@ -21,6 +22,17 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Pago>()
                 .Property(p => p.Monto)
                 .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Cuota>()
+                .HasOne(c => c.Alumno)
+                .WithMany(a => a.Cuotas)
+                .HasForeignKey(c => c.AlumnoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Pago>()
+                .HasOne(p => p.Cuota)
+                .WithMany(c => c.Pagos)
+                .HasForeignKey(p => p.CuotaId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
