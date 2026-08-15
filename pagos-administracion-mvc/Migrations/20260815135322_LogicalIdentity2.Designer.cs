@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using pagos_administracion_mvc.Data;
 
@@ -11,9 +12,11 @@ using pagos_administracion_mvc.Data;
 namespace pagos_administracion_mvc.Migrations
 {
     [DbContext(typeof(AdministracionDbContext))]
-    partial class AdministracionDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815135322_LogicalIdentity2")]
+    partial class LogicalIdentity2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
