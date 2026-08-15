@@ -1,4 +1,5 @@
-﻿using pagos_administracion_mvc.Models;
+﻿using Microsoft.AspNetCore.Identity;
+using pagos_administracion_mvc.Models;
 using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Data
@@ -41,6 +42,37 @@ namespace pagos_administracion_mvc.Data
             }
 
             context.SaveChanges();
+        }
+
+
+
+        public static async Task SeedRolesAdminAsync(IServiceProvider services)
+        {
+            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+            string[] roles = { "Admin", "Familia" };
+
+            foreach (var rol in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(rol))
+                    await roleManager.CreateAsync(new IdentityRole(rol));
+            }
+            const string adminEmail = "admin@escuela.com";
+            if (await userManager.FindByEmailAsync(adminEmail) is null)
+            {
+                var admin = new IdentityUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    EmailConfirmed = true
+                };
+                var result = await userManager.CreateAsync(admin, "Admin123!");
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(admin, "Admin");
+                }
+            }
+
         }
     }
 }
