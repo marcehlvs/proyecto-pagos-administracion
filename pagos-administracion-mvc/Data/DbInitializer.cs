@@ -49,7 +49,7 @@ namespace pagos_administracion_mvc.Data
         public static async Task SeedRolesAdminAsync(IServiceProvider services)
         {
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
             string[] roles = { "Admin", "Familia" };
 
             foreach (var rol in roles)
@@ -60,7 +60,7 @@ namespace pagos_administracion_mvc.Data
             const string adminEmail = "admin@escuela.com";
             if (await userManager.FindByEmailAsync(adminEmail) is null)
             {
-                var admin = new IdentityUser
+                var admin = new ApplicationUser
                 {
                     UserName = adminEmail,
                     Email = adminEmail,
