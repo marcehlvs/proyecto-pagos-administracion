@@ -4,7 +4,7 @@ using pagos_administracion_mvc.Models;
 
 namespace pagos_administracion_mvc.Data
 {
-    public class AdministracionDbContext : IdentityDbContext
+    public class AdministracionDbContext : IdentityDbContext<ApplicationUser>
     {
         public AdministracionDbContext(DbContextOptions<AdministracionDbContext> options)
             : base(options){}
