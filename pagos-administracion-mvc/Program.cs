@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using pagos_administracion_mvc.Data;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Data;
-
+using Microsoft.AspNetCore.Authorization;
+[Authorize]
 public class PagosController : Controller
 {
     private readonly AdministracionDbContext _context;
@@ -36,7 +37,7 @@ public class PagosController : Controller
 
         return View(pago);
     }
-
+    [Authorize(Roles = "Admin")]
     // GET: PAGOS/Create
     public IActionResult Create()
     {
@@ -58,7 +59,7 @@ public class PagosController : Controller
         }
         return View(pago);
     }
-
+    [Authorize(Roles = "Admin")]
     // GET: PAGOS/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
@@ -74,7 +75,7 @@ public class PagosController : Controller
         }
         return View(pago);
     }
-
+    [Authorize(Roles = "Admin")]
     // POST: PAGOS/Edit/5
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
@@ -109,7 +110,7 @@ public class PagosController : Controller
         }
         return View(pago);
     }
-
+    [Authorize(Roles = "Admin")]
     // GET: PAGOS/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
@@ -127,7 +128,7 @@ public class PagosController : Controller
 
         return View(pago);
     }
-
+    [Authorize(Roles = "Admin")]
     // POST: PAGOS/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]

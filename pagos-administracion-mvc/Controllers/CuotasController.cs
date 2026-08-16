@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Data;
-
+using Microsoft.AspNetCore.Authorization;
+[Authorize]
 public class CuotasController : Controller
 {
     private readonly AdministracionDbContext _context;
@@ -36,13 +37,13 @@ public class CuotasController : Controller
 
         return View(cuota);
     }
-
+    [Authorize(Roles = "Admin")]
     // GET: CUOTAS/Create
     public IActionResult Create()
     {
         return View();
     }
-
+    [Authorize(Roles = "Admin")]
     // POST: CUOTAS/Create
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
@@ -58,6 +59,7 @@ public class CuotasController : Controller
         }
         return View(cuota);
     }
+    [Authorize(Roles = "Admin")]
 
     // GET: CUOTAS/Edit/5
     public async Task<IActionResult> Edit(int? id)
@@ -74,7 +76,7 @@ public class CuotasController : Controller
         }
         return View(cuota);
     }
-
+    [Authorize(Roles = "Admin")]
     // POST: CUOTAS/Edit/5
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
@@ -109,7 +111,7 @@ public class CuotasController : Controller
         }
         return View(cuota);
     }
-
+    [Authorize(Roles = "Admin")]
     // GET: CUOTAS/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
@@ -127,7 +129,7 @@ public class CuotasController : Controller
 
         return View(cuota);
     }
-
+    [Authorize(Roles = "Admin")]
     // POST: CUOTAS/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]

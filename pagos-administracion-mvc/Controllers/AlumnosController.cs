@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Data;
-
+using Microsoft.AspNetCore.Authorization;
+[Authorize]
 public class AlumnosController : Controller
 {
     private readonly AdministracionDbContext _context;
@@ -38,6 +39,7 @@ public class AlumnosController : Controller
     }
 
     // GET: ALUMNOS/Create
+    [Authorize(Roles ="Admin")]
     public IActionResult Create()
     {
         return View();
@@ -46,6 +48,7 @@ public class AlumnosController : Controller
     // POST: ALUMNOS/Create
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,Cuotas")] Alumno alumno)
@@ -60,6 +63,7 @@ public class AlumnosController : Controller
     }
 
     // GET: ALUMNOS/Edit/5
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -78,6 +82,8 @@ public class AlumnosController : Controller
     // POST: ALUMNOS/Edit/5
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+    
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,Cuotas")] Alumno alumno)
@@ -109,7 +115,7 @@ public class AlumnosController : Controller
         }
         return View(alumno);
     }
-
+    [Authorize(Roles = "Admin")]
     // GET: ALUMNOS/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
@@ -128,6 +134,7 @@ public class AlumnosController : Controller
         return View(alumno);
     }
 
+    [Authorize(Roles = "Admin")]
     // POST: ALUMNOS/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
