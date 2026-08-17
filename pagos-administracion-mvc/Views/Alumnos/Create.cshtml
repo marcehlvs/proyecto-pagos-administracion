@@ -33,7 +33,7 @@
 
             <div class="form-group">
                 <label asp-for="Nivel" class="control-label"></label>
-                <input asp-for="Nivel" class="form-control" />
+                <select asp-for="Nivel" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.NivelEducativo>()"></select>
                 <span asp-validation-for="Nivel" class="text-danger"></span>
             </div>
 
@@ -42,14 +42,13 @@
                 <input asp-for="GradoAnio" class="form-control" />
                 <span asp-validation-for="GradoAnio" class="text-danger"></span>
             </div>
-
+            
             <div class="form-group">
                 <label asp-for="Turno" class="control-label"></label>
-                <input asp-for="Turno" class="form-control" />
+                <select asp-for="Turno" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.Turno>()"></select>
                 <span asp-validation-for="Turno" class="text-danger"></span>
-            </div>
+            </div>          
 
-           
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
