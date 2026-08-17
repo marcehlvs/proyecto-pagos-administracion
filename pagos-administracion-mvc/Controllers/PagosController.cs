@@ -1,9 +1,10 @@
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using pagos_administracion_mvc.Models;
-using pagos_administracion_mvc.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Models;
 [Authorize]
 public class PagosController : Controller
 {
@@ -38,18 +39,20 @@ public class PagosController : Controller
         return View(pago);
     }
     [Authorize(Roles = "Admin")]
-    // GET: PAGOS/Create
     public IActionResult Create()
     {
+        ViewBag.CuotaId = new SelectList(
+            _context.Cuotas.Include(c => c.Alumno)
+                .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
+                .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
+            "Id", "Detalle");
         return View();
     }
-    [Authorize(Roles ="Admin")]
-    // POST: PAGOS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,CuotaId,Cuota,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pago)
+    public async Task<IActionResult> Create([Bind("Id,CuotaId,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pago)
     {
         if (ModelState.IsValid)
         {
@@ -57,6 +60,11 @@ public class PagosController : Controller
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+        ViewBag.CuotaId = new SelectList(
+            _context.Cuotas.Include(c => c.Alumno)
+                .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
+                .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
+            "Id", "Detalle", pago.CuotaId);
         return View(pago);
     }
     [Authorize(Roles = "Admin")]

@@ -51,7 +51,7 @@ public class AlumnosController : Controller
     [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,Cuotas")] Alumno alumno)
+    public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno")] Alumno alumno)
     {
         if (ModelState.IsValid)
         {
@@ -86,7 +86,7 @@ public class AlumnosController : Controller
     [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,Cuotas")] Alumno alumno)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno")] Alumno alumno)
     {
         if (id != alumno.Id)
         {
