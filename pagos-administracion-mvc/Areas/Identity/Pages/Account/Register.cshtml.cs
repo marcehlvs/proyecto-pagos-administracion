@@ -21,6 +21,8 @@ using pagos_administracion_mvc.Data;
 
 namespace pagos_administracion_mvc.Areas.Identity.Pages.Account;
 
+[Authorize(Roles = "Admin")]
+
 public class RegisterModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
