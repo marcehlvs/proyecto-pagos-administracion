@@ -1,9 +1,10 @@
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using pagos_administracion_mvc.Models;
-using pagos_administracion_mvc.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Models;
 [Authorize]
 public class CuotasController : Controller
 {
@@ -41,6 +42,7 @@ public class CuotasController : Controller
     // GET: CUOTAS/Create
     public IActionResult Create()
     {
+        ViewData["AlumnoId"] = new SelectList(_context.Alumnos, "Id", "Apellido");
         return View();
     }
     [Authorize(Roles = "Admin")]
@@ -49,7 +51,7 @@ public class CuotasController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,AlumnoId,Alumno,Mes,Anio,Monto,FechaVencimiento,Estado,Pagos")] Cuota cuota)
+    public async Task<IActionResult> Create([Bind("Id,AlumnoId,Mes,Anio,Monto,FechaVencimiento,Estado")] Cuota cuota)
     {
         if (ModelState.IsValid)
         {
@@ -57,6 +59,7 @@ public class CuotasController : Controller
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+        ViewData["AlumnoId"] = new SelectList(_context.Alumnos, "Id", "Apellido", cuota.AlumnoId);
         return View(cuota);
     }
     [Authorize(Roles = "Admin")]
@@ -74,6 +77,7 @@ public class CuotasController : Controller
         {
             return NotFound();
         }
+        ViewData["AlumnoId"] = new SelectList(_context.Alumnos, "Id", "Apellido", cuota.AlumnoId);
         return View(cuota);
     }
     [Authorize(Roles = "Admin")]
@@ -82,7 +86,7 @@ public class CuotasController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,AlumnoId,Alumno,Mes,Anio,Monto,FechaVencimiento,Estado,Pagos")] Cuota cuota)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,AlumnoId,Mes,Anio,Monto,FechaVencimiento,Estado")] Cuota cuota)
     {
         if (id != cuota.Id)
         {
@@ -109,6 +113,7 @@ public class CuotasController : Controller
             }
             return RedirectToAction(nameof(Index));
         }
+        ViewData["AlumnoId"] = new SelectList(_context.Alumnos, "Id", "Apellido", cuota.AlumnoId);
         return View(cuota);
     }
     [Authorize(Roles = "Admin")]
