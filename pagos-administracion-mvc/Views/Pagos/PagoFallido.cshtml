@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "Pago rechazado";
+}
+
+<section>
+    <h1>El pago no pudo procesarse</h1>
+    <span>Pago rechazado</span>
+
+    <p>
+        No pudimos acreditar el pago de la cuota. Esto puede pasar por fondos insuficientes,
+        datos de la tarjeta incorrectos, o que el banco rechazó la operación.
+    </p>
+    <p>
+        Tu cuota quedó pendiente de pago por unos minutos más — podés reintentar el pago desde
+        "Tus Cuotas" antes de que se cancele el pago.
+    </p>
+
+    <a asp-controller="Home" asp-action="Index">Ver Mis Cuotas</a>
+</section>
