@@ -5,14 +5,18 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
+using pagos_administracion_mvc.Services;
+using static pagos_administracion_mvc.Models.Enums;
 [Authorize]
 public class PagosController : Controller
 {
-    private readonly AdministracionDbContext _context;
+    private readonly AdministracionDbContext _context; 
+    private readonly MercadoPagoService _mpService;
 
-    public PagosController(AdministracionDbContext context)
+    public PagosController(AdministracionDbContext context, MercadoPagoService mpService)
     {
         _context = context;
+        _mpService = mpService;
     }
 
     // GET: PAGOS
@@ -145,9 +149,33 @@ public class PagosController : Controller
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
-
+    //MercadoPago Webhook Endpoint
     private bool PagoExists(int? id)
     {
         return _context.Pagos.Any(e => e.Id == id);
+    }
+
+    [Authorize]
+    public async Task<IActionResult> Pagar(int cuotaId)
+    {
+        var cuota = await _context.Cuotas.Include(c => c.Alumno).FirstOrDefaultAsync(c => c.Id == cuotaId);
+        if (cuota == null) return NotFound();
+
+        var pago = new Pago
+        {
+            CuotaId = cuota.Id,
+            Monto = cuota.Monto,
+            Fecha = DateTime.Now,
+            Estado = EstadoPago.Pendiente
+        };
+        _context.Pagos.Add(pago);
+        await _context.SaveChangesAsync();
+
+        var preferencia = await _mpService.CrearPreferenciaAsync(pago, cuota);
+
+        pago.MercadoPagoPreferenceId = preferencia.Id;
+        await _context.SaveChangesAsync();
+
+        return Redirect(preferencia.InitPoint);
     }
 }
