@@ -183,14 +183,16 @@ public class PagosController : Controller
     //Mercado Pago, cuando se realiza un pago, envía un webhook a esta URL para notificar el estado del pago.
     [AllowAnonymous]
     [HttpPost("api/mercadopago/webhook")]
-    public async Task<IActionResult> Webhook([FromQuery] string? topic, [FromQuery] string? id)
+    public async Task<IActionResult> Webhook()
     {
-        // MP manda distintos formatos según el evento; el que nos importa es "payment"
-        if (topic != "payment" || string.IsNullOrEmpty(id))
-            return Ok(); // respondemos 200 igual, para que MP no reintente en loop
+        var type = Request.Query["type"].FirstOrDefault() ?? Request.Query["topic"].FirstOrDefault();
+        var paymentId = Request.Query["data.id"].FirstOrDefault() ?? Request.Query["id"].FirstOrDefault();
+
+        if (type != "payment" || string.IsNullOrEmpty(paymentId))
+            return Ok();
 
         var paymentClient = new global::MercadoPago.Client.Payment.PaymentClient();
-        var payment = await paymentClient.GetAsync(long.Parse(id));
+        var payment = await paymentClient.GetAsync(long.Parse(paymentId));
 
         if (payment?.ExternalReference == null)
             return Ok();
