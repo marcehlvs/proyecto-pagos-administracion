@@ -35,18 +35,19 @@
                 <select asp-for="Estado" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.EstadoPago>()"></select>
                 <span asp-validation-for="Estado" class="text-danger"></span>
             </div>
-
+            <!--  
             <div class="form-group">
                 <label asp-for="MercadoPagoPaymentId" class="control-label"></label>
                 <input asp-for="MercadoPagoPaymentId" class="form-control" />
                 <span asp-validation-for="MercadoPagoPaymentId" class="text-danger"></span>
             </div>
-
+            
             <div class="form-group">
                 <label asp-for="MercadoPagoPreferenceId" class="control-label"></label>
                 <input asp-for="MercadoPagoPreferenceId" class="form-control" />
                 <span asp-validation-for="MercadoPagoPreferenceId" class="text-danger"></span>
             </div>
+            -->
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
@@ -57,3 +58,9 @@
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+}

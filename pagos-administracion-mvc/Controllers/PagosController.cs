@@ -71,30 +71,25 @@ public class PagosController : Controller
     // GET: PAGOS/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
-        if (id == null)
-        {
-            return NotFound();
-        }
+        if (id == null) return NotFound();
 
         var pago = await _context.Pagos.FindAsync(id);
-        if (pago == null)
-        {
-            return NotFound();
-        }
+        if (pago == null) return NotFound();
+
+        ViewBag.CuotaId = new SelectList(
+            _context.Cuotas.Include(c => c.Alumno)
+                .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
+                .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
+            "Id", "Detalle", pago.CuotaId);
         return View(pago);
     }
+
     [Authorize(Roles = "Admin")]
-    // POST: PAGOS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,CuotaId,Cuota,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pago)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,CuotaId,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pago)
     {
-        if (id != pago.Id)
-        {
-            return NotFound();
-        }
+        if (id != pago.Id) return NotFound();
 
         if (ModelState.IsValid)
         {
@@ -105,17 +100,16 @@ public class PagosController : Controller
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!PagoExists(pago.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!PagoExists(pago.Id)) return NotFound();
+                else throw;
             }
             return RedirectToAction(nameof(Index));
         }
+        ViewBag.CuotaId = new SelectList(
+            _context.Cuotas.Include(c => c.Alumno)
+                .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
+                .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
+            "Id", "Detalle", pago.CuotaId);
         return View(pago);
     }
     [Authorize(Roles = "Admin")]
