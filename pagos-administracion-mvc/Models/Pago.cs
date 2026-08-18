@@ -1,4 +1,5 @@
-﻿using static pagos_administracion_mvc.Models.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Models
 {
@@ -7,7 +8,10 @@ namespace pagos_administracion_mvc.Models
         public int Id { get; set; }
         public int CuotaId { get; set; }
         public Cuota Cuota { get; set; } = null!;
+        [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor a 0.")]
+
         public decimal Monto { get; set; }
+        [DataType(DataType.Date)]
         public DateTime Fecha {  get; set; }
         public EstadoPago Estado { get; set; }
 

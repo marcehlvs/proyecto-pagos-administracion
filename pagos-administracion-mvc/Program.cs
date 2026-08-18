@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AdministracionDbContext>();
+builder.Services.AddScoped<MercadoPagoService>();
 
 var app = builder.Build();
 
