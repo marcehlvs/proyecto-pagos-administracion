@@ -48,7 +48,13 @@
                 <select asp-for="Turno" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.Turno>()"></select>
                 <span asp-validation-for="Turno" class="text-danger"></span>
             </div>          
-
+            <div class="form-group">
+                <label asp-for="FamiliaUserId" class="control-label">Familia asignada</label>
+                <select asp-for="FamiliaUserId" class="form-control" asp-items="ViewBag.FamiliaUserId">
+                    <option value="">-- Sin asignar --</option>
+                </select>
+                <span asp-validation-for="FamiliaUserId" class="text-danger"></span>
+            </div>
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>

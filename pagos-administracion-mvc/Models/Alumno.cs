@@ -1,4 +1,5 @@
-﻿using static pagos_administracion_mvc.Models.Enums;
+﻿using pagos_administracion_mvc.Data;
+using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Models
 {
@@ -11,6 +12,9 @@ namespace pagos_administracion_mvc.Models
         public NivelEducativo Nivel { get; set; }
         public int GradoAnio { get; set; }
         public Turno Turno { get; set; }
+
+        public string? FamiliaUserId { get; set; }
+        public ApplicationUser? FamiliaUser { get; set; }
 
         //Un alumno tiene muchas cuotas (una por mes)
         public ICollection<Cuota> Cuotas { get; set; } = new List<Cuota>();
