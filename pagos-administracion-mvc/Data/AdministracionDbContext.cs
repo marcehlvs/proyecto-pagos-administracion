@@ -33,6 +33,11 @@ namespace pagos_administracion_mvc.Data
                 .WithMany(c => c.Pagos)
                 .HasForeignKey(p => p.CuotaId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Alumno>()
+                .HasOne(a => a.FamiliaUser)
+                .WithMany() // un ApplicationUser puede tener varios Alumnos, pero no navegamos la colección desde ApplicationUser
+                .HasForeignKey(a => a.FamiliaUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

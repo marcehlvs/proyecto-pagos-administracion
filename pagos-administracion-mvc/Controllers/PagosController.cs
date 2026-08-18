@@ -216,13 +216,13 @@ public class PagosController : Controller
         return Ok();
     }
 
-    [Authorize]
+    [AllowAnonymous]
     public IActionResult PagoExitoso() => View();
 
-    [Authorize]
+    [AllowAnonymous]
     public IActionResult PagoFallido() => View();
 
-    [Authorize]
+    [AllowAnonymous]
     public IActionResult PagoPendiente() => View();
 
 

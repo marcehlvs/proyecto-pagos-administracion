@@ -1,18 +1,29 @@
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using pagos_administracion_mvc.Models;
-using pagos_administracion_mvc.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Models;
 [Authorize]
 public class AlumnosController : Controller
 {
     private readonly AdministracionDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager; 
 
-    public AlumnosController(AdministracionDbContext context)
+    public AlumnosController(AdministracionDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _userManager = userManager; 
     }
+
+    private async Task<SelectList> ObtenerFamiliasSelectListAsync(string? seleccionado = null)
+    {
+        var familias = await _userManager.GetUsersInRoleAsync("Familia");
+        return new SelectList(familias.OrderBy(f => f.Email), "Id", "Email", seleccionado);
+    }
+
 
     // GET: ALUMNOS
     public async Task<IActionResult> Index()    
@@ -37,21 +48,21 @@ public class AlumnosController : Controller
 
         return View(alumno);
     }
-
     // GET: ALUMNOS/Create
-    [Authorize(Roles ="Admin")]
-    public IActionResult Create()
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Create()
     {
+        // Cargar la lista para el dropdown en el GET
+        ViewBag.FamiliaUserId = await ObtenerFamiliasSelectListAsync();
         return View();
     }
 
     // POST: ALUMNOS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno")] Alumno alumno)
+    // IMPORTANTE: Asegúrate de agregar FamiliaUserId al [Bind]
+    public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,FamiliaUserId")] Alumno alumno)
     {
         if (ModelState.IsValid)
         {
@@ -59,6 +70,9 @@ public class AlumnosController : Controller
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+        // Si el ModelState es inválido, recargar la lista manteniendo la selección
+        ViewBag.FamiliaUserId = await ObtenerFamiliasSelectListAsync(alumno.FamiliaUserId);
         return View(alumno);
     }
 
@@ -76,17 +90,18 @@ public class AlumnosController : Controller
         {
             return NotFound();
         }
+
+        // Cargar la lista pasando el usuario actualmente asignado
+        ViewBag.FamiliaUserId = await ObtenerFamiliasSelectListAsync(alumno.FamiliaUserId);
         return View(alumno);
     }
 
     // POST: ALUMNOS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    
     [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno")] Alumno alumno)
+    // IMPORTANTE: Asegúrate de agregar FamiliaUserId al [Bind]
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,FamiliaUserId")] Alumno alumno)
     {
         if (id != alumno.Id)
         {
@@ -113,8 +128,12 @@ public class AlumnosController : Controller
             }
             return RedirectToAction(nameof(Index));
         }
+
+        // Si el ModelState es inválido, recargar la lista manteniendo la selección
+        ViewBag.FamiliaUserId = await ObtenerFamiliasSelectListAsync(alumno.FamiliaUserId);
         return View(alumno);
     }
+
     [Authorize(Roles = "Admin")]
     // GET: ALUMNOS/Delete/5
     public async Task<IActionResult> Delete(int? id)
