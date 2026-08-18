@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
@@ -178,4 +179,49 @@ public class PagosController : Controller
 
         return Redirect(preferencia.InitPoint);
     }
+
+    //Mercado Pago, cuando se realiza un pago, envía un webhook a esta URL para notificar el estado del pago.
+    [AllowAnonymous]
+    [HttpPost("api/mercadopago/webhook")]
+    public async Task<IActionResult> Webhook([FromQuery] string? topic, [FromQuery] string? id)
+    {
+        // MP manda distintos formatos según el evento; el que nos importa es "payment"
+        if (topic != "payment" || string.IsNullOrEmpty(id))
+            return Ok(); // respondemos 200 igual, para que MP no reintente en loop
+
+        var paymentClient = new global::MercadoPago.Client.Payment.PaymentClient();
+        var payment = await paymentClient.GetAsync(long.Parse(id));
+
+        if (payment?.ExternalReference == null)
+            return Ok();
+
+        var pagoId = int.Parse(payment.ExternalReference);
+        var pago = await _context.Pagos.Include(p => p.Cuota).FirstOrDefaultAsync(p => p.Id == pagoId);
+        if (pago == null) return Ok();
+
+        pago.MercadoPagoPaymentId = payment.Id.ToString();
+        pago.Estado = payment.Status switch
+        {
+            "approved" => EstadoPago.Aprobado,
+            "rejected" => EstadoPago.Rechazado,
+            _ => EstadoPago.Pendiente
+        };
+
+        if (pago.Estado == EstadoPago.Aprobado)
+            pago.Cuota.Estado = EstadoCuota.Pagada;
+
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+    [Authorize]
+    public IActionResult PagoExitoso() => View();
+
+    [Authorize]
+    public IActionResult PagoFallido() => View();
+
+    [Authorize]
+    public IActionResult PagoPendiente() => View();
+
+
 }
