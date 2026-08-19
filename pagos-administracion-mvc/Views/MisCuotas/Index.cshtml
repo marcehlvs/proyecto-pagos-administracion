@@ -3,33 +3,24 @@
 
 @{
     ViewData["Title"] = "Mis Cuotas";
+    var anios = Model.Select(c => c.Anio).Distinct().OrderByDescending(a => a);
 }
 
 <h1>Mis Cuotas</h1>
 
-@if (!Model.Any())
+@foreach (var anio in anios)
 {
-    <p class="text-muted">Todavía no hay alumnos ni cuotas asociadas a tu cuenta. Contactá a la administración de la escuela.</p>
-}
-else
-{
+    <h4 class="mt-4">@anio</h4>
     <table class="table table-striped">
         <thead>
-            <tr>
-                <th>Alumno</th>
-                <th>Mes/Año</th>
-                <th>Monto</th>
-                <th>Vencimiento</th>
-                <th>Estado</th>
-                <th></th>
-            </tr>
+            <tr><th>Alumno</th><th>Mes</th><th>Monto</th><th>Vencimiento</th><th>Estado</th><th></th></tr>
         </thead>
         <tbody>
-            @foreach (var cuota in Model)
+            @foreach (var cuota in Model.Where(c => c.Anio == anio).OrderBy(c => c.Mes))
             {
                 <tr>
                     <td>@cuota.Alumno.Apellido, @cuota.Alumno.Nombre</td>
-                    <td>@cuota.Mes/@cuota.Anio</td>
+                    <td>@cuota.Mes</td>
                     <td>@cuota.Monto.ToString("C")</td>
                     <td>@cuota.FechaVencimiento.ToString("dd/MM/yyyy")</td>
                     <td>
@@ -45,7 +36,7 @@ else
                         <span class="badge @badgeClass">@cuota.Estado</span>
                     </td>
                     <td>
-                        <a asp-controller="MisCuotas" asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary">Ver</a>
+                        <a asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary">Ver</a>
                         @if (cuota.Estado == EstadoCuota.Pendiente || cuota.Estado == EstadoCuota.Vencida)
                         {
                             <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@cuota.Id" class="btn btn-sm btn-success">Pagar</a>
