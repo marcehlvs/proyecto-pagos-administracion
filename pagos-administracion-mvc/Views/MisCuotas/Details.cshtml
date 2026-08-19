@@ -20,7 +20,7 @@
 
 @if (Model.Estado == EstadoCuota.Pendiente || Model.Estado == EstadoCuota.Vencida)
 {
-    <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@Model.Id" class="btn btn-success">Pagar esta cuota</a>
+    <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id" class="btn btn-success">Pagar esta cuota</a>
 }
 
 <hr />
