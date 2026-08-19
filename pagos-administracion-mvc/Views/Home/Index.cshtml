@@ -1,8 +1,92 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="p-5 mb-4 rounded-4 text-white" style="background-color: var(--color-primary-dark);">
+    <span class="badge bg-light text-dark mb-3">CICLO LECTIVO 2026</span>
+    <h1 class="display-6 fw-bold">Escuela José de San Martín</h1>
+    <p class="col-md-8 fs-5">Formando el futuro con valores y excelencia académica desde el nivel inicial hasta el secundario.</p>
+    <div class="d-flex gap-2 flex-wrap">
+        @if (User.IsInRole("Familia"))
+        {
+            <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
+        }
+        else if (User.IsInRole("Admin"))
+        {
+            <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
+        }
+        else
+        {
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
+        }
+        <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-lg">Conocé nuestra propuesta</a>
+    </div>
+</div>
+
+<div class="row text-center mb-4">
+    <div class="col-6">
+        <div class="card p-3">
+            <div class="fs-3 fw-bold">@ViewBag.CantidadAlumnos</div>
+            <div class="text-muted text-uppercase small">Alumnos</div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card p-3">
+            <div class="fs-3 fw-bold">50 Años</div>
+            <div class="text-muted text-uppercase small">De excelencia</div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Novedades y Avisos</h4>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card p-3 border-start border-success border-4">
+            <span class="badge bg-success mb-1 align-self-start">Importante</span>
+            <strong>Inscripciones abiertas 2026</strong>
+            <p class="text-muted mb-0 small">Ya se encuentra habilitado el portal para la matriculación de alumnos regulares.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 border-start border-warning border-4">
+            <span class="badge bg-warning text-dark mb-1 align-self-start">Calendario</span>
+            <strong>Reunión de Padres - Nivel Primario</strong>
+            <p class="text-muted mb-0 small">Se convoca a los tutores de 1° a 3° grado para la presentación del nuevo plan de lectura.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 border-start border-danger border-4">
+            <span class="badge bg-danger mb-1 align-self-start">Aviso</span>
+            <strong>Feriado Institucional</strong>
+            <p class="text-muted mb-0 small">El próximo viernes la institución permanecerá cerrada por desinfección programada.</p>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Accesos Rápidos</h4>
+<div class="row g-3">
+    <div class="col-6 col-md-3">
+        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
+            <div class="fs-2">📅</div>
+            Calendario Escolar
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
+            <div class="fs-2">🍽️</div>
+            Menú Comedor
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
+            <div class="fs-2">📄</div>
+            Certificados Online
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
+            <div class="fs-2">💬</div>
+            Contacto Docente
+        </a>
+    </div>
 </div>
