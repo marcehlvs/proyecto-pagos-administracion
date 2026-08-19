@@ -27,7 +27,8 @@
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item"><a class="nav-link" asp-controller="Alumnos" asp-action="Index">Alumnos</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Alumnos" asp-action="Index">Alumnos</a></li>}
+                            <li class="nav-item"><a class="nav-link" asp-controller="Familias" asp-action="Index">Familias</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Cuotas" asp-action="Index">Cuotas</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Pagos" asp-action="Index">Pagos</a></li>
                         }

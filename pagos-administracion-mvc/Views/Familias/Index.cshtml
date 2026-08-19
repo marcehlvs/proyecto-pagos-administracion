@@ -1,0 +1,32 @@
+﻿@model IEnumerable<pagos_administracion_mvc.Data.ApplicationUser>
+@{
+    ViewData["Title"] = "Familias";
+    var alumnosPorFamilia = (Dictionary<string, List<pagos_administracion_mvc.Models.Alumno>>)ViewBag.AlumnosPorFamilia;
+}
+
+<h1>Familias</h1>
+<a asp-action="Create" class="btn btn-primary mb-3">+ Crear familia</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr><th>Email</th><th>Alumnos asignados</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var familia in Model)
+        {
+            <tr>
+                <td>@familia.Email</td>
+                <td>
+                    @if (alumnosPorFamilia.TryGetValue(familia.Id, out var alumnos))
+                    {
+                        @string.Join(", ", alumnos.Select(a => $"{a.Apellido}, {a.Nombre}"))
+                    }
+                    else
+                    {
+                        <span class="text-muted">Sin alumnos asignados</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
