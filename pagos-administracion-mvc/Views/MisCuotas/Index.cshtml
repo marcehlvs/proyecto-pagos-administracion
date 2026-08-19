@@ -2,48 +2,109 @@
 @using static pagos_administracion_mvc.Models.Enums
 
 @{
-    ViewData["Title"] = "Mis Cuotas";
-    var anios = Model.Select(c => c.Anio).Distinct().OrderByDescending(a => a);
+    ViewData["Title"] = "Estado de Cuenta";
+
+    string[] meses = { "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+
+    var anios = Model.Select(c => c.Anio).Distinct().OrderByDescending(a => a).ToList();
+    var anioActivo = anios.FirstOrDefault();
+
+    // Cuota destacada: la que está pendiente/vencida con vencimiento más próximo
+    var cuotaDestacada = Model
+        .Where(c => c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Vencida)
+        .OrderBy(c => c.FechaVencimiento)
+        .FirstOrDefault();
 }
 
-<h1>Mis Cuotas</h1>
+<div class="mb-4">
+    <h1 class="h3 fw-bold mb-1">Estado de Cuenta</h1>
+    <p class="text-muted mb-0">Revisá las cuotas de tu familia y pagá desde acá.</p>
+</div>
 
-@foreach (var anio in anios)
+@if (cuotaDestacada != null)
 {
-    <h4 class="mt-4">@anio</h4>
-    <table class="table table-striped">
-        <thead>
-            <tr><th>Alumno</th><th>Mes</th><th>Monto</th><th>Vencimiento</th><th>Estado</th><th></th></tr>
-        </thead>
-        <tbody>
-            @foreach (var cuota in Model.Where(c => c.Anio == anio).OrderBy(c => c.Mes))
-            {
-                <tr>
-                    <td>@cuota.Alumno.Apellido, @cuota.Alumno.Nombre</td>
-                    <td>@cuota.Mes</td>
-                    <td>@cuota.Monto.ToString("C")</td>
-                    <td>@cuota.FechaVencimiento.ToString("dd/MM/yyyy")</td>
-                    <td>
-                        @{
-                            var badgeClass = cuota.Estado switch
-                            {
-                                EstadoCuota.Pagada => "bg-success",
-                                EstadoCuota.Vencida => "bg-danger",
-                                EstadoCuota.Parcial => "bg-warning text-dark",
-                                _ => "bg-secondary"
-                            };
-                        }
-                        <span class="badge @badgeClass">@cuota.Estado</span>
-                    </td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary">Ver</a>
-                        @if (cuota.Estado == EstadoCuota.Pendiente || cuota.Estado == EstadoCuota.Vencida)
-                        {
-                            <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@cuota.Id" class="btn btn-sm btn-success">Pagar</a>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    var esVencida = cuotaDestacada.Estado == EstadoCuota.Vencida;
+    <div class="card p-4 mb-4 border-start border-4 @(esVencida ? "border-danger" : "border-warning")">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge @(esVencida ? "bg-danger" : "bg-warning text-dark") mb-2">
+                    @(esVencida ? "Cuota vencida" : "Próxima a vencer")
+                </span>
+                <h2 class="h4 fw-bold mb-1">@meses[cuotaDestacada.Mes] @cuotaDestacada.Anio</h2>
+                <p class="text-muted mb-0">@cuotaDestacada.Alumno.Apellido, @cuotaDestacada.Alumno.Nombre</p>
+            </div>
+            <div class="text-md-end">
+                <div class="fs-3 fw-bold">@cuotaDestacada.Monto.ToString("C")</div>
+                <div class="text-muted small">Vence el @cuotaDestacada.FechaVencimiento.ToString("dd/MM/yyyy")</div>
+            </div>
+            <div>
+                <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@cuotaDestacada.Id" class="btn btn-success btn-lg">Pagar ahora</a>
+            </div>
+        </div>
+    </div>
 }
+else if (Model.Any())
+{
+    <div class="card p-4 mb-4 border-start border-4 border-success text-center">
+        <div class="fs-2 mb-2">✅</div>
+        <h2 class="h5 fw-bold mb-1">¡Estás al día!</h2>
+        <p class="text-muted mb-0">No tenés cuotas pendientes por el momento.</p>
+    </div>
+}
+else
+{
+    <p class="text-muted">Todavía no hay cuotas cargadas para tu familia.</p>
+}
+
+@if (anios.Count > 1)
+{
+    <ul class="nav nav-pills mb-3">
+        @foreach (var anio in anios)
+        {
+            <li class="nav-item">
+                <button class="nav-link @(anio == anioActivo ? "active" : "")" data-bs-toggle="pill" data-bs-target="#anio-@anio" type="button">@anio</button>
+            </li>
+        }
+    </ul>
+}
+
+<div class="tab-content">
+    @foreach (var anio in anios)
+    {
+        <div class="tab-pane fade @(anio == anioActivo ? "show active" : "")" id="anio-@anio">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
+                @foreach (var cuota in Model.Where(c => c.Anio == anio).OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Mes))
+                {
+                    var badgeClass = cuota.Estado switch
+                    {
+                        EstadoCuota.Pagada => "bg-success",
+                        EstadoCuota.Vencida => "bg-danger",
+                        EstadoCuota.Parcial => "bg-warning text-dark",
+                        _ => "bg-secondary"
+                    };
+                    <div class="col">
+                        <div class="card h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="fw-bold">@meses[cuota.Mes] @cuota.Anio</div>
+                                    <div class="text-muted small">@cuota.Alumno.Apellido, @cuota.Alumno.Nombre</div>
+                                </div>
+                                <span class="badge @badgeClass">@cuota.Estado</span>
+                            </div>
+                            <div class="fs-5 fw-bold mb-1">@cuota.Monto.ToString("C")</div>
+                            <div class="text-muted small mb-3">Vence @cuota.FechaVencimiento.ToString("dd/MM/yyyy")</div>
+                            <div class="mt-auto d-flex gap-2">
+                                <a asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary flex-fill">Ver</a>
+                                @if (cuota.Estado == EstadoCuota.Pendiente || cuota.Estado == EstadoCuota.Vencida)
+                                {
+                                    <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@cuota.Id" class="btn btn-sm btn-success flex-fill">Pagar</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
