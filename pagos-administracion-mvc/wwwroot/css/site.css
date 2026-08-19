@@ -29,3 +29,48 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+:root {
+    --color-primary: #1A365D;
+    --color-primary-dark: #002045;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-bg: #F7FAFC;
+    --color-surface: #FFFFFF;
+    --color-text: #181c1e;
+    --color-text-muted: #4A5568;
+    --color-border: #E2E8F0;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+.bg-primary-institucional {
+    background-color: var(--color-primary-dark) !important;
+}
+
+.card {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.btn-warning {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+}
+
+h1, h2, h3, h4, .navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
