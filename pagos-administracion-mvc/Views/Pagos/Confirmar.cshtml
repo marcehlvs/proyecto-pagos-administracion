@@ -1,0 +1,60 @@
+﻿@model pagos_administracion_mvc.Models.Cuota
+@using static pagos_administracion_mvc.Models.Enums
+
+@{
+    ViewData["Title"] = "Confirmar pago";
+
+    string[] meses = { "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+
+    var esVencida = Model.Estado == EstadoCuota.Vencida;
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-sm-9 col-md-7 col-lg-5">
+
+        <div class="p-4 rounded-4 rounded-bottom-0 text-white text-center" style="background-color: var(--color-primary-dark);">
+            <span class="badge bg-light text-dark mb-2">CONFIRMAR PAGO</span>
+            <h1 class="h4 fw-bold mb-1">@meses[Model.Mes] @Model.Anio</h1>
+            <p class="mb-0 small opacity-75">@Model.Alumno.Apellido, @Model.Alumno.Nombre</p>
+        </div>
+
+        <div class="card rounded-top-0 border-top-0 p-4 p-md-5">
+
+            @if (esVencida)
+            {
+                <div class="badge bg-danger mb-3">Cuota vencida</div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <span class="text-muted">Alumno/a</span>
+                <span class="fw-semibold">@Model.Alumno.Apellido, @Model.Alumno.Nombre</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <span class="text-muted">Período</span>
+                <span class="fw-semibold">@meses[Model.Mes] @Model.Anio</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <span class="text-muted">Vencimiento</span>
+                <span class="fw-semibold">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-3">
+                <span class="text-muted">Total a pagar</span>
+                <span class="fs-3 fw-bold">@Model.Monto.ToString("C")</span>
+            </div>
+
+            <form asp-controller="Pagos" asp-action="Pagar" method="post" class="mt-2">
+                <input type="hidden" name="cuotaId" value="@Model.Id" />
+                <button type="submit" class="w-100 btn btn-lg btn-success">Ir a pagar</button>
+            </form>
+
+            <p class="text-muted small text-center mt-3 mb-0">
+                Vas a ser redirigido a Mercado Pago para completar el pago de forma segura.
+            </p>
+
+            <div class="text-center mt-3">
+                <a asp-controller="MisCuotas" asp-action="Index" class="small">Volver a mis cuotas</a>
+            </div>
+        </div>
+    </div>
+</div>

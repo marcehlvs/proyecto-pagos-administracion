@@ -167,9 +167,31 @@ namespace pagos_administracion_mvc.Controllers // Asegurate de que el namespace 
         }
 
         // ==========================================
+        // CONFIRMACIÓN DE PAGO (pantalla 5 simplificada: resumen + botón)
+        // ==========================================
+        [Authorize(Roles = "Familia")]
+        public async Task<IActionResult> Confirmar(int cuotaId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var cuota = await _context.Cuotas
+                .Include(c => c.Alumno)
+                .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
+
+            if (cuota == null) return NotFound(); // no es su cuota, o no existe
+
+            if (cuota.Estado == EstadoCuota.Pagada)
+                return RedirectToAction("Index", "MisCuotas");
+
+            return View(cuota);
+        }
+
+        // ==========================================
         // NUEVA ACCIÓN PAGAR (Segura y con validación)
         // ==========================================
         [Authorize(Roles = "Familia")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Pagar(int cuotaId)
         {
             var userId = _userManager.GetUserId(User);

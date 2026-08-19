@@ -39,7 +39,7 @@
                 <div class="text-muted small">Vence el @cuotaDestacada.FechaVencimiento.ToString("dd/MM/yyyy")</div>
             </div>
             <div>
-                <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@cuotaDestacada.Id" class="btn btn-success btn-lg">Pagar ahora</a>
+                <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@cuotaDestacada.Id" class="btn btn-success btn-lg">Pagar ahora</a>
             </div>
         </div>
     </div>
@@ -98,7 +98,7 @@ else
                                 <a asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary flex-fill">Ver</a>
                                 @if (cuota.Estado == EstadoCuota.Pendiente || cuota.Estado == EstadoCuota.Vencida)
                                 {
-                                    <a asp-controller="Pagos" asp-action="Pagar" asp-route-cuotaId="@cuota.Id" class="btn btn-sm btn-success flex-fill">Pagar</a>
+                                    <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@cuota.Id" class="btn btn-sm btn-success flex-fill">Pagar</a>
                                 }
                             </div>
                         </div>
