@@ -33,6 +33,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddEntityFrameworkStores<AdministracionDbContext>();
 
 builder.Services.AddScoped<MercadoPagoService>();
+builder.Services.AddHostedService<RevisorVencimientosService>();
 
 var app = builder.Build();
 

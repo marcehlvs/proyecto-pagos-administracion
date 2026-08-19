@@ -1,0 +1,48 @@
+﻿@model pagos_administracion_mvc.Models.FamiliaCreateViewModel
+@{
+    ViewData["Title"] = "Crear familia";
+    var alumnosDisponibles = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.AlumnosDisponibles;
+}
+
+<h1>Crear familia</h1>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Email" class="control-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Password" class="control-label">Contraseña temporal</label>
+        <input asp-for="Password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label class="control-label">Alumnos a asignar (opcional)</label>
+        @if (!alumnosDisponibles.Any())
+        {
+            <p class="text-muted">No hay alumnos sin familia asignada.</p>
+        }
+        else
+        {
+            <select asp-for="AlumnoIds" class="form-control" multiple size="6">
+                @foreach (var alumno in alumnosDisponibles)
+                {
+                    <option value="@alumno.Id">@alumno.Apellido, @alumno.Nombre</option>
+                }
+            </select>
+            <small class="text-muted">Mantené Ctrl (Cmd en Mac) para seleccionar varios.</small>
+        }
+    </div>
+
+    <button type="submit" class="btn btn-primary">Crear</button>
+    <a asp-action="Index" class="btn btn-link">Cancelar</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
