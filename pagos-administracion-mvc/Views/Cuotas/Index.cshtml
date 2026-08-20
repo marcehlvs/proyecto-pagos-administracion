@@ -2,20 +2,20 @@
 @using static pagos_administracion_mvc.Models.Enums
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Cuotas";
 }
 
-<h1>Index</h1>
+<h1>Cuotas</h1>
+<p><a asp-action="Create" class="btn btn-primary btn-sm">+ Nueva cuota</a></p>
+
 <form method="get" class="row g-2 mb-3 align-items-end">
     <div class="col-auto">
-        <label class="form-label small">Alumno</label>
-        <select name="alumnoId" class="form-select" asp-items="ViewBag.AlumnoId" onchange="this.form.submit()">
-            <option value="">Todos</option>
-        </select>
+        <label class="form-label small">Buscar alumno</label>
+        <input type="text" name="buscarAlumno" class="form-control" placeholder="Apellido, nombre o DNI" value="@ViewBag.BuscarAlumno" />
     </div>
     <div class="col-auto">
         <label class="form-label small">Estado</label>
-        <select name="estado" class="form-select" onchange="this.form.submit()">
+        <select name="estado" class="form-select">
             <option value="">Todos</option>
             @foreach (EstadoCuota e in Enum.GetValues(typeof(EstadoCuota)))
             {
@@ -23,68 +23,30 @@
             }
         </select>
     </div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Buscar</button></div>
     <div class="col-auto"><a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a></div>
 </form>
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
+
+<table class="table table-striped">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.AlumnoId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Alumno)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Mes)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Anio)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Monto)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.FechaVencimiento)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Estado)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Pagos)
-            </th>
+            <th>Alumno</th>
+            <th>Mes/Año</th>
+            <th>Monto</th>
+            <th>Vencimiento</th>
+            <th>Estado</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.AlumnoId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Alumno)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Mes)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Anio)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Monto)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.FechaVencimiento)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Estado)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Pagos)
-            </td>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Alumno.Apellido, @item.Alumno.Nombre</td>
+                <td>@item.Mes/@item.Anio</td>
+                <td>@item.Monto.ToString("C")</td>
+                <td>@item.FechaVencimiento.ToString("dd/MM/yyyy")</td>
+                <td>@item.Estado</td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
                         <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
@@ -92,7 +54,7 @@
                         <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
                     </div>
                 </td>
-        </tr>
-}
+            </tr>
+        }
     </tbody>
 </table>

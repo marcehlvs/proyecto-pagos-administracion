@@ -27,17 +27,19 @@ namespace pagos_administracion_mvc.Controllers // Asegurate de que el namespace 
         }
 
         // GET: PAGOS
-      
-        public async Task<IActionResult> Index(int? alumnoId, EstadoPago? estado)
+
+        public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado)
         {
             var query = _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno).AsQueryable();
 
-            if (alumnoId.HasValue) query = query.Where(p => p.Cuota.AlumnoId == alumnoId.Value);
+            if (!string.IsNullOrWhiteSpace(buscarAlumno))
+                query = query.Where(p => p.Cuota.Alumno.Apellido.Contains(buscarAlumno)
+                                       || p.Cuota.Alumno.Nombre.Contains(buscarAlumno)
+                                       || p.Cuota.Alumno.Dni.Contains(buscarAlumno));
+
             if (estado.HasValue) query = query.Where(p => p.Estado == estado.Value);
 
-            ViewBag.AlumnoId = new SelectList(
-                _context.Alumnos.OrderBy(a => a.Apellido).Select(a => new { a.Id, NombreCompleto = a.Apellido + ", " + a.Nombre }),
-                "Id", "NombreCompleto", alumnoId);
+            ViewBag.BuscarAlumno = buscarAlumno;
             ViewBag.EstadoSeleccionado = estado;
 
             return View(await query.OrderByDescending(p => p.Fecha).ToListAsync());
