@@ -17,6 +17,7 @@ namespace pagos_administracion_mvc.Models
 
         public string MercadoPagoPaymentId { get; set; } = string.Empty;
         public string MercadoPagoPreferenceId { get; set; } = string.Empty;
+        public string? ComprobanteRuta { get; set; }
     }
     
 }

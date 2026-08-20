@@ -22,6 +22,7 @@
         public enum EstadoPago
         {
             Pendiente,
+            EnRevision, //Comprobante de pago, con espera de confirmación del admin
             Aprobado,
             Rechazado,
             Cancelado

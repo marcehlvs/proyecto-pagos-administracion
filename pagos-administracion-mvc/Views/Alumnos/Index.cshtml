@@ -1,12 +1,15 @@
 @model IEnumerable<pagos_administracion_mvc.Models.Alumno>
 @using static pagos_administracion_mvc.Models.Enums
 
-
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Alumnos";
 }
 
-<h1>Index</h1>
+<h1>Alumnos</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary btn-sm">+ Nuevo alumno</a>
+</p>
 
 <form method="get" class="row g-2 mb-3 align-items-end">
     <div class="col-auto">
@@ -37,68 +40,57 @@
         <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a>
     </div>
 </form>
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
+
+<table class="table table-striped">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Nombre)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Apellido)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Dni)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Nivel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.GradoAnio)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Turno)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Cuotas)
-            </th>
+            <th>@Html.DisplayNameFor(model => model.Nombre)</th>
+            <th>@Html.DisplayNameFor(model => model.Apellido)</th>
+            <th>@Html.DisplayNameFor(model => model.Dni)</th>
+            <th>@Html.DisplayNameFor(model => model.Nivel)</th>
+            <th>@Html.DisplayNameFor(model => model.GradoAnio)</th>
+            <th>@Html.DisplayNameFor(model => model.Turno)</th>
+            <th>@Html.DisplayNameFor(model => model.Cuotas)</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.Nombre)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Apellido)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Dni)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Nivel)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.GradoAnio)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Turno)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Cuotas)
-            </td>
-            <td>
-                <div class="btn-group btn-group-sm" role="group">
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary">Ver</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
-                </div>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td class="align-middle">@Html.DisplayFor(model => item.Nombre)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Apellido)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Dni)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Nivel)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.GradoAnio)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Turno)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Cuotas)</td>
+                <td class="align-middle text-end">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Acciones
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
+                                    <i class="bi bi-eye"></i> Ver detalle
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
