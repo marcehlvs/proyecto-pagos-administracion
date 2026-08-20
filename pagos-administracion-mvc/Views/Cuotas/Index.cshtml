@@ -6,7 +6,10 @@
 }
 
 <h1>Cuotas</h1>
-<p><a asp-action="Create" class="btn btn-primary btn-sm">+ Nueva cuota</a></p>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary btn-sm">+ Nueva cuota</a>
+</p>
 
 <form method="get" class="row g-2 mb-3 align-items-end">
     <div class="col-auto">
@@ -23,8 +26,12 @@
             }
         </select>
     </div>
-    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Buscar</button></div>
-    <div class="col-auto"><a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a></div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a>
+    </div>
 </form>
 
 <table class="table table-striped">
@@ -42,16 +49,47 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td>@item.Alumno.Apellido, @item.Alumno.Nombre</td>
-                <td>@item.Mes/@item.Anio</td>
-                <td>@item.Monto.ToString("C")</td>
-                <td>@item.FechaVencimiento.ToString("dd/MM/yyyy")</td>
-                <td>@item.Estado</td>
-                <td>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary">Ver</a>
-                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                <td class="align-middle">@item.Alumno.Apellido, @item.Alumno.Nombre</td>
+                <td class="align-middle">@item.Mes/@item.Anio</td>
+                <td class="align-middle">@item.Monto.ToString("C")</td>
+                <td class="align-middle">@item.FechaVencimiento.ToString("dd/MM/yyyy")</td>
+                <td class="align-middle">
+                    @if (item.Estado == EstadoCuota.Pagada)
+                    {
+                        <span class="badge bg-success">Pagada</span>
+                    }
+                    else if (item.Estado == EstadoCuota.Vencida)
+                    {
+                        <span class="badge bg-danger">Vencida</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">@item.Estado</span>
+                    }
+                </td>
+                <td class="align-middle text-end">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Acciones
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
+                                    <i class="bi bi-eye"></i> Ver detalle
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </td>
             </tr>

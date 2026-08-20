@@ -42,16 +42,71 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td>@item.Cuota.Alumno.Apellido, @item.Cuota.Alumno.Nombre</td>
-                <td>@item.Cuota.Mes/@item.Cuota.Anio</td>
-                <td>@item.Monto.ToString("C")</td>
-                <td>@item.Fecha.ToString("dd/MM/yyyy")</td>
-                <td>@item.Estado</td>
-                <td>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary">Ver</a>
-                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                <td class="align-middle">@item.Cuota.Alumno.Apellido, @item.Cuota.Alumno.Nombre</td>
+                <td class="align-middle">@item.Cuota.Mes/@item.Cuota.Anio</td>
+                <td class="align-middle">@item.Monto.ToString("C")</td>
+                <td class="align-middle">@item.Fecha.ToString("dd/MM/yyyy")</td>
+                <td class="align-middle">
+                    @if (item.Estado == EstadoPago.EnRevision)
+                    {
+                        <span class="badge bg-warning text-dark">En Revisión</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">@item.Estado</span>
+                    }
+                </td>
+                <td class="align-middle text-end">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Acciones
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
+                                    <i class="bi bi-eye"></i> Ver detalle
+                                </a>
+                            </li>
+                            @if (!string.IsNullOrEmpty(item.ComprobanteRuta))
+                            {
+                                <li>
+                                    <a class="dropdown-item text-info" asp-action="VerComprobante" asp-route-pagoId="@item.Id" target="_blank">
+                                        <i class="bi bi-file-earmark-text"></i> Ver comprobante
+                                    </a>
+                                </li>
+                            }
+                            <li>
+                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </li>
+
+                            @if (item.Estado == EstadoPago.EnRevision)
+                            {
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-action="AprobarComprobante" asp-route-id="@item.Id" method="post">
+                                        <button type="submit" class="dropdown-item text-success fw-bold">
+                                            <i class="bi bi-check-circle"></i> Aprobar
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form asp-action="RechazarComprobante" asp-route-id="@item.Id" method="post">
+                                        <button type="submit" class="dropdown-item text-danger fw-bold">
+                                            <i class="bi bi-x-circle"></i> Rechazar
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </td>
             </tr>

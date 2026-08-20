@@ -1,33 +1,38 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity; // Agregado para UserManager
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Logging; // Agregado para ILogger
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
 using static pagos_administracion_mvc.Models.Enums;
 
-namespace pagos_administracion_mvc.Controllers // Asegurate de que el namespace coincida con el tuyo
+namespace pagos_administracion_mvc.Controllers
 {
     [Authorize]
     public class PagosController : Controller
     {
         private readonly AdministracionDbContext _context;
         private readonly MercadoPagoService _mpService;
-        private readonly UserManager<ApplicationUser> _userManager; // Nuevo servicio inyectado
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<PagosController> _logger; // Inyección de ILogger
 
         // Constructor actualizado
-        public PagosController(AdministracionDbContext context, MercadoPagoService mpService, UserManager<ApplicationUser> userManager)
+        public PagosController(
+            AdministracionDbContext context,
+            MercadoPagoService mpService,
+            UserManager<ApplicationUser> userManager,
+            ILogger<PagosController> logger)
         {
             _context = context;
             _mpService = mpService;
             _userManager = userManager;
+            _logger = logger;
         }
 
         // GET: PAGOS
-
         public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado)
         {
             var query = _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno).AsQueryable();
@@ -233,40 +238,59 @@ namespace pagos_administracion_mvc.Controllers // Asegurate de que el namespace 
             return Redirect(preferencia.InitPoint);
         }
 
-        // Mercado Pago Webhook Endpoint
+        // Mercado Pago Webhook Endpoint (Con Idempotencia y Logging)
         [AllowAnonymous]
         [HttpPost("api/mercadopago/webhook")]
         public async Task<IActionResult> Webhook()
         {
-            var type = Request.Query["type"].FirstOrDefault() ?? Request.Query["topic"].FirstOrDefault();
-            var paymentId = Request.Query["data.id"].FirstOrDefault() ?? Request.Query["id"].FirstOrDefault();
-
-            if (type != "payment" || string.IsNullOrEmpty(paymentId))
-                return Ok();
-
-            var paymentClient = new global::MercadoPago.Client.Payment.PaymentClient();
-            var payment = await paymentClient.GetAsync(long.Parse(paymentId));
-
-            if (payment?.ExternalReference == null)
-                return Ok();
-
-            var pagoId = int.Parse(payment.ExternalReference);
-            var pago = await _context.Pagos.Include(p => p.Cuota).FirstOrDefaultAsync(p => p.Id == pagoId);
-            if (pago == null) return Ok();
-
-            pago.MercadoPagoPaymentId = payment.Id.ToString();
-            pago.Estado = payment.Status switch
+            try
             {
-                "approved" => EstadoPago.Aprobado,
-                "rejected" => EstadoPago.Rechazado,
-                _ => EstadoPago.Pendiente
-            };
+                var type = Request.Query["type"].FirstOrDefault() ?? Request.Query["topic"].FirstOrDefault();
+                var paymentId = Request.Query["data.id"].FirstOrDefault() ?? Request.Query["id"].FirstOrDefault();
 
-            if (pago.Estado == EstadoPago.Aprobado)
-                pago.Cuota.Estado = EstadoCuota.Pagada;
+                if (type != "payment" || string.IsNullOrEmpty(paymentId))
+                    return Ok();
 
-            await _context.SaveChangesAsync();
-            return Ok();
+                var paymentClient = new global::MercadoPago.Client.Payment.PaymentClient();
+                var payment = await paymentClient.GetAsync(long.Parse(paymentId));
+
+                if (payment?.ExternalReference == null)
+                    return Ok();
+
+                var pagoId = int.Parse(payment.ExternalReference);
+                var pago = await _context.Pagos.Include(p => p.Cuota).FirstOrDefaultAsync(p => p.Id == pagoId);
+
+                if (pago == null)
+                {
+                    _logger.LogWarning("Webhook de MP recibido para Pago inexistente. ExternalReference={Referencia}", payment.ExternalReference);
+                    return Ok();
+                }
+
+                // Idempotencia: si ya estaba en estado final, evitamos reprocesar
+                if (pago.Estado == EstadoPago.Aprobado || pago.Estado == EstadoPago.Rechazado)
+                    return Ok();
+
+                pago.MercadoPagoPaymentId = payment.Id.ToString();
+                pago.Estado = payment.Status switch
+                {
+                    "approved" => EstadoPago.Aprobado,
+                    "rejected" => EstadoPago.Rechazado,
+                    _ => EstadoPago.Pendiente
+                };
+
+                if (pago.Estado == EstadoPago.Aprobado)
+                    pago.Cuota.Estado = EstadoCuota.Pagada;
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Pago {PagoId} actualizado a {Estado} vía webhook.", pago.Id, pago.Estado);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error procesando webhook de Mercado Pago.");
+                return Ok(); // Devolvemos 200 OK para evitar reintentos infinitos de MP ante fallos internos
+            }
         }
 
         [AllowAnonymous]
@@ -277,5 +301,93 @@ namespace pagos_administracion_mvc.Controllers // Asegurate de que el namespace 
 
         [AllowAnonymous]
         public IActionResult PagoPendiente() => View();
+
+        [Authorize(Roles = "Familia")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubirComprobante(int pagoId, IFormFile archivo)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var pago = await _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno)
+                .FirstOrDefaultAsync(p => p.Id == pagoId && p.Cuota.Alumno.FamiliaUserId == userId);
+
+            if (pago == null) return NotFound();
+
+            if (archivo == null || archivo.Length == 0)
+            {
+                ModelState.AddModelError(string.Empty, "Seleccioná un archivo.");
+                return RedirectToAction("Details", "MisCuotas", new { id = pago.CuotaId });
+            }
+
+            var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+            if (!extensionesPermitidas.Contains(extension) || archivo.Length > 5 * 1024 * 1024) // 5MB
+            {
+                ModelState.AddModelError(string.Empty, "Archivo inválido (solo jpg/png/pdf, máx 5MB).");
+                return RedirectToAction("Details", "MisCuotas", new { id = pago.CuotaId });
+            }
+
+            var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "comprobantes");
+            Directory.CreateDirectory(carpeta);
+
+            var nombreArchivo = $"{Guid.NewGuid()}{extension}"; // nunca confiar en el nombre original
+            var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
+
+            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+                await archivo.CopyToAsync(stream);
+
+            pago.ComprobanteRuta = nombreArchivo;
+            pago.Estado = EstadoPago.EnRevision;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Details", "MisCuotas", new { id = pago.CuotaId });
+        }
+
+        [Authorize]
+        public async Task<IActionResult> VerComprobante(int pagoId)
+        {
+            var pago = await _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno)
+                .FirstOrDefaultAsync(p => p.Id == pagoId);
+
+            if (pago?.ComprobanteRuta == null) return NotFound();
+
+            var esAdmin = User.IsInRole("Admin");
+            var esDueño = pago.Cuota.Alumno.FamiliaUserId == _userManager.GetUserId(User);
+            if (!esAdmin && !esDueño) return Forbid();
+
+            var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "comprobantes", pago.ComprobanteRuta);
+            if (!System.IO.File.Exists(ruta)) return NotFound();
+
+            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "image/" + Path.GetExtension(ruta).TrimStart('.');
+            return PhysicalFile(ruta, contentType);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AprobarComprobante(int id)
+        {
+            var pago = await _context.Pagos.Include(p => p.Cuota).FirstOrDefaultAsync(p => p.Id == id);
+            if (pago == null) return NotFound();
+
+            pago.Estado = EstadoPago.Aprobado;
+            pago.Cuota.Estado = EstadoCuota.Pagada;
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RechazarComprobante(int id)
+        {
+            var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.Id == id);
+            if (pago == null) return NotFound();
+
+            pago.Estado = EstadoPago.Rechazado;
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
