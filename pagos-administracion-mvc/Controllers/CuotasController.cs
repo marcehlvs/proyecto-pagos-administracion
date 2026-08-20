@@ -17,16 +17,18 @@ public class CuotasController : Controller
     }
 
     // GET: CUOTAS
-    public async Task<IActionResult> Index(int? alumnoId, EstadoCuota? estado)
+    public async Task<IActionResult> Index(string? buscarAlumno, EstadoCuota? estado)
     {
         var query = _context.Cuotas.Include(c => c.Alumno).AsQueryable();
 
-        if (alumnoId.HasValue) query = query.Where(c => c.AlumnoId == alumnoId.Value);
+        if (!string.IsNullOrWhiteSpace(buscarAlumno))
+            query = query.Where(c => c.Alumno.Apellido.Contains(buscarAlumno)
+                                   || c.Alumno.Nombre.Contains(buscarAlumno)
+                                   || c.Alumno.Dni.Contains(buscarAlumno));
+
         if (estado.HasValue) query = query.Where(c => c.Estado == estado.Value);
 
-        ViewBag.AlumnoId = new SelectList(
-            _context.Alumnos.OrderBy(a => a.Apellido).Select(a => new { a.Id, NombreCompleto = a.Apellido + ", " + a.Nombre }),
-            "Id", "NombreCompleto", alumnoId);
+        ViewBag.BuscarAlumno = buscarAlumno;
         ViewBag.EstadoSeleccionado = estado;
 
         return View(await query.OrderByDescending(c => c.Anio).ThenBy(c => c.Mes).ToListAsync());
