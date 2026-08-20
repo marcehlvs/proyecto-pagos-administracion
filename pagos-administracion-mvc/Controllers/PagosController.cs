@@ -27,9 +27,20 @@ namespace pagos_administracion_mvc.Controllers // Asegurate de que el namespace 
         }
 
         // GET: PAGOS
-        public async Task<IActionResult> Index()
+      
+        public async Task<IActionResult> Index(int? alumnoId, EstadoPago? estado)
         {
-            return View(await _context.Pagos.ToListAsync());
+            var query = _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno).AsQueryable();
+
+            if (alumnoId.HasValue) query = query.Where(p => p.Cuota.AlumnoId == alumnoId.Value);
+            if (estado.HasValue) query = query.Where(p => p.Estado == estado.Value);
+
+            ViewBag.AlumnoId = new SelectList(
+                _context.Alumnos.OrderBy(a => a.Apellido).Select(a => new { a.Id, NombreCompleto = a.Apellido + ", " + a.Nombre }),
+                "Id", "NombreCompleto", alumnoId);
+            ViewBag.EstadoSeleccionado = estado;
+
+            return View(await query.OrderByDescending(p => p.Fecha).ToListAsync());
         }
 
         // GET: PAGOS/Details/5

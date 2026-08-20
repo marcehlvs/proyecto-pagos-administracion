@@ -20,16 +20,23 @@ namespace pagos_administracion_mvc.Controllers
         }
 
         // GET: Familias
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? busqueda, bool? sinAsignar)
         {
-            var familias = await _userManager.GetUsersInRoleAsync("Familia");
-            var alumnosPorFamilia = await _context.Alumnos
-                .Where(a => a.FamiliaUserId != null)
-                .ToListAsync();
+            var familias = (await _userManager.GetUsersInRoleAsync("Familia")).AsEnumerable();
 
-            ViewBag.AlumnosPorFamilia = alumnosPorFamilia
+            var alumnosPorFamilia = (await _context.Alumnos.Where(a => a.FamiliaUserId != null).ToListAsync())
                 .GroupBy(a => a.FamiliaUserId!)
                 .ToDictionary(g => g.Key, g => g.ToList());
+
+            if (!string.IsNullOrWhiteSpace(busqueda))
+                familias = familias.Where(f => f.Email!.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
+
+            if (sinAsignar == true)
+                familias = familias.Where(f => !alumnosPorFamilia.ContainsKey(f.Id));
+
+            ViewBag.AlumnosPorFamilia = alumnosPorFamilia;
+            ViewBag.Busqueda = busqueda;
+            ViewBag.SinAsignar = sinAsignar;
 
             return View(familias.OrderBy(f => f.Email).ToList());
         }

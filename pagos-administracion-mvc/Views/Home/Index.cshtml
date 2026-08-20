@@ -2,24 +2,31 @@
     ViewData["Title"] = "Inicio";
 }
 
-<div class="p-5 mb-4 rounded-4 text-white" style="background-color: var(--color-primary-dark);">
-    <span class="badge bg-light text-dark mb-3">CICLO LECTIVO 2026</span>
-    <h1 class="display-6 fw-bold">Escuela José de San Martín</h1>
-    <p class="col-md-8 fs-5">Formando el futuro con valores y excelencia académica desde el nivel inicial hasta el secundario.</p>
-    <div class="d-flex gap-2 flex-wrap">
-        @if (User.IsInRole("Familia"))
-        {
-            <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
-        }
-        else if (User.IsInRole("Admin"))
-        {
-            <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
-        }
-        else
-        {
-            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
-        }
-        <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-lg">Conocé nuestra propuesta</a>
+<div class="position-relative rounded-4 overflow-hidden mb-4 text-white" style="min-height: 380px;">
+    <video autoplay muted loop playsinline class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover; object-position: center 20%; z-index: -2;">
+        <source src="~/videos/@ViewBag.HeroVideo" type="video/mp4">
+    </video>
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(0, 32, 69, 0.75); z-index: -1;"></div>
+
+    <div class="p-5 d-flex flex-column justify-content-center h-100">
+        <span class="badge bg-light text-dark mb-3 align-self-start">CICLO LECTIVO 2026</span>
+        <h1 class="display-6 fw-bold">Escuela José de San Martín</h1>
+        <p class="col-md-8 fs-5">Formando el futuro con valores y excelencia académica desde el nivel inicial hasta el secundario.</p>
+        <div class="d-flex gap-2 flex-wrap">
+            @if (User.IsInRole("Familia"))
+            {
+                <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
+            }
+            else if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
+            }
+            else
+            {
+                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
+            }
+            <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-lg">Conocé nuestra propuesta</a>
+        </div>
     </div>
 </div>
 
