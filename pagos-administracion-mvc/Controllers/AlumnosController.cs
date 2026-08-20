@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
+using static pagos_administracion_mvc.Models.Enums;
 [Authorize]
 public class AlumnosController : Controller
 {
@@ -26,9 +27,19 @@ public class AlumnosController : Controller
 
 
     // GET: ALUMNOS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index(NivelEducativo? nivel, int? gradoAnio, Turno? turno)
     {
-        return View(await _context.Alumnos.ToListAsync());
+        var query = _context.Alumnos.AsQueryable();
+
+        if (nivel.HasValue) query = query.Where(a => a.Nivel == nivel.Value);
+        if (gradoAnio.HasValue) query = query.Where(a => a.GradoAnio == gradoAnio.Value);
+        if (turno.HasValue) query = query.Where(a => a.Turno == turno.Value);
+
+        ViewBag.NivelSeleccionado = nivel;
+        ViewBag.GradoSeleccionado = gradoAnio;
+        ViewBag.TurnoSeleccionado = turno;
+
+        return View(await query.OrderBy(a => a.Apellido).ToListAsync());
     }
 
     // GET: ALUMNOS/Details/5

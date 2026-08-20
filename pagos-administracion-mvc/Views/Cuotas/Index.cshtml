@@ -1,11 +1,30 @@
 @model IEnumerable<pagos_administracion_mvc.Models.Cuota>
+@using static pagos_administracion_mvc.Models.Enums
 
 @{
     ViewData["Title"] = "Index";
 }
 
 <h1>Index</h1>
-
+<form method="get" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label small">Alumno</label>
+        <select name="alumnoId" class="form-select" asp-items="ViewBag.AlumnoId" onchange="this.form.submit()">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label small">Estado</label>
+        <select name="estado" class="form-select" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            @foreach (EstadoCuota e in Enum.GetValues(typeof(EstadoCuota)))
+            {
+                <option value="@((int)e)" selected="@(ViewBag.EstadoSeleccionado == e)">@e</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto"><a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a></div>
+</form>
 <p>
     <a asp-action="Create">Create New</a>
 </p>
@@ -66,11 +85,13 @@
             <td>
                 @Html.DisplayFor(model => item.Pagos)
             </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary">Ver</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                    </div>
+                </td>
         </tr>
 }
     </tbody>

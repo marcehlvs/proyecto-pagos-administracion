@@ -1,4 +1,6 @@
 @model IEnumerable<pagos_administracion_mvc.Models.Alumno>
+@using static pagos_administracion_mvc.Models.Enums
+
 
 @{
     ViewData["Title"] = "Index";
@@ -6,6 +8,35 @@
 
 <h1>Index</h1>
 
+<form method="get" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label small">Nivel</label>
+        <select name="nivel" class="form-select" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            @foreach (NivelEducativo n in Enum.GetValues(typeof(NivelEducativo)))
+            {
+                <option value="@((int)n)" selected="@(ViewBag.NivelSeleccionado == n)">@n</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label small">Grado/Año</label>
+        <input type="number" name="gradoAnio" class="form-control" value="@ViewBag.GradoSeleccionado" style="width: 90px;" onchange="this.form.submit()" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label small">Turno</label>
+        <select name="turno" class="form-select" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            @foreach (Turno t in Enum.GetValues(typeof(Turno)))
+            {
+                <option value="@((int)t)" selected="@(ViewBag.TurnoSeleccionado == t)">@t</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a>
+    </div>
+</form>
 <p>
     <a asp-action="Create">Create New</a>
 </p>
@@ -61,9 +92,11 @@
                 @Html.DisplayFor(model => item.Cuotas)
             </td>
             <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary">Ver</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                </div>
             </td>
         </tr>
 }

@@ -6,7 +6,17 @@
 
 <h1>Familias</h1>
 <a asp-action="Create" class="btn btn-primary mb-3">+ Crear familia</a>
-
+<form method="get" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label small">Buscar por email</label>
+        <input type="text" name="busqueda" class="form-control" value="@ViewBag.Busqueda" />
+    </div>
+    <div class="col-auto form-check mb-2">
+        <input type="checkbox" name="sinAsignar" value="true" class="form-check-input" id="sinAsignar" checked="@(ViewBag.SinAsignar == true)" />
+        <label class="form-check-label" for="sinAsignar">Solo sin alumnos asignados</label>
+    </div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Buscar</button></div>
+</form>
 <table class="table table-striped">
     <thead>
         <tr><th>Email</th><th>Alumnos asignados</th></tr>
