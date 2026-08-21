@@ -18,18 +18,22 @@ namespace pagos_administracion_mvc.Controllers
         private readonly MercadoPagoService _mpService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<PagosController> _logger; // Inyección de ILogger
+        private readonly IConfiguration _config;
+
 
         // Constructor actualizado
         public PagosController(
             AdministracionDbContext context,
             MercadoPagoService mpService,
             UserManager<ApplicationUser> userManager,
-            ILogger<PagosController> logger)
+            ILogger<PagosController> logger, 
+            IConfiguration config)
         {
             _context = context;
             _mpService = mpService;
             _userManager = userManager;
             _logger = logger;
+            _config = config;
         }
 
         // GET: PAGOS
@@ -187,19 +191,18 @@ namespace pagos_administracion_mvc.Controllers
         // ==========================================
         // CONFIRMACIÓN DE PAGO (pantalla 5 simplificada: resumen + botón)
         // ==========================================
-        [Authorize(Roles = "Familia")]
         public async Task<IActionResult> Confirmar(int cuotaId)
         {
             var userId = _userManager.GetUserId(User);
 
-            var cuota = await _context.Cuotas
-                .Include(c => c.Alumno)
+            var cuota = await _context.Cuotas.Include(c => c.Alumno)
                 .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
 
-            if (cuota == null) return NotFound(); // no es su cuota, o no existe
+            if (cuota == null) return NotFound();
 
-            if (cuota.Estado == EstadoCuota.Pagada)
-                return RedirectToAction("Index", "MisCuotas");
+            ViewBag.Alias = _config["DatosBancarios:Alias"];
+            ViewBag.Titular = _config["DatosBancarios:Titular"];
+            ViewBag.Cbu = _config["DatosBancarios:Cbu"];
 
             return View(cuota);
         }
@@ -305,43 +308,48 @@ namespace pagos_administracion_mvc.Controllers
         [Authorize(Roles = "Familia")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubirComprobante(int pagoId, IFormFile archivo)
+        public async Task<IActionResult> SubirComprobante(int cuotaId, IFormFile archivo)
         {
             var userId = _userManager.GetUserId(User);
 
-            var pago = await _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno)
-                .FirstOrDefaultAsync(p => p.Id == pagoId && p.Cuota.Alumno.FamiliaUserId == userId);
+            var cuota = await _context.Cuotas.Include(c => c.Alumno)
+                .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
 
-            if (pago == null) return NotFound();
+            if (cuota == null) return NotFound();
 
             if (archivo == null || archivo.Length == 0)
             {
-                ModelState.AddModelError(string.Empty, "Seleccioná un archivo.");
-                return RedirectToAction("Details", "MisCuotas", new { id = pago.CuotaId });
+                TempData["ErrorComprobante"] = "Seleccioná un archivo.";
+                return RedirectToAction("Details", "MisCuotas", new { id = cuotaId });
             }
 
             var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
             var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
-            if (!extensionesPermitidas.Contains(extension) || archivo.Length > 5 * 1024 * 1024) // 5MB
+            if (!extensionesPermitidas.Contains(extension) || archivo.Length > 5 * 1024 * 1024)
             {
-                ModelState.AddModelError(string.Empty, "Archivo inválido (solo jpg/png/pdf, máx 5MB).");
-                return RedirectToAction("Details", "MisCuotas", new { id = pago.CuotaId });
+                TempData["ErrorComprobante"] = "Archivo inválido (solo jpg/png/pdf, máx 5MB).";
+                return RedirectToAction("Details", "MisCuotas", new { id = cuotaId });
             }
 
             var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "comprobantes");
             Directory.CreateDirectory(carpeta);
-
-            var nombreArchivo = $"{Guid.NewGuid()}{extension}"; // nunca confiar en el nombre original
-            var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
-
-            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
+            using (var stream = new FileStream(Path.Combine(carpeta, nombreArchivo), FileMode.Create))
                 await archivo.CopyToAsync(stream);
+
+            // Reutilizamos un Pago pendiente existente para esta cuota, o creamos uno nuevo
+            var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.CuotaId == cuotaId && p.Estado == EstadoPago.Pendiente);
+            if (pago == null)
+            {
+                pago = new Pago { CuotaId = cuotaId, Monto = cuota.Monto, Fecha = DateTime.Now };
+                _context.Pagos.Add(pago);
+            }
 
             pago.ComprobanteRuta = nombreArchivo;
             pago.Estado = EstadoPago.EnRevision;
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Details", "MisCuotas", new { id = pago.CuotaId });
+            return RedirectToAction("Details", "MisCuotas", new { id = cuotaId });
         }
 
         [Authorize]

@@ -5,7 +5,9 @@
     ViewData["Title"] = "Detalle de cuota";
 }
 
-<h1>Cuota @Model.Mes/@Model.Anio — @Model.Alumno.Apellido, @Model.Alumno.Nombre</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Cuota @Model.Mes/@Model.Anio — @Model.Alumno.Apellido, @Model.Alumno.Nombre</h1>
+</div>
 
 <dl class="row">
     <dt class="col-sm-3">Monto</dt>
@@ -15,31 +17,39 @@
     <dd class="col-sm-9">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</dd>
 
     <dt class="col-sm-3">Estado</dt>
-    <dd class="col-sm-9">@Model.Estado</dd>
+    <dd class="col-sm-9">
+        <span class="badge @(Model.Estado == EstadoCuota.Pagada ? "bg-success" : Model.Estado == EstadoCuota.Vencida ? "bg-danger" : "bg-warning text-dark")">
+            @Model.Estado
+        </span>
+    </dd>
 </dl>
 
 @if (Model.Estado == EstadoCuota.Pendiente || Model.Estado == EstadoCuota.Vencida)
 {
-    <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id" class="btn btn-success">Pagar esta cuota</a>
+    <div class="mb-3">
+        <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id" class="btn btn-success">Pagar esta cuota</a>
+    </div>
 }
 
 <hr />
+
 <h4>Historial de pagos de esta cuota</h4>
-@if (!Model.Pagos.Any())
+
+@if (Model.Pagos == null || !Model.Pagos.Any())
 {
     <p class="text-muted">Sin intentos de pago registrados.</p>
 }
 else
 {
-    <ul class="list-group">
+    <ul class="list-group mb-3">
         @foreach (var pago in Model.Pagos.OrderByDescending(p => p.Fecha))
         {
-            <li class="list-group-item d-flex justify-content-between">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span>@pago.Fecha.ToString("dd/MM/yyyy HH:mm") — @pago.Monto.ToString("C")</span>
-                <span>@pago.Estado</span>
+                <span class="badge bg-secondary">@pago.Estado</span>
             </li>
         }
     </ul>
 }
 
-<a asp-controller="MisCuotas" asp-action="Index" class="btn btn-link">Volver</a>
+<a asp-controller="MisCuotas" asp-action="Index" class="btn btn-link px-0">← Volver</a>

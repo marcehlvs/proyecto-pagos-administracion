@@ -10,51 +10,68 @@
     var esVencida = Model.Estado == EstadoCuota.Vencida;
 }
 
+@if (TempData["ErrorComprobante"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorComprobante"]</div>
+}
+
 <div class="row justify-content-center">
     <div class="col-12 col-sm-9 col-md-7 col-lg-5">
 
-        <div class="p-4 rounded-4 rounded-bottom-0 text-white text-center" style="background-color: var(--color-primary-dark);">
-            <span class="badge bg-light text-dark mb-2">CONFIRMAR PAGO</span>
-            <h1 class="h4 fw-bold mb-1">@meses[Model.Mes] @Model.Anio</h1>
-            <p class="mb-0 small opacity-75">@Model.Alumno.Apellido, @Model.Alumno.Nombre</p>
-        </div>
-
-        <div class="card rounded-top-0 border-top-0 p-4 p-md-5">
-
+        <div class="card p-4 mb-3 shadow-sm">
             @if (esVencida)
             {
-                <div class="badge bg-danger mb-3">Cuota vencida</div>
+                <span class="badge bg-danger align-self-start mb-2">Cuota vencida</span>
             }
+            <h5 class="mb-1">@meses[Model.Mes] @Model.Anio</h5>
+            <p class="text-muted small mb-2">@Model.Alumno.Apellido, @Model.Alumno.Nombre</p>
 
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span class="text-muted">Alumno/a</span>
-                <span class="fw-semibold">@Model.Alumno.Apellido, @Model.Alumno.Nombre</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span class="text-muted">Período</span>
-                <span class="fw-semibold">@meses[Model.Mes] @Model.Anio</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span class="text-muted">Vencimiento</span>
-                <span class="fw-semibold">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center py-3">
+            <div class="d-flex justify-content-between border-top pt-2 mt-1">
                 <span class="text-muted">Total a pagar</span>
-                <span class="fs-3 fw-bold">@Model.Monto.ToString("C")</span>
+                <span class="fw-bold fs-4">@Model.Monto.ToString("C")</span>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs" id="metodoPagoTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-mp" type="button">Mercado Pago</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-transferencia" type="button">Transferencia bancaria</button>
+            </li>
+        </ul>
+
+        <div class="tab-content card border-top-0 rounded-top-0 p-4 shadow-sm">
+
+            <div class="tab-pane fade show active" id="tab-mp">
+                <p class="text-muted small">Pagá al instante con tarjeta, dinero en cuenta o medios habilitados por Mercado Pago.</p>
+                <form asp-controller="Pagos" asp-action="Pagar" method="post">
+                    <input type="hidden" name="cuotaId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-success w-100 py-2">Pagar con Mercado Pago</button>
+                </form>
             </div>
 
-            <form asp-controller="Pagos" asp-action="Pagar" method="post" class="mt-2">
-                <input type="hidden" name="cuotaId" value="@Model.Id" />
-                <button type="submit" class="w-100 btn btn-lg btn-success">Ir a pagar</button>
-            </form>
+            <div class="tab-pane fade" id="tab-transferencia">
+                <p class="text-muted small">Transferí el monto exacto y subí el comprobante para confirmación manual.</p>
 
-            <p class="text-muted small text-center mt-3 mb-0">
-                Vas a ser redirigido a Mercado Pago para completar el pago de forma segura.
-            </p>
+                <div class="bg-light rounded p-3 mb-3 border">
+                    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted small">Alias</span><strong>@ViewBag.Alias</strong></div>
+                    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted small">CBU</span><strong>@ViewBag.Cbu</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span class="text-muted small">Titular</span><strong>@ViewBag.Titular</strong></div>
+                </div>
 
-            <div class="text-center mt-3">
-                <a asp-controller="MisCuotas" asp-action="Index" class="small">Volver a mis cuotas</a>
+                <form asp-controller="Pagos" asp-action="SubirComprobante" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="cuotaId" value="@Model.Id" />
+                    <label class="form-label small">Comprobante (.jpg, .png o .pdf)</label>
+                    <input type="file" name="archivo" class="form-control mb-3" accept=".jpg,.jpeg,.png,.pdf" required />
+                    <button type="submit" class="btn btn-outline-primary w-100">Subir comprobante</button>
+                </form>
             </div>
+
+        </div>
+
+        <div class="text-center mt-3">
+            <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-link btn-sm text-decoration-none">← Volver a mis cuotas</a>
         </div>
     </div>
 </div>
