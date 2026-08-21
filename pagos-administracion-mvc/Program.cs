@@ -34,6 +34,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 
 builder.Services.AddScoped<MercadoPagoService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();
+builder.Services.AddScoped<EmailService>();
 
 var app = builder.Build();
 
