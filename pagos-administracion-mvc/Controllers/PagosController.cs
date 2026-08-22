@@ -19,6 +19,7 @@ namespace pagos_administracion_mvc.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<PagosController> _logger; // Inyección de ILogger
         private readonly IConfiguration _config;
+        private readonly EmailService _emailService;
 
 
         // Constructor actualizado
@@ -27,13 +28,17 @@ namespace pagos_administracion_mvc.Controllers
             MercadoPagoService mpService,
             UserManager<ApplicationUser> userManager,
             ILogger<PagosController> logger, 
-            IConfiguration config)
+            IConfiguration config,
+            EmailService emailService)
+            
+
         {
             _context = context;
             _mpService = mpService;
             _userManager = userManager;
             _logger = logger;
             _config = config;
+            _emailService = emailService;
         }
 
         // GET: PAGOS
@@ -261,7 +266,7 @@ namespace pagos_administracion_mvc.Controllers
                     return Ok();
 
                 var pagoId = int.Parse(payment.ExternalReference);
-                var pago = await _context.Pagos.Include(p => p.Cuota).FirstOrDefaultAsync(p => p.Id == pagoId);
+                var pago = await _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno).FirstOrDefaultAsync(p => p.Id == pagoId);
 
                 if (pago == null)
                 {
@@ -282,8 +287,20 @@ namespace pagos_administracion_mvc.Controllers
                 };
 
                 if (pago.Estado == EstadoPago.Aprobado)
+                {
                     pago.Cuota.Estado = EstadoCuota.Pagada;
 
+                    var admins = await _userManager.GetUsersInRoleAsync("Admin");
+                    foreach (var admin in admins.Where(a => a.Email != null))
+                    {
+                        await _emailService.EnviarAsync(
+                        admin.Email!,
+                        $"Pago recibido - {pago.Cuota.Alumno.Apellido}, {pago.Cuota.Alumno.Nombre}",
+                        $"<p>Se registró un pago de {pago.Monto:C} para la cuota {pago.Cuota.Mes}/{pago.Cuota.Anio} " +
+                        $"de {pago.Cuota.Alumno.Apellido}, {pago.Cuota.Alumno.Nombre}.</p>"
+                        );
+                    }
+                }
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Pago {PagoId} actualizado a {Estado} vía webhook.", pago.Id, pago.Estado);
 
