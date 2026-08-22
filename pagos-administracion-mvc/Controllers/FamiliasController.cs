@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
+using pagos_administracion_mvc.Services;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -12,11 +13,13 @@ namespace pagos_administracion_mvc.Controllers
     {
         private readonly AdministracionDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly EmailService _emailService;
 
-        public FamiliasController(AdministracionDbContext context, UserManager<ApplicationUser> userManager)
+        public FamiliasController(AdministracionDbContext context, UserManager<ApplicationUser> userManager, EmailService emailService)
         {
             _context = context;
             _userManager = userManager;
+            _emailService = emailService;
         }
 
         // GET: Familias
@@ -81,6 +84,10 @@ namespace pagos_administracion_mvc.Controllers
                             alumno.FamiliaUserId = usuario.Id;
 
                         await _context.SaveChangesAsync();
+                        await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín",
+    $"<p>Se creó tu cuenta de acceso al portal de la escuela.</p>" +
+    $"<p><strong>Usuario:</strong> {usuario.Email}<br/><strong>Contraseña provisoria:</strong> {modelo.Password}</p>" +
+    $"<p>Te recomendamos cambiarla después de tu primer ingreso, desde \"Mi perfil\".</p>");
                     }
 
                     return RedirectToAction(nameof(Index));
@@ -95,6 +102,68 @@ namespace pagos_administracion_mvc.Controllers
                 .OrderBy(a => a.Apellido)
                 .ToListAsync();
             return View(modelo);
+        }
+
+
+
+        // GET: Familias/Edit/id
+        public async Task<IActionResult> Edit(string id)
+        {
+            var usuario = await _userManager.FindByIdAsync(id);
+            if (usuario == null) return NotFound();
+
+            var alumnosAsignados = await _context.Alumnos.Where(a => a.FamiliaUserId == id).ToListAsync();
+            var alumnosDisponibles = await _context.Alumnos.Where(a => a.FamiliaUserId == null || a.FamiliaUserId == id)
+                .OrderBy(a => a.Apellido).ToListAsync();
+
+            ViewBag.AlumnosDisponibles = alumnosDisponibles;
+            ViewBag.AlumnoIdsAsignados = alumnosAsignados.Select(a => a.Id).ToList();
+
+            return View(usuario);
+        }
+
+        // POST: Familias/Edit/id
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(string id, List<int> alumnoIds)
+        {
+            var usuario = await _userManager.FindByIdAsync(id);
+            if (usuario == null) return NotFound();
+
+            // desasignar los que ya no están tildados
+            var actuales = await _context.Alumnos.Where(a => a.FamiliaUserId == id).ToListAsync();
+            foreach (var alumno in actuales.Where(a => !alumnoIds.Contains(a.Id)))
+                alumno.FamiliaUserId = null;
+
+            // asignar los nuevos
+            var nuevos = await _context.Alumnos.Where(a => alumnoIds.Contains(a.Id) && a.FamiliaUserId != id).ToListAsync();
+            foreach (var alumno in nuevos)
+                alumno.FamiliaUserId = id;
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: Familias/Delete/id
+        public async Task<IActionResult> Delete(string id)
+        {
+            var usuario = await _userManager.FindByIdAsync(id);
+            if (usuario == null) return NotFound();
+
+            ViewBag.AlumnosAsignados = await _context.Alumnos.Where(a => a.FamiliaUserId == id).ToListAsync();
+            return View(usuario);
+        }
+
+        // POST: Familias/Delete/id
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(string id)
+        {
+            var usuario = await _userManager.FindByIdAsync(id);
+            if (usuario != null)
+                await _userManager.DeleteAsync(usuario);
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }
