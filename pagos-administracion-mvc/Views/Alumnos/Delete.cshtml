@@ -1,74 +1,28 @@
 @model pagos_administracion_mvc.Models.Alumno
+@using static pagos_administracion_mvc.Models.Enums
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Eliminar alumno";
 }
 
-<h1>Delete</h1>
+<h1>Eliminar alumno</h1>
+<div class="alert alert-danger">¿Confirmás que querés eliminar este alumno? Esta acción no se puede deshacer.</div>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>pagos_administracion_mvc.Models.Alumno</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Nombre)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Nombre)
-        </dd>
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <dl class="row mb-0">
+        <dt class="col-sm-4">Nombre</dt>
+        <dd class="col-sm-8">@Model.Nombre @Model.Apellido</dd>
+        <dt class="col-sm-4">DNI</dt>
+        <dd class="col-sm-8">@Model.Dni</dd>
+        <dt class="col-sm-4">Nivel</dt>
+        <dd class="col-sm-8">@Model.Nivel — @Model.GradoAnio° grado/año</dd>
+        <dt class="col-sm-4">Turno</dt>
+        <dd class="col-sm-8">@Model.Turno</dd>
     </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Apellido)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Apellido)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Dni)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Dni)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Nivel)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Nivel)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.GradoAnio)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.GradoAnio)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Turno)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Turno)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Cuotas)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Cuotas)
-        </dd>
-    </dl>
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
 </div>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" class="btn btn-link">Cancelar</a>
+</form>

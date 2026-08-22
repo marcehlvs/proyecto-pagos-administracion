@@ -1,61 +1,64 @@
 @model pagos_administracion_mvc.Models.Cuota
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Editar cuota";
 }
 
-<h1>Edit</h1>
+<h1>Editar cuota</h1>
 
-<h4>Cuota</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                 <label asp-for="AlumnoId" class="control-label"></label>
-                 <select asp-for="AlumnoId" class="form-control" asp-items="ViewBag.AlumnoId"></select>
-                 <span asp-validation-for="AlumnoId" class="text-danger"></span>
-            </div>
-            
-            <div class="form-group">
-                <label asp-for="Mes" class="control-label"></label>
-                <input asp-for="Mes" class="form-control" />
-                <span asp-validation-for="Mes" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Anio" class="control-label"></label>
-                <input asp-for="Anio" class="form-control" />
-                <span asp-validation-for="Anio" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Monto" class="control-label"></label>
-                <input asp-for="Monto" class="form-control" />
-                <span asp-validation-for="Monto" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="FechaVencimiento" class="control-label"></label>
-                <input asp-for="FechaVencimiento" class="form-control" />
-                <span asp-validation-for="FechaVencimiento" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Estado" class="control-label"></label>
-                <select asp-for="Estado" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.EstadoCuota>()"></select>
-                <span asp-validation-for="Estado" class="text-danger"></span>
-            </div>
-            
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <form asp-action="Edit">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="form-group">
+            <label asp-for="AlumnoId" class="control-label">Alumno</label>
+            <select asp-for="AlumnoId" class="form-control" asp-items="ViewBag.AlumnoId"></select>
+            <span asp-validation-for="AlumnoId" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Mes" class="control-label"></label>
+            <input asp-for="Mes" class="form-control" />
+            <span asp-validation-for="Mes" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Anio" class="control-label">Año</label>
+            <input asp-for="Anio" class="form-control" />
+            <span asp-validation-for="Anio" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Monto" class="control-label"></label>
+            <input asp-for="Monto" class="form-control" />
+            <span asp-validation-for="Monto" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="FechaVencimiento" class="control-label">Fecha de Vencimiento</label>
+            <input asp-for="FechaVencimiento" class="form-control" type="date" />
+            <span asp-validation-for="FechaVencimiento" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Estado" class="control-label"></label>
+            <select asp-for="Estado" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.EstadoCuota>()"></select>
+            <span asp-validation-for="Estado" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+    </form>
 </div>
 
 <div>
-    <a asp-action="Index">Back to List</a>
+    <a asp-action="Index" class="btn btn-link px-0">Volver a la lista</a>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
