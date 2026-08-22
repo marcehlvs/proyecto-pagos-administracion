@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using System.Diagnostics;
+using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -20,6 +21,22 @@ namespace pagos_administracion_mvc.Controllers
             ViewBag.CantidadAlumnos = await _context.Alumnos.CountAsync();
             var random = new Random();
             ViewBag.HeroVideo = $"hero-san-martin-{random.Next(1, 5)}.mp4"; // 1 a 4
+            if (User.IsInRole("Admin"))
+            {
+                ViewBag.PagosRecientes = await _context.Pagos
+                    .Include(p => p.Cuota).ThenInclude(c => c.Alumno)
+                    .Where(p => p.Estado == EstadoPago.Aprobado && p.Fecha >= DateTime.Now.AddDays(-2))
+                    .OrderByDescending(p => p.Fecha)
+                    .Take(10)
+                    .ToListAsync();
+
+                ViewBag.ComprobantesPendientes = await _context.Pagos
+                    .Include(p => p.Cuota).ThenInclude(c => c.Alumno)
+                    .Where(p => p.Estado == EstadoPago.EnRevision)
+                    .OrderBy(p => p.Fecha)
+                    .ToListAsync();
+            }
+
             return View();
         }
 

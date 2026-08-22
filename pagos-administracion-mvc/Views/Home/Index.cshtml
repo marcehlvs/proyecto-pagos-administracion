@@ -44,7 +44,39 @@
         </div>
     </div>
 </div>
+@if (User.IsInRole("Admin"))
+{
+    var pagosRecientes = (List<pagos_administracion_mvc.Models.Pago>)ViewBag.PagosRecientes;
+    var comprobantesPendientes = (List<pagos_administracion_mvc.Models.Pago>)ViewBag.ComprobantesPendientes;
 
+    @if (comprobantesPendientes.Any())
+    {
+        <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
+            <span><i class="bi bi-exclamation-triangle-fill"></i> Tenés <strong>@comprobantesPendientes.Count</strong> comprobante(s) esperando revisión.</span>
+            <a asp-controller="Pagos" asp-action="Index" class="btn btn-sm btn-warning">Revisar ahora</a>
+        </div>
+    }
+
+    <div class="card p-3 mb-4">
+        <h6 class="mb-3">Pagos aprobados (últimas 48hs)</h6>
+        @if (!pagosRecientes.Any())
+        {
+            <p class="text-muted small mb-0">Sin pagos aprobados en este período.</p>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var pago in pagosRecientes)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>@pago.Cuota.Alumno.Apellido, @pago.Cuota.Alumno.Nombre — Cuota @pago.Cuota.Mes/@pago.Cuota.Anio</span>
+                        <span class="text-muted small">@pago.Monto.ToString("C") · @pago.Fecha.ToString("dd/MM HH:mm")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+}
 <h4 class="mb-3">Novedades y Avisos</h4>
 <div class="row g-3 mb-4">
     <div class="col-md-4">
