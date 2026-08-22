@@ -11,7 +11,18 @@
 
 <dl class="row">
     <dt class="col-sm-3">Monto</dt>
-    <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
+    <dd class="col-sm-9">
+        @if (Model.MontoConDescuento.HasValue && Model.FechaLimiteDescuento.HasValue && DateTime.Today <= Model.FechaLimiteDescuento.Value)
+        {
+            <span class="text-muted text-decoration-line-through me-2">@Model.Monto.ToString("C")</span>
+            <span class="fw-bold text-success">@Model.MontoConDescuento.Value.ToString("C")</span>
+            <span class="small text-muted ms-2">(Pagando antes del @Model.FechaLimiteDescuento.Value.ToString("dd/MM"))</span>
+        }
+        else
+        {
+            <span>@Model.Monto.ToString("C")</span>
+        }
+    </dd>
 
     <dt class="col-sm-3">Vencimiento</dt>
     <dd class="col-sm-9">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</dd>

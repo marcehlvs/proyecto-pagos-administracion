@@ -35,7 +35,16 @@
                 <p class="text-muted mb-0">@cuotaDestacada.Alumno.Apellido, @cuotaDestacada.Alumno.Nombre</p>
             </div>
             <div class="text-md-end">
-                <div class="fs-3 fw-bold">@cuotaDestacada.Monto.ToString("C")</div>
+                @if (cuotaDestacada.MontoConDescuento.HasValue && cuotaDestacada.FechaLimiteDescuento.HasValue && DateTime.Today <= cuotaDestacada.FechaLimiteDescuento.Value)
+                {
+                    <div class="fs-5 text-muted text-decoration-line-through">@cuotaDestacada.Monto.ToString("C")</div>
+                    <div class="fs-3 fw-bold text-success">@cuotaDestacada.MontoConDescuento.Value.ToString("C")</div>
+                    <div class="small text-success fw-bold">Descuento válido hasta @cuotaDestacada.FechaLimiteDescuento.Value.ToString("dd/MM")</div>
+                }
+                else
+                {
+                    <div class="fs-3 fw-bold">@cuotaDestacada.Monto.ToString("C")</div>
+                }
                 <div class="text-muted small">Vence el @cuotaDestacada.FechaVencimiento.ToString("dd/MM/yyyy")</div>
             </div>
             <div>
@@ -92,7 +101,18 @@ else
                                 </div>
                                 <span class="badge @badgeClass">@cuota.Estado</span>
                             </div>
-                            <div class="fs-5 fw-bold mb-1">@cuota.Monto.ToString("C")</div>
+                            @if (cuota.MontoConDescuento.HasValue && cuota.FechaLimiteDescuento.HasValue && DateTime.Today <= cuota.FechaLimiteDescuento.Value)
+                            {
+                                <div class="mb-1">
+                                    <span class="text-muted text-decoration-line-through small me-1">@cuota.Monto.ToString("C")</span>
+                                    <span class="fs-5 fw-bold text-success">@cuota.MontoConDescuento.Value.ToString("C")</span>
+                                </div>
+                                <div class="text-success small fw-bold mb-1" style="font-size: 0.75rem;">¡Descuento hasta el @cuota.FechaLimiteDescuento.Value.ToString("dd/MM")!</div>
+                            }
+                            else
+                            {
+                                <div class="fs-5 fw-bold mb-1">@cuota.Monto.ToString("C")</div>
+                            }
                             <div class="text-muted small mb-3">Vence @cuota.FechaVencimiento.ToString("dd/MM/yyyy")</div>
                             <div class="mt-auto d-flex gap-2">
                                 <a asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary flex-fill">Ver</a>

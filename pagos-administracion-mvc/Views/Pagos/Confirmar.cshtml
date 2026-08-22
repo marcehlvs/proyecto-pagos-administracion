@@ -28,7 +28,18 @@
 
             <div class="d-flex justify-content-between border-top pt-2 mt-1">
                 <span class="text-muted">Total a pagar</span>
-                <span class="fw-bold fs-4">@Model.Monto.ToString("C")</span>
+                <div class="text-end">
+                    @if (Model.MontoConDescuento.HasValue && Model.FechaLimiteDescuento.HasValue && DateTime.Today <= Model.FechaLimiteDescuento.Value)
+                    {
+                        <span class="text-muted text-decoration-line-through me-2">@Model.Monto.ToString("C")</span>
+                        <span class="fw-bold fs-4 text-success">@Model.MontoConDescuento.Value.ToString("C")</span>
+                        <div class="small text-muted">Precio válido pagando antes del @Model.FechaLimiteDescuento.Value.ToString("dd/MM")</div>
+                    }
+                    else
+                    {
+                        <span class="fw-bold fs-4">@Model.Monto.ToString("C")</span>
+                    }
+                </div>
             </div>
         </div>
 
