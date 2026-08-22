@@ -23,6 +23,10 @@ namespace pagos_administracion_mvc.Models
 
         public decimal? MontoConDescuento { get; set; }
         public DateTime? FechaLimiteDescuento { get; set; }
+        public decimal MontoAPagar =>
+            (MontoConDescuento.HasValue && FechaLimiteDescuento.HasValue && DateTime.Today <= FechaLimiteDescuento.Value)
+            ? MontoConDescuento.Value
+            : Monto;
         public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
     }
 }

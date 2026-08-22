@@ -237,7 +237,7 @@ namespace pagos_administracion_mvc.Controllers
             var pago = new Pago
             {
                 CuotaId = cuota.Id,
-                Monto = cuota.Monto,
+                Monto = cuota.MontoAPagar,
                 Fecha = DateTime.Now,
                 Estado = EstadoPago.Pendiente
             };
@@ -364,7 +364,7 @@ namespace pagos_administracion_mvc.Controllers
             var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.CuotaId == cuotaId && p.Estado == EstadoPago.Pendiente);
             if (pago == null)
             {
-                pago = new Pago { CuotaId = cuotaId, Monto = cuota.Monto, Fecha = DateTime.Now };
+                pago = new Pago { CuotaId = cuotaId, Monto = cuota.MontoAPagar, Fecha = DateTime.Now };
                 _context.Pagos.Add(pago);
             }
 
