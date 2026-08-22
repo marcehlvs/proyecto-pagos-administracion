@@ -21,11 +21,11 @@
         }
         public enum EstadoPago
         {
-            Pendiente,
-            EnRevision, //Comprobante de pago, con espera de confirmación del admin
-            Aprobado,
-            Rechazado,
-            Cancelado
+            Pendiente,      // 0 - sin tocar
+            Aprobado,       // 1 - vuelve a su valor original
+            Rechazado,      // 2 - vuelve a su valor original
+            Cancelado,      // 3 - vuelve a su valor original
+            EnRevision      // 4 - nuevo, al final, no pisa nada existente
         }
     }
 }
