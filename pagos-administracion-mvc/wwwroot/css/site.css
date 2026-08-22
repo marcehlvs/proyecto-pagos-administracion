@@ -74,3 +74,14 @@ h1, h2, h3, h4, .navbar-brand {
     font-weight: 700;
     letter-spacing: -0.02em;
 }
+form {
+    max-width: 600px;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+h1 {
+    margin-bottom: 0.25rem;
+}

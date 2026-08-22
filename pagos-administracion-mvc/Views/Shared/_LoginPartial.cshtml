@@ -9,6 +9,11 @@
         <li class="nav-item">
             <span class="nav-link">Hola, @User.Identity!.Name!</span>
         </li>
+
+        <li class="nav-item">
+            <a class="nav-link" asp-area="Identity" asp-page="/Account/Manage/Index">Mi perfil</a>
+        </li>
+
         @if (User.IsInRole("Admin"))
         {
             <li class="nav-item">
