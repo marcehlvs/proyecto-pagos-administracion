@@ -1,4 +1,5 @@
 ﻿using pagos_administracion_mvc.Data;
+using System.ComponentModel.DataAnnotations;
 using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Models
@@ -10,6 +11,8 @@ namespace pagos_administracion_mvc.Models
         public string Apellido { get; set; } = string.Empty;
         public string Dni { get; set; }=string.Empty;
         public NivelEducativo Nivel { get; set; }
+        [Display(Name ="Grado-Año")]
+        [Range(1, 6, ErrorMessage = "El grado debe estar entre 1 y 6.")]
         public int GradoAnio { get; set; }
         public Turno Turno { get; set; }
 

@@ -10,7 +10,7 @@ namespace pagos_administracion_mvc.Models
 
         [Range(1, 12)]
         public int Mes { get; set; } = DateTime.Today.Month;
-
+        [Display(Name ="Año")]
         [Range(2020, 2100)]
         public int Anio { get; set; } = DateTime.Today.Year;
 

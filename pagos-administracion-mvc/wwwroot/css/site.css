@@ -86,7 +86,7 @@ h1 {
     margin-bottom: 0.25rem;
 }
 
-//Darks mode
+/*Darks mode*/
 [data-bs-theme="dark"] {
     --color-bg: #0f172a;
     --color-surface: #1e293b;
