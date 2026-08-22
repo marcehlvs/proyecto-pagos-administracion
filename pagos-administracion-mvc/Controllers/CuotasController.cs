@@ -17,7 +17,7 @@ public class CuotasController : Controller
     }
 
     // GET: CUOTAS
-    public async Task<IActionResult> Index(string? buscarAlumno, EstadoCuota? estado)
+    public async Task<IActionResult> Index(string? buscarAlumno, EstadoCuota? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
     {
         var query = _context.Cuotas.Include(c => c.Alumno).AsQueryable();
 
@@ -28,8 +28,16 @@ public class CuotasController : Controller
 
         if (estado.HasValue) query = query.Where(c => c.Estado == estado.Value);
 
+        // Aplicamos los nuevos filtros
+        if (nivel.HasValue) query = query.Where(c => c.Alumno.Nivel == nivel.Value);
+        if (gradoAnio.HasValue) query = query.Where(c => c.Alumno.GradoAnio == gradoAnio.Value);
+        if (turno.HasValue) query = query.Where(c => c.Alumno.Turno == turno.Value);
+
         ViewBag.BuscarAlumno = buscarAlumno;
         ViewBag.EstadoSeleccionado = estado;
+        ViewBag.NivelSeleccionado = nivel;
+        ViewBag.GradoSeleccionado = gradoAnio;
+        ViewBag.TurnoSeleccionado = turno;
 
         return View(await query.OrderByDescending(c => c.Anio).ThenBy(c => c.Mes).ToListAsync());
     }
