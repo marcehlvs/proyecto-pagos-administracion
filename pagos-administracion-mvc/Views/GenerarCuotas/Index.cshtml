@@ -1,0 +1,78 @@
+﻿@model pagos_administracion_mvc.Models.GenerarCuotasViewModel
+@using static pagos_administracion_mvc.Models.Enums
+
+@{
+    ViewData["Title"] = "Generar cuotas";
+}
+
+<h1>Generar cuotas masivamente</h1>
+
+@if (TempData["Resultado"] != null)
+{
+    <div class="alert alert-success">@TempData["Resultado"]</div>
+}
+
+<form asp-action="Index" method="post" class="card p-4" style="max-width: 500px;">
+    <div class="mb-3">
+        <label class="form-label">Nivel</label>
+        <select asp-for="Nivel" class="form-select">
+            <option value="">Todos (primaria y secundaria)</option>
+            @foreach (NivelEducativo n in Enum.GetValues(typeof(NivelEducativo)))
+            {
+                <option value="@((int)n)">@n</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Turno</label>
+        <select asp-for="Turno" class="form-select">
+            <option value="">Todos (mañana y tarde)</option>
+            @foreach (Turno t in Enum.GetValues(typeof(Turno)))
+            {
+                <option value="@((int)t)">@t</option>
+            }
+        </select>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <label asp-for="Mes" class="form-label"></label>
+            <input asp-for="Mes" class="form-control" />
+        </div>
+        <div class="col">
+            <label asp-for="Anio" class="form-label"></label>
+            <input asp-for="Anio" class="form-control" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="MontoBase" class="form-label">Monto base (antes de descuentos)</label>
+        <input asp-for="MontoBase" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="FechaVencimiento" class="form-label"></label>
+        <input asp-for="FechaVencimiento" class="form-control" />
+    </div>
+
+    <hr />
+    <h6>Descuentos</h6>
+
+    <div class="mb-3">
+        <label asp-for="DescuentoHermanoPorcentaje" class="form-label">% descuento por hermano (2do alumno en adelante de la misma familia)</label>
+        <input asp-for="DescuentoHermanoPorcentaje" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="DescuentoPagoATiempoPorcentaje" class="form-label">% descuento por pago anticipado</label>
+        <input asp-for="DescuentoPagoATiempoPorcentaje" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="DiasParaDescuento" class="form-label">Días antes del vencimiento para aplicar el descuento</label>
+        <input asp-for="DiasParaDescuento" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Generar cuotas</button>
+</form>
