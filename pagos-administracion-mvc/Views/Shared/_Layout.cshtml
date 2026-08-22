@@ -7,6 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script type="importmap"></script>
+    <script>
+            (function() {
+                var tema = localStorage.getItem('tema') || 'light';
+                document.documentElement.setAttribute('data-bs-theme', tema);
+            })();
+    </script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/pagos_administracion_mvc.styles.css" asp-append-version="true" />
@@ -44,10 +50,16 @@
                             <li class="nav-item"><a class="nav-link" asp-controller="MisCuotas" asp-action="Index">Mis Cuotas</a></li>
                         }
                     </ul>
+
+                    <!-- Componente de Login/Perfil -->
                     <partial name="_LoginPartial" />
+
+                    <!-- Switch de Tema -->
+                    <div class="form-check form-switch text-white d-flex align-items-center ms-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="temaSwitch">
+                        <label class="form-check-label ms-1" for="temaSwitch">🌙</label>
+                    </div>
                 </div>
-            </div>
-        </nav>
     </header>
     <div class="container">
         <main role="main" class="pb-3">

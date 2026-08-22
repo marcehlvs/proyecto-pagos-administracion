@@ -83,12 +83,12 @@ namespace pagos_administracion_mvc.Controllers
                         foreach (var alumno in alumnos)
                             alumno.FamiliaUserId = usuario.Id;
 
-                        await _context.SaveChangesAsync();
-                        await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín",
+                        await _context.SaveChangesAsync();   
+                    }
+                    await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín",
     $"<p>Se creó tu cuenta de acceso al portal de la escuela.</p>" +
     $"<p><strong>Usuario:</strong> {usuario.Email}<br/><strong>Contraseña provisoria:</strong> {modelo.Password}</p>" +
     $"<p>Te recomendamos cambiarla después de tu primer ingreso, desde \"Mi perfil\".</p>");
-                    }
 
                     return RedirectToAction(nameof(Index));
                 }

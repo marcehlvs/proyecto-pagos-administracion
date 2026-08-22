@@ -1,4 +1,12 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿document.addEventListener('DOMContentLoaded', function () {
+    var switchEl = document.getElementById('temaSwitch');
+    if (!switchEl) return;
 
-// Write your JavaScript code.
+    switchEl.checked = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+
+    switchEl.addEventListener('change', function () {
+        var nuevoTema = switchEl.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-bs-theme', nuevoTema);
+        localStorage.setItem('tema', nuevoTema);
+    });
+});

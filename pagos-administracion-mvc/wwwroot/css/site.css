@@ -85,3 +85,22 @@ form {
 h1 {
     margin-bottom: 0.25rem;
 }
+
+//Darks mode
+[data-bs-theme="dark"] {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-text: #e2e8f0;
+    --color-text-muted: #94a3b8;
+    --color-border: #334155;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+}
