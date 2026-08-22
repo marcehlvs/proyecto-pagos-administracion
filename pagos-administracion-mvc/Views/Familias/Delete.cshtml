@@ -1,0 +1,18 @@
+﻿@model pagos_administracion_mvc.Data.ApplicationUser
+@{
+    ViewData["Title"] = "Eliminar familia";
+    var alumnos = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.AlumnosAsignados;
+}
+
+<h1>Eliminar familia</h1>
+<div class="alert alert-danger">¿Confirmás que querés eliminar la cuenta <strong>@Model.Email</strong>? Esta acción no se puede deshacer.</div>
+
+@if (alumnos.Any())
+{
+    <p>Esta familia tiene asignado(s): @string.Join(", ", alumnos.Select(a => $"{a.Apellido}, {a.Nombre}")). Quedarán sin familia asignada.</p>
+}
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" class="btn btn-link">Cancelar</a>
+</form>

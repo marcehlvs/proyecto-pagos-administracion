@@ -1,0 +1,24 @@
+﻿@model pagos_administracion_mvc.Data.ApplicationUser
+@{
+    ViewData["Title"] = "Editar familia";
+    var disponibles = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.AlumnosDisponibles;
+    var asignados = (List<int>)ViewBag.AlumnoIdsAsignados;
+}
+
+<h1>Editar familia</h1>
+<p class="text-muted">@Model.Email</p>
+
+<div class="card p-4" style="max-width: 500px;">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <label class="form-label">Alumnos asignados</label>
+        <select name="alumnoIds" class="form-control" multiple size="8">
+            @foreach (var alumno in disponibles)
+            {
+                <option value="@alumno.Id" selected="@(asignados.Contains(alumno.Id))">@alumno.Apellido, @alumno.Nombre</option>
+            }
+        </select>
+        <small class="text-muted d-block mb-3">Mantené Ctrl (Cmd en Mac) para seleccionar varios.</small>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+    </form>
+</div>

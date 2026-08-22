@@ -35,6 +35,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 builder.Services.AddScoped<MercadoPagoService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, IdentityEmailSenderAdapter>();
 
 var app = builder.Build();
 
@@ -69,7 +70,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AdministracionDbContext>();
-        DbInitializer.Initialize(context);
+        //DbInitializer.Initialize(context);
         await DbInitializer.SeedRolesAdminAsync(services);
     }
     catch (Exception ex)
