@@ -42,7 +42,7 @@ namespace pagos_administracion_mvc.Controllers
         }
 
         // GET: PAGOS
-        public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado)
+        public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
         {
             var query = _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno).AsQueryable();
 
@@ -52,9 +52,15 @@ namespace pagos_administracion_mvc.Controllers
                                        || p.Cuota.Alumno.Dni.Contains(buscarAlumno));
 
             if (estado.HasValue) query = query.Where(p => p.Estado == estado.Value);
+            if (nivel.HasValue) query = query.Where(p => p.Cuota.Alumno.Nivel == nivel.Value);
+            if (gradoAnio.HasValue) query = query.Where(p => p.Cuota.Alumno.GradoAnio == gradoAnio.Value);
+            if (turno.HasValue) query = query.Where(p => p.Cuota.Alumno.Turno == turno.Value);
 
             ViewBag.BuscarAlumno = buscarAlumno;
             ViewBag.EstadoSeleccionado = estado;
+            ViewBag.NivelSeleccionado = nivel;
+            ViewBag.GradoSeleccionado = gradoAnio;
+            ViewBag.TurnoSeleccionado = turno;
 
             return View(await query.OrderByDescending(p => p.Fecha).ToListAsync());
         }
