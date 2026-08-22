@@ -20,6 +20,9 @@ namespace pagos_administracion_mvc.Models
         public DateTime FechaVencimiento { get; set; }
         public EstadoCuota Estado { get; set; } = EstadoCuota.Pendiente;
         //Una cuota puede tener varios pagos parciales o reintentos
+
+        public decimal? MontoConDescuento { get; set; }
+        public DateTime? FechaLimiteDescuento { get; set; }
         public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
     }
 }
