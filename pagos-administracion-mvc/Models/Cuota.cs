@@ -11,6 +11,7 @@ namespace pagos_administracion_mvc.Models
         [Range(1, 12, ErrorMessage = "El mes debe estar entre 1 y 12.")]
         public int Mes { get; set; }
         [Range(2020, 2100, ErrorMessage = "Ingresá un año válido.")]
+        [Display(Name ="Año")]
         public int Anio { get; set; }
         [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor a 0.")]
 
