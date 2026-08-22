@@ -1,66 +1,49 @@
 @model pagos_administracion_mvc.Models.Pago
+@using static pagos_administracion_mvc.Models.Enums
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Detalle de pago";
+
+    var badgeClass = Model.Estado switch
+    {
+        EstadoPago.Aprobado => "bg-success",
+        EstadoPago.Rechazado => "bg-danger",
+        EstadoPago.EnRevision => "bg-warning text-dark",
+        EstadoPago.Cancelado => "bg-secondary",
+        _ => "bg-secondary"
+    };
 }
 
-<h1>Details</h1>
+<h1>Pago #@Model.Id</h1>
 
-<div>
-    <h4>Pago</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CuotaId)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CuotaId)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Cuota)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Cuota)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Monto)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Monto)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Fecha)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Fecha)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Estado)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Estado)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MercadoPagoPaymentId)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MercadoPagoPaymentId)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MercadoPagoPreferenceId)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MercadoPagoPreferenceId)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+<dl class="row">
+    <dt class="col-sm-3">Alumno</dt>
+    <dd class="col-sm-9">@Model.Cuota.Alumno.Apellido, @Model.Cuota.Alumno.Nombre</dd>
+
+    <dt class="col-sm-3">Cuota</dt>
+    <dd class="col-sm-9">@Model.Cuota.Mes/@Model.Cuota.Anio</dd>
+
+    <dt class="col-sm-3">Monto</dt>
+    <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
+
+    <dt class="col-sm-3">Fecha</dt>
+    <dd class="col-sm-9">@Model.Fecha.ToString("dd/MM/yyyy HH:mm")</dd>
+
+    <dt class="col-sm-3">Estado</dt>
+    <dd class="col-sm-9"><span class="badge @badgeClass">@Model.Estado</span></dd>
+
+    @if (!string.IsNullOrEmpty(Model.MercadoPagoPaymentId))
+    {
+        <dt class="col-sm-3">ID de pago (MP)</dt>
+        <dd class="col-sm-9">@Model.MercadoPagoPaymentId</dd>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ComprobanteRuta))
+    {
+        <dt class="col-sm-3">Comprobante</dt>
+        <dd class="col-sm-9"><a asp-action="VerComprobante" asp-route-pagoId="@Model.Id" target="_blank">Ver archivo</a></dd>
+    }
+</dl>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">Editar</a>
+<a asp-action="Index" class="btn btn-link btn-sm">Volver al listado</a>
