@@ -51,6 +51,7 @@ public class AlumnosController : Controller
         }
 
         var alumno = await _context.Alumnos
+            .Include(a => a.FamiliaUser)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (alumno == null)
         {
