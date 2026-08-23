@@ -29,7 +29,7 @@ public class AlumnosController : Controller
     // GET: ALUMNOS
     public async Task<IActionResult> Index(NivelEducativo? nivel, int? gradoAnio, Turno? turno)
     {
-        var query = _context.Alumnos.AsQueryable();
+        var query = _context.Alumnos.Include(a => a.Cuotas).AsQueryable();
 
         if (nivel.HasValue) query = query.Where(a => a.Nivel == nivel.Value);
         if (gradoAnio.HasValue) query = query.Where(a => a.GradoAnio == gradoAnio.Value);
