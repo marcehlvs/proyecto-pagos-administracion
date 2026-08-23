@@ -82,5 +82,7 @@
 </div>
 
 @section Scripts {
-    <partial name="_FiltroFamiliasScripts" />
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

@@ -154,8 +154,8 @@ namespace pagos_administracion_mvc.Controllers
             }
 
             var pago = await _context.Pagos
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (pago == null)
+    .Include(p => p.Cuota).ThenInclude(c => c.Alumno)
+    .FirstOrDefaultAsync(m => m.Id == id);
             {
                 return NotFound();
             }
