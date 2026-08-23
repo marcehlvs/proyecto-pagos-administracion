@@ -13,6 +13,7 @@ namespace pagos_administracion_mvc.Models
         
         [Required, StringLength(500)]
         public string Descripcion { get; set; } = string.Empty;
+        public TipoAviso Tipo { get; set; } = TipoAviso.Aviso;
 
         [Display(Name = "Fecha de Publicación")]
         public DateTime FechaPublicacion { get; set; } = DateTime.Now;
