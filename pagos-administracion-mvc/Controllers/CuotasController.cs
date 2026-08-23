@@ -51,6 +51,8 @@ public class CuotasController : Controller
         }
 
         var cuota = await _context.Cuotas
+            .Include(c => c.Alumno)
+            .Include(c => c.Pagos) 
             .FirstOrDefaultAsync(m => m.Id == id);
         if (cuota == null)
         {
