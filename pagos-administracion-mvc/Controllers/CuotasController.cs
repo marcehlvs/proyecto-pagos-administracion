@@ -15,7 +15,7 @@ public class CuotasController : Controller
     {
         _context = context;
     }
-
+    [Authorize(Roles = "admin")]
     // GET: CUOTAS
     public async Task<IActionResult> Index(string? buscarAlumno, EstadoCuota? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
     {
@@ -41,7 +41,7 @@ public class CuotasController : Controller
 
         return View(await query.OrderByDescending(c => c.Anio).ThenBy(c => c.Mes).ToListAsync());
     }
-
+    [Authorize(Roles = "admin")]
     // GET: CUOTAS/Details/5
     public async Task<IActionResult> Details(int? id)
     {
