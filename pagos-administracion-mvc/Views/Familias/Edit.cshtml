@@ -8,17 +8,60 @@
 <h1>Editar familia</h1>
 <p class="text-muted">@Model.Email</p>
 
-<div class="card p-4" style="max-width: 500px;">
+<div class="card p-4 mb-3" style="max-width: 500px;">
     <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
-        <label class="form-label">Alumnos asignados</label>
-        <select name="alumnoIds" class="form-control" multiple size="8">
-            @foreach (var alumno in disponibles)
+
+        <div class="form-group mb-3">
+            <label class="control-label fw-bold">Alumnos a asignar</label>
+
+            <div class="row g-2 mb-2">
+                <div class="col-12">
+                    <input type="text" id="filtroAlumnoTexto" class="form-control form-control-sm" placeholder="Buscar por nombre, apellido o DNI...">
+                </div>
+                <div class="col-6">
+                    <select id="filtroNivel" class="form-select form-select-sm">
+                        <option value="">Nivel: todos</option>
+                        <option value="Inicial">Inicial</option>
+                        <option value="Primaria">Primaria</option>
+                        <option value="Secundaria">Secundaria</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <select id="filtroTurno" class="form-select form-select-sm">
+                        <option value="">Turno: todos</option>
+                        <option value="Mañana">Mañana</option>
+                        <option value="Tarde">Tarde</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (!disponibles.Any())
             {
-                <option value="@alumno.Id" selected="@(asignados.Contains(alumno.Id))">@alumno.Apellido, @alumno.Nombre</option>
+                <p class="text-muted mb-0">No hay alumnos disponibles.</p>
             }
-        </select>
-        <small class="text-muted d-block mb-3">Mantené Ctrl (Cmd en Mac) para seleccionar varios.</small>
-        <button type="submit" class="btn btn-primary">Guardar</button>
-        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+            else
+            {
+                <div id="listaAlumnosCheckbox" class="border rounded p-2 bg-body" style="max-height: 250px; overflow-y: auto;">
+                    @foreach (var alumno in disponibles)
+                    {
+                        <div class="form-check alumno-item" data-nombre="@($"{alumno.Nombre} {alumno.Apellido} {alumno.Dni}".ToLower())" data-nivel="@alumno.Nivel" data-turno="@alumno.Turno">
+                            <input class="form-check-input" type="checkbox" name="alumnoIds" value="@alumno.Id" id="alumno-@alumno.Id" @(asignados.Contains(alumno.Id) ? "checked" : "") />
+                            <label class="form-check-label" for="alumno-@alumno.Id">
+                                @alumno.Apellido, @alumno.Nombre — @alumno.Nivel @alumno.GradoAnio° (@alumno.Turno)
+                            </label>
+                        </div>
+                    }
+                </div>
+                <small class="text-muted" id="contadorAlumnos">@disponibles.Count alumnos en la lista.</small>
+            }
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
     </form>
+</div>
+
+<div>
+    <a asp-action="Index" class="btn btn-link px-0">Cancelar / Volver a la lista</a>
 </div>
