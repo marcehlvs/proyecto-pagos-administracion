@@ -10,6 +10,17 @@
     <div>
         @if (Model.Estado == EstadoCuota.Pendiente || Model.Estado == EstadoCuota.Vencida)
         {
+            // Botón de WhatsApp
+            var telefono = Model.Alumno?.FamiliaUser?.PhoneNumber;
+            if (!string.IsNullOrEmpty(telefono))
+            {
+                var mensaje = Uri.EscapeDataString($"Hola Familia de {Model.Alumno?.Nombre}, te recordamos que la cuota de {Model.Mes}/{Model.Anio} por {Model.Monto:C} está {(Model.Estado == EstadoCuota.Vencida ? "vencida" : "pendiente")}.");
+                <a href="https://wa.me/@telefono?text=@mensaje" target="_blank" class="btn btn-outline-success me-2">
+                    <i class="bi bi-whatsapp"></i> Contactar
+                </a>
+            }
+
+            // Botón Registrar Pago Manual
             <a asp-controller="Pagos" asp-action="RegistrarManual" asp-route-cuotaId="@Model.Id" class="btn btn-success me-2">Registrar pago manual</a>
         }
         <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-primary">Editar</a>
@@ -46,6 +57,45 @@
             }
         </dd>
     </dl>
+
+    <hr class="my-3" />
+
+    <!-- Mini Formulario de Registro de Contacto -->
+    <h6 class="mb-2">Registrar contacto manual</h6>
+    <form asp-controller="Cuotas" asp-action="RegistrarContacto" method="post" class="row g-2 align-items-end mb-2">
+        <input type="hidden" name="cuotaId" value="@Model.Id" />
+        <div class="col-auto">
+            <select name="medio" class="form-select form-select-sm">
+                <option>WhatsApp</option>
+                <option>Llamada</option>
+                <option>Presencial</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <input type="text" name="notas" class="form-control form-control-sm" placeholder="Notas (opcional)" style="width: 250px;" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Registrar</button>
+        </div>
+    </form>
+
+    <!-- Lista de contactos registrados -->
+    @if (Model.ContactosManuales != null && Model.ContactosManuales.Any())
+    {
+        <ul class="list-group list-group-flush mt-2">
+            @foreach (var contacto in Model.ContactosManuales.OrderByDescending(c => c.Fecha))
+            {
+                <li class="list-group-item small px-0 bg-transparent border-light">
+                    <span class="text-muted">@contacto.Fecha.ToString("dd/MM/yy HH:mm")</span> —
+                    <strong>@contacto.Medio</strong>
+                    @if (!string.IsNullOrEmpty(contacto.Notas))
+                    {
+                        <span class="fst-italic text-muted">(@contacto.Notas)</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
 </div>
 
 @if (Model.Pagos != null && Model.Pagos.Any())

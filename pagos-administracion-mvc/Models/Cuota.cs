@@ -29,5 +29,6 @@ namespace pagos_administracion_mvc.Models
             ? MontoConDescuento.Value
             : Monto;
         public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
+        public ICollection<ContactoManual> ContactosManuales { get; set; } = new List<ContactoManual>();
     }
 }
