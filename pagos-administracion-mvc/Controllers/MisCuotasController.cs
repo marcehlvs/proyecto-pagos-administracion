@@ -26,6 +26,7 @@ namespace pagos_administracion_mvc.Controllers
 
             var cuotas = await _context.Cuotas
                 .Include(c => c.Alumno)
+                .Include(c => c.Pagos)
                 .Where(c => c.Alumno.FamiliaUserId == userId)
                 .OrderBy(c => c.Alumno.Apellido)
                 .ThenBy(c => c.Anio)

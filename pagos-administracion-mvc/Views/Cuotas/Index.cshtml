@@ -90,6 +90,10 @@
                     {
                         <span class="badge bg-danger">Vencida</span>
                     }
+                    else if (item.Estado == EstadoCuota.Parcial)
+                    {
+                        <span class="badge bg-primary">Parcial</span>
+                    }
                     else
                     {
                         <span class="badge bg-secondary">@item.Estado</span>
@@ -101,7 +105,7 @@
                             Acciones
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            @if (item.Estado == EstadoCuota.Pendiente || item.Estado == EstadoCuota.Vencida)
+                            @if (item.Estado == EstadoCuota.Pendiente || item.Estado == EstadoCuota.Vencida || item.Estado == EstadoCuota.Parcial)
                             {
                                 <li>
                                     <a class="dropdown-item text-success fw-bold" asp-controller="Pagos" asp-action="RegistrarManual" asp-route-cuotaId="@item.Id">

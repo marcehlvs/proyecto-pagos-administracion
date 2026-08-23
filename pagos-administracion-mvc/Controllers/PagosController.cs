@@ -290,7 +290,7 @@ namespace pagos_administracion_mvc.Controllers
         {
             var userId = _userManager.GetUserId(User);
 
-            var cuota = await _context.Cuotas.Include(c => c.Alumno)
+            var cuota = await _context.Cuotas.Include(c => c.Alumno).Include(c => c.Pagos)
                 .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
 
             if (cuota == null) return NotFound();
@@ -314,6 +314,7 @@ namespace pagos_administracion_mvc.Controllers
 
             var cuota = await _context.Cuotas
                 .Include(c => c.Alumno)
+                .Include(c => c.Pagos)
                 .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
 
             if (cuota == null) return NotFound(); // no es su cuota, o no existe
@@ -321,7 +322,7 @@ namespace pagos_administracion_mvc.Controllers
             var pago = new Pago
             {
                 CuotaId = cuota.Id,
-                Monto = cuota.MontoAPagar,
+                Monto = cuota.SaldoPendiente,
                 Fecha = DateTime.Now,
                 Estado = EstadoPago.Pendiente
             };
@@ -419,7 +420,7 @@ namespace pagos_administracion_mvc.Controllers
         {
             var userId = _userManager.GetUserId(User);
 
-            var cuota = await _context.Cuotas.Include(c => c.Alumno)
+            var cuota = await _context.Cuotas.Include(c => c.Alumno).Include(c => c.Pagos)
                 .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
 
             if (cuota == null) return NotFound();
@@ -448,7 +449,7 @@ namespace pagos_administracion_mvc.Controllers
             var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.CuotaId == cuotaId && p.Estado == EstadoPago.Pendiente);
             if (pago == null)
             {
-                pago = new Pago { CuotaId = cuotaId, Monto = cuota.MontoAPagar, Fecha = DateTime.Now };
+                pago = new Pago { CuotaId = cuotaId, Monto = cuota.SaldoPendiente, Fecha = DateTime.Now };
                 _context.Pagos.Add(pago);
             }
 
@@ -509,8 +510,13 @@ namespace pagos_administracion_mvc.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RegistrarManual(int cuotaId)
         {
-            var cuota = await _context.Cuotas.Include(c => c.Alumno).FirstOrDefaultAsync(c => c.Id == cuotaId);
+            var cuota = await _context.Cuotas.Include(c => c.Alumno).Include(c => c.Pagos)
+                .FirstOrDefaultAsync(c => c.Id == cuotaId);
             if (cuota == null) return NotFound();
+
+            ViewBag.TotalPagado = cuota.TotalPagado;
+            ViewBag.Saldo = cuota.SaldoPendiente;
+
             return View(cuota);
         }
 
@@ -519,8 +525,17 @@ namespace pagos_administracion_mvc.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegistrarManual(int cuotaId, decimal monto, DateTime fecha, IFormFile? comprobante)
         {
-            var cuota = await _context.Cuotas.Include(c => c.Alumno).FirstOrDefaultAsync(c => c.Id == cuotaId);
+            var cuota = await _context.Cuotas.Include(c => c.Alumno).Include(c => c.Pagos)
+                .FirstOrDefaultAsync(c => c.Id == cuotaId);
             if (cuota == null) return NotFound();
+
+            if (monto <= 0)
+            {
+                ModelState.AddModelError(string.Empty, "El monto debe ser mayor a 0.");
+                ViewBag.TotalPagado = cuota.TotalPagado;
+                ViewBag.Saldo = cuota.SaldoPendiente;
+                return View(cuota);
+            }
 
             string? nombreArchivo = null;
             if (comprobante != null && comprobante.Length > 0)
@@ -537,6 +552,10 @@ namespace pagos_administracion_mvc.Controllers
                 }
             }
 
+            // Calculamos el estado ANTES de agregar el pago a la colección en memoria
+            // (cuota.TotalPagado ya refleja los pagos aprobados existentes).
+            var totalPagadoAcumulado = cuota.TotalPagado + monto;
+
             var pago = new Pago
             {
                 CuotaId = cuota.Id,
@@ -546,7 +565,11 @@ namespace pagos_administracion_mvc.Controllers
                 ComprobanteRuta = nombreArchivo
             };
             _context.Pagos.Add(pago);
-            cuota.Estado = EstadoCuota.Pagada;
+
+            // El monto cargado puede no cubrir el total de la cuota (pago parcial / en cuotas),
+            // así que el estado se decide comparando lo acumulado contra lo que falta pagar,
+            // no asumiendo que cualquier pago manual salda la cuota entera.
+            cuota.Estado = totalPagadoAcumulado >= cuota.MontoAPagar ? EstadoCuota.Pagada : EstadoCuota.Parcial;
 
             await _context.SaveChangesAsync();
             return RedirectToAction("Details", "Cuotas", new { id = cuotaId });

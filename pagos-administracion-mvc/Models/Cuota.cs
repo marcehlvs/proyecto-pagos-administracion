@@ -30,5 +30,11 @@ namespace pagos_administracion_mvc.Models
             : Monto;
         public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
         public ICollection<ContactoManual> ContactosManuales { get; set; } = new List<ContactoManual>();
+
+        // Requieren que la colección Pagos esté cargada (.Include(c => c.Pagos)) para dar un valor
+        // real; si no está cargada, TotalPagado da 0 y SaldoPendiente cae al total (comportamiento
+        // seguro por defecto: nunca subestima lo que falta pagar).
+        public decimal TotalPagado => Pagos.Where(p => p.Estado == EstadoPago.Aprobado).Sum(p => p.Monto);
+        public decimal SaldoPendiente => MontoAPagar - TotalPagado;
     }
 }
