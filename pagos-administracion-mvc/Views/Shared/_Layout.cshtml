@@ -85,37 +85,44 @@
             @RenderBody()
         </main>
     </div>
-
     <footer class="mt-5 py-4" style="background-color: var(--color-primary-dark);">
         <div class="container text-white">
-            <div class="row g-4">
+            <div class="row g-4 align-items-center">
+
+                <!-- Columna Izquierda: Info de contacto (4 de 12) -->
                 <div class="col-md-4">
                     <h6 class="fw-bold">Escuela José de San Martín</h6>
                     <p class="small mb-1">📍 @Configuration["DatosEscuela:Direccion"]</p>
                     <p class="small mb-1">📞 @Configuration["DatosEscuela:Telefono"]</p>
                     <p class="small mb-1">🕒 @Configuration["DatosEscuela:Horario"]</p>
-                    <div class="mt-2">
-                        <a href="@(Configuration["DatosEscuela:Facebook"])" target="_blank" class="text-white me-3">
+                    <div class="mt-3">
+                        <a href="@(Configuration["DatosEscuela:Facebook"])" target="_blank" class="text-white text-decoration-none me-3">
                             <i class="bi bi-facebook fs-5"></i>
                         </a>
-                        <a href="@(Configuration["DatosEscuela:Instagram"])" target="_blank" class="text-white me-3">
+                        <a href="@(Configuration["DatosEscuela:Instagram"])" target="_blank" class="text-white text-decoration-none me-3">
                             <i class="bi bi-instagram fs-5"></i>
                         </a>
-                        <a href="mailto:@(Configuration["DatosEscuela:Email"])" class="text-white">
+                        <a href="mailto:@(Configuration["DatosEscuela:Email"])" class="text-white text-decoration-none">
                             <i class="bi bi-envelope fs-5"></i>
                         </a>
                     </div>
                 </div>
-                <iframe src="https://www.google.com/maps?q=@(Uri.EscapeDataString(Configuration["DatosEscuela:Direccion"] ?? ""))&output=embed"
-                        class="w-100" height="180" style="border:0; border-radius: 8px;" loading="lazy">
-                </iframe>
+
+                <!-- Columna Derecha: Mapa (8 de 12) -->
+                <div class="col-md-8">
+                    <iframe src="https://www.google.com/maps?q=@(Uri.EscapeDataString(Configuration["DatosEscuela:Direccion"] ?? ""))&output=embed"
+                            class="w-100 shadow-sm" height="180" style="border:0; border-radius: 8px;" loading="lazy">
+                    </iframe>
+                </div>
+
             </div>
-            <hr class="border-light opacity-25 my-3" />
+            <hr class="border-light opacity-25 my-4" />
             <div class="text-center small">
-                &copy; 2026 - Escuela José de San Martín - <a asp-controller="Home" asp-action="Privacy" class="text-white">Privacy</a>
+                &copy; 2026 - Escuela José de San Martín - <a asp-controller="Home" asp-action="Privacy" class="text-white text-decoration-none">Privacy</a>
             </div>
         </div>
     </footer>
+    
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
