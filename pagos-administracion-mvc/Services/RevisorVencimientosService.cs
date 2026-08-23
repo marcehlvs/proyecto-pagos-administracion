@@ -29,6 +29,7 @@ namespace pagos_administracion_mvc.Services
                     // 1. Marcar vencidas (Pendiente o Parcial: en ambos casos sigue habiendo saldo impago)
                     var vencidas = await context.Cuotas
                         .Include(c => c.Alumno)
+                        .Include(c => c.Pagos)
                         .Where(c => (c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Parcial) && c.FechaVencimiento < DateTime.Today)
                         .ToListAsync(stoppingToken);
 
@@ -41,6 +42,7 @@ namespace pagos_administracion_mvc.Services
                     // 2. Avisar 3 días antes del vencimiento (una sola vez -- ver nota abajo)
                     var proximasAVencer = await context.Cuotas
                         .Include(c => c.Alumno)
+                        .Include(c => c.Pagos)
                         .Where(c => (c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Parcial) && c.FechaVencimiento == DateTime.Today.AddDays(3))
                         .ToListAsync(stoppingToken);
 
@@ -55,8 +57,9 @@ namespace pagos_administracion_mvc.Services
                             ? $"Cuota vencida - {cuota.Alumno.Nombre} {cuota.Alumno.Apellido}"
                             : $"Recordatorio: cuota próxima a vencer - {cuota.Alumno.Nombre} {cuota.Alumno.Apellido}";
 
-                        var cuerpo = $"<p>La cuota de {cuota.Mes}/{cuota.Anio} por {cuota.Monto:C} " +
-                                     $"{(cuota.Estado == EstadoCuota.Vencida ? "venció el" : "vence el")} " +
+                        var montoAviso = cuota.Estado == EstadoCuota.Parcial ? cuota.SaldoPendiente : cuota.Monto;
+                        var cuerpo = $"<p>La cuota de {cuota.Mes}/{cuota.Anio} tiene un saldo de {montoAviso:C} " +
+                                     $"{(cuota.Estado == EstadoCuota.Vencida ? "vencido, con vencimiento el" : "pendiente, que vence el")} " +
                                      $"{cuota.FechaVencimiento:dd/MM/yyyy}. Ingresá al portal para abonarla.</p>";
 
                         await emailService.EnviarAsync(familia.Email, asunto, cuerpo);
