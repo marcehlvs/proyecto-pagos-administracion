@@ -18,6 +18,9 @@ namespace pagos_administracion_mvc.Models
         public string MercadoPagoPaymentId { get; set; } = string.Empty;
         public string MercadoPagoPreferenceId { get; set; } = string.Empty;
         public string? ComprobanteRuta { get; set; }
+
+        // Soft delete: nunca se borra un pago de la base, se lo oculta.
+        public bool Activo { get; set; } = true;
     }
     
 }

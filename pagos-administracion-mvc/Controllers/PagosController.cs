@@ -44,6 +44,20 @@ namespace pagos_administracion_mvc.Controllers
         // GET: PAGOS
         public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
         {
+            var query = ConstruirConsultaFiltrada(buscarAlumno, estado, nivel, gradoAnio, turno);
+
+            ViewBag.BuscarAlumno = buscarAlumno;
+            ViewBag.EstadoSeleccionado = estado;
+            ViewBag.NivelSeleccionado = nivel;
+            ViewBag.GradoSeleccionado = gradoAnio;
+            ViewBag.TurnoSeleccionado = turno;
+
+            return View(await query.ToListAsync());
+        }
+
+        // Arma la misma consulta filtrada que Index, para reutilizarla en las exportaciones.
+        private IQueryable<Pago> ConstruirConsultaFiltrada(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
+        {
             var query = _context.Pagos.Include(p => p.Cuota).ThenInclude(c => c.Alumno).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(buscarAlumno))
@@ -56,13 +70,79 @@ namespace pagos_administracion_mvc.Controllers
             if (gradoAnio.HasValue) query = query.Where(p => p.Cuota.Alumno.GradoAnio == gradoAnio.Value);
             if (turno.HasValue) query = query.Where(p => p.Cuota.Alumno.Turno == turno.Value);
 
-            ViewBag.BuscarAlumno = buscarAlumno;
-            ViewBag.EstadoSeleccionado = estado;
-            ViewBag.NivelSeleccionado = nivel;
-            ViewBag.GradoSeleccionado = gradoAnio;
-            ViewBag.TurnoSeleccionado = turno;
+            return query.OrderByDescending(p => p.Fecha);
+        }
 
-            return View(await query.OrderByDescending(p => p.Fecha).ToListAsync());
+        // GET: PAGOS/ExportarCsv — respeta los mismos filtros que la grilla de Index
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ExportarCsv(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
+        {
+            var pagos = await ConstruirConsultaFiltrada(buscarAlumno, estado, nivel, gradoAnio, turno).ToListAsync();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Alumno;DNI;Nivel;Grado-Año;Turno;Mes/Año Cuota;Fecha Pago;Monto;Estado");
+
+            static string Csv(string valor) => "\"" + (valor ?? string.Empty).Replace("\"", "\"\"") + "\"";
+
+            foreach (var p in pagos)
+            {
+                var a = p.Cuota.Alumno;
+                sb.AppendLine(string.Join(";",
+                    Csv($"{a.Apellido}, {a.Nombre}"),
+                    Csv(a.Dni),
+                    Csv(a.Nivel.ToString()),
+                    Csv(a.GradoAnio.ToString()),
+                    Csv(a.Turno.ToString()),
+                    Csv($"{p.Cuota.Mes}/{p.Cuota.Anio}"),
+                    Csv(p.Fecha.ToString("dd/MM/yyyy")),
+                    Csv(p.Monto.ToString("0.00")),
+                    Csv(p.Estado.ToString())));
+            }
+
+            // BOM UTF-8 para que Excel abra bien los acentos
+            var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+            return File(bytes, "text/csv", $"pagos_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+        }
+
+        // GET: PAGOS/ExportarExcel — respeta los mismos filtros que la grilla de Index
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ExportarExcel(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
+        {
+            var pagos = await ConstruirConsultaFiltrada(buscarAlumno, estado, nivel, gradoAnio, turno).ToListAsync();
+
+            using var libro = new ClosedXML.Excel.XLWorkbook();
+            var hoja = libro.Worksheets.Add("Pagos");
+
+            string[] encabezados = { "Alumno", "DNI", "Nivel", "Grado-Año", "Turno", "Mes/Año Cuota", "Fecha Pago", "Monto", "Estado" };
+            for (int i = 0; i < encabezados.Length; i++)
+                hoja.Cell(1, i + 1).Value = encabezados[i];
+            hoja.Row(1).Style.Font.Bold = true;
+
+            int fila = 2;
+            foreach (var p in pagos)
+            {
+                var a = p.Cuota.Alumno;
+                hoja.Cell(fila, 1).Value = $"{a.Apellido}, {a.Nombre}";
+                hoja.Cell(fila, 2).Value = a.Dni;
+                hoja.Cell(fila, 3).Value = a.Nivel.ToString();
+                hoja.Cell(fila, 4).Value = a.GradoAnio;
+                hoja.Cell(fila, 5).Value = a.Turno.ToString();
+                hoja.Cell(fila, 6).Value = $"{p.Cuota.Mes}/{p.Cuota.Anio}";
+                hoja.Cell(fila, 7).Value = p.Fecha;
+                hoja.Cell(fila, 7).Style.DateFormat.Format = "dd/MM/yyyy";
+                hoja.Cell(fila, 8).Value = p.Monto;
+                hoja.Cell(fila, 8).Style.NumberFormat.Format = "#,##0.00";
+                hoja.Cell(fila, 9).Value = p.Estado.ToString();
+                fila++;
+            }
+
+            hoja.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            libro.SaveAs(stream);
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"pagos_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
 
         // GET: PAGOS/Details/5
@@ -180,6 +260,8 @@ namespace pagos_administracion_mvc.Controllers
 
         [Authorize(Roles = "Admin")]
         // POST: PAGOS/Delete/5
+        // Soft delete: nunca se borra el registro físicamente (auditoría). Se marca Activo = false
+        // y el HasQueryFilter en el DbContext lo excluye automáticamente del resto de las consultas.
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int? id)
@@ -187,10 +269,10 @@ namespace pagos_administracion_mvc.Controllers
             var pago = await _context.Pagos.FindAsync(id);
             if (pago != null)
             {
-                _context.Pagos.Remove(pago);
+                pago.Activo = false;
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

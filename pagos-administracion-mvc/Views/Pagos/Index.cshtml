@@ -57,6 +57,26 @@
     <div class="col-auto">
         <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a>
     </div>
+    <div class="col-auto ms-auto">
+        <a asp-action="ExportarCsv"
+           asp-route-buscarAlumno="@ViewBag.BuscarAlumno"
+           asp-route-estado="@ViewBag.EstadoSeleccionado"
+           asp-route-nivel="@ViewBag.NivelSeleccionado"
+           asp-route-gradoAnio="@ViewBag.GradoSeleccionado"
+           asp-route-turno="@ViewBag.TurnoSeleccionado"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-filetype-csv"></i> Exportar CSV
+        </a>
+        <a asp-action="ExportarExcel"
+           asp-route-buscarAlumno="@ViewBag.BuscarAlumno"
+           asp-route-estado="@ViewBag.EstadoSeleccionado"
+           asp-route-nivel="@ViewBag.NivelSeleccionado"
+           asp-route-gradoAnio="@ViewBag.GradoSeleccionado"
+           asp-route-turno="@ViewBag.TurnoSeleccionado"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+        </a>
+    </div>
 </form>
 
 <table class="table table-striped">

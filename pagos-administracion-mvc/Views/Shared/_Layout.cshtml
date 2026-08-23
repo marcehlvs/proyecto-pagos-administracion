@@ -28,26 +28,31 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    @{
+                        var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
+                        Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
+                    }
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
+                            <a class="@clase("Home")" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item"><a class="nav-link" asp-controller="Alumnos" asp-action="Index">Alumnos</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Familias" asp-action="Index">Familias</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Cuotas" asp-action="Index">Cuotas</a></li>
+                            <li class="nav-item"><a class="@clase("Dashboard")" asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                            <li class="nav-item"><a class="@clase("Alumnos")" asp-controller="Alumnos" asp-action="Index">Alumnos</a></li>
+                            <li class="nav-item"><a class="@clase("Familias")" asp-controller="Familias" asp-action="Index">Familias</a></li>
+                            <li class="nav-item"><a class="@clase("Cuotas")" asp-controller="Cuotas" asp-action="Index">Cuotas</a></li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Pagos" asp-action="Index">
+                                <a class="@clase("Pagos")" asp-controller="Pagos" asp-action="Index">
                                     Pagos
                                     <vc:pagos-pendientes-badge></vc:pagos-pendientes-badge>
                                 </a>
                             </li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="GenerarCuotas" asp-action="Index">Generar cuotas</a></li>
+                            <li class="nav-item"><a class="@clase("GenerarCuotas")" asp-controller="GenerarCuotas" asp-action="Index">Generar cuotas</a></li>
                         }
                         else if (User.IsInRole("Familia"))
                         {
-                            <li class="nav-item"><a class="nav-link" asp-controller="MisCuotas" asp-action="Index">Mis Cuotas</a></li>
+                            <li class="nav-item"><a class="@clase("MisCuotas")" asp-controller="MisCuotas" asp-action="Index">Mis Cuotas</a></li>
                         }
                     </ul>
 
@@ -60,6 +65,8 @@
                         <label class="form-check-label ms-1" for="temaSwitch">🌙</label>
                     </div>
                 </div>
+            </div>
+        </nav>
     </header>
     <div class="container">
         <main role="main" class="pb-3">
