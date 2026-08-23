@@ -39,16 +39,28 @@
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item"><a class="@clase("Dashboard")" asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
-                            <li class="nav-item"><a class="@clase("Alumnos")" asp-controller="Alumnos" asp-action="Index">Alumnos</a></li>
-                            <li class="nav-item"><a class="@clase("Familias")" asp-controller="Familias" asp-action="Index">Familias</a></li>
-                            <li class="nav-item"><a class="@clase("Cuotas")" asp-controller="Cuotas" asp-action="Index">Cuotas</a></li>
                             <li class="nav-item">
                                 <a class="@clase("Pagos")" asp-controller="Pagos" asp-action="Index">
                                     Pagos
                                     <vc:pagos-pendientes-badge></vc:pagos-pendientes-badge>
                                 </a>
                             </li>
-                            <li class="nav-item"><a class="@clase("GenerarCuotas")" asp-controller="GenerarCuotas" asp-action="Index">Generar cuotas</a></li>
+                            @{
+                                var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas" }
+                                    .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+                            }
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(enGestion ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Gestión
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="Alumnos" asp-action="Index"><i class="bi bi-people"></i> Alumnos</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Familias" asp-action="Index"><i class="bi bi-house-heart"></i> Familias</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Cuotas" asp-action="Index"><i class="bi bi-receipt"></i> Cuotas</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
+                                </ul>
+                            </li>
                         }
                         else if (User.IsInRole("Familia"))
                         {
