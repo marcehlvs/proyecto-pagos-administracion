@@ -502,5 +502,52 @@ namespace pagos_administracion_mvc.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RegistrarManual(int cuotaId)
+        {
+            var cuota = await _context.Cuotas.Include(c => c.Alumno).FirstOrDefaultAsync(c => c.Id == cuotaId);
+            if (cuota == null) return NotFound();
+            return View(cuota);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegistrarManual(int cuotaId, decimal monto, DateTime fecha, IFormFile? comprobante)
+        {
+            var cuota = await _context.Cuotas.Include(c => c.Alumno).FirstOrDefaultAsync(c => c.Id == cuotaId);
+            if (cuota == null) return NotFound();
+
+            string? nombreArchivo = null;
+            if (comprobante != null && comprobante.Length > 0)
+            {
+                var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+                var extension = Path.GetExtension(comprobante.FileName).ToLowerInvariant();
+                if (extensionesPermitidas.Contains(extension) && comprobante.Length <= 5 * 1024 * 1024)
+                {
+                    var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "comprobantes");
+                    Directory.CreateDirectory(carpeta);
+                    nombreArchivo = $"{Guid.NewGuid()}{extension}";
+                    using var stream = new FileStream(Path.Combine(carpeta, nombreArchivo), FileMode.Create);
+                    await comprobante.CopyToAsync(stream);
+                }
+            }
+
+            var pago = new Pago
+            {
+                CuotaId = cuota.Id,
+                Monto = monto,
+                Fecha = fecha,
+                Estado = EstadoPago.Aprobado,
+                ComprobanteRuta = nombreArchivo
+            };
+            _context.Pagos.Add(pago);
+            cuota.Estado = EstadoCuota.Pagada;
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Details", "Cuotas", new { id = cuotaId });
+        }
     }
 }
