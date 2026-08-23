@@ -24,6 +24,15 @@
         }
     </dd>
 
+    @if (Model.Estado == EstadoCuota.Parcial)
+    {
+        <dt class="col-sm-3">Pagado</dt>
+        <dd class="col-sm-9">@Model.TotalPagado.ToString("C")</dd>
+
+        <dt class="col-sm-3">Saldo pendiente</dt>
+        <dd class="col-sm-9 fw-bold">@Model.SaldoPendiente.ToString("C")</dd>
+    }
+
     <dt class="col-sm-3">Vencimiento</dt>
     <dd class="col-sm-9">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</dd>
 
@@ -35,10 +44,12 @@
     </dd>
 </dl>
 
-@if (Model.Estado == EstadoCuota.Pendiente || Model.Estado == EstadoCuota.Vencida)
+@if (Model.Estado == EstadoCuota.Pendiente || Model.Estado == EstadoCuota.Vencida || Model.Estado == EstadoCuota.Parcial)
 {
     <div class="mb-3">
-        <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id" class="btn btn-success">Pagar esta cuota</a>
+        <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id" class="btn btn-success">
+            @(Model.Estado == EstadoCuota.Parcial ? "Pagar saldo restante" : "Pagar esta cuota")
+        </a>
     </div>
 }
 
