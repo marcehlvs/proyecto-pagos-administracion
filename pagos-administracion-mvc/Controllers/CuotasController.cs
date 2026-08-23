@@ -52,7 +52,9 @@ public class CuotasController : Controller
 
         var cuota = await _context.Cuotas
             .Include(c => c.Alumno)
-            .Include(c => c.Pagos) 
+                .ThenInclude(a => a.FamiliaUser)
+            .Include(c => c.Pagos)
+            .Include(c => c.ContactosManuales)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (cuota == null)
         {
@@ -176,5 +178,15 @@ public class CuotasController : Controller
     private bool CuotaExists(int? id)
     {
         return _context.Cuotas.Any(e => e.Id == id);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegistrarContacto(int cuotaId, string medio, string? notas)
+    {
+        _context.ContactosManuales.Add(new ContactoManual { CuotaId = cuotaId, Medio = medio, Notas = notas });
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Details), new { id = cuotaId });
     }
 }
