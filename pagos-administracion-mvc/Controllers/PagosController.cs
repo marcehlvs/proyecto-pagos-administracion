@@ -11,7 +11,7 @@ using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
-    [Authorize]
+    
     public class PagosController : Controller
     {
         private readonly AdministracionDbContext _context;
@@ -40,7 +40,7 @@ namespace pagos_administracion_mvc.Controllers
             _config = config;
             _emailService = emailService;
         }
-
+        [Authorize(Roles = "admin")]
         // GET: PAGOS
         public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
         {
@@ -144,7 +144,7 @@ namespace pagos_administracion_mvc.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"pagos_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
-
+        [Authorize(Roles = "admin")]
         // GET: PAGOS/Details/5
         public async Task<IActionResult> Details(int? id)
         {
