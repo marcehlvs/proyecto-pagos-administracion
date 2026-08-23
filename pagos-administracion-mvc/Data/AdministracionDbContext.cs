@@ -12,6 +12,7 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Cuota> Cuotas { get; set; }
         public DbSet<Pago> Pagos { get; set; }
         public DbSet<ContactoManual> ContactosManuales { get; set; }
+        public DbSet<Aviso> Avisos { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

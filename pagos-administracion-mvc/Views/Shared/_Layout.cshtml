@@ -95,22 +95,20 @@
                     <p class="small mb-1">📞 @Configuration["DatosEscuela:Telefono"]</p>
                     <p class="small mb-1">🕒 @Configuration["DatosEscuela:Horario"]</p>
                     <div class="mt-2">
-                        <a href="@Configuration["DatosEscuela:Facebook"]" target="_blank" class="text-white me-3">
+                        <a href="@(Configuration["DatosEscuela:Facebook"])" target="_blank" class="text-white me-3">
                             <i class="bi bi-facebook fs-5"></i>
                         </a>
-                        <a href="@Configuration["DatosEscuela:Instagram"]" target="_blank" class="text-white me-3">
+                        <a href="@(Configuration["DatosEscuela:Instagram"])" target="_blank" class="text-white me-3">
                             <i class="bi bi-instagram fs-5"></i>
                         </a>
-                        <a href="mailto:@Configuration["DatosEscuela:Email"]" class="text-white">
+                        <a href="mailto:@(Configuration["DatosEscuela:Email"])" class="text-white">
                             <i class="bi bi-envelope fs-5"></i>
                         </a>
                     </div>
                 </div>
-                <div class="col-md-8">
-                    <iframe src="https://www.google.com/maps?q=@Uri.EscapeDataString(Configuration["DatosEscuela:Direccion"] ?? "")&output=embed"
-                            width="100%" height="180" style="border:0; border-radius: 8px;" loading="lazy">
-                    </iframe>
-                </div>
+                <iframe src="https://www.google.com/maps?q=@(Uri.EscapeDataString(Configuration["DatosEscuela:Direccion"] ?? ""))&output=embed"
+                        class="w-100" height="180" style="border:0; border-radius: 8px;" loading="lazy">
+                </iframe>
             </div>
             <hr class="border-light opacity-25 my-3" />
             <div class="text-center small">

@@ -1,0 +1,32 @@
+﻿@model IEnumerable<pagos_administracion_mvc.Models.Aviso>
+@using pagos_administracion_mvc.Models  
+
+@{
+    ViewData["Title"] = "Avisos";
+}
+
+<h1>Avisos</h1>
+<p><a asp-action="Create" class="btn btn-primary btn-sm">+ Nuevo aviso</a></p>
+
+<table class="table table-striped">
+    <thead>
+        <tr><th>Título</th><th>Tipo</th><th>Publicado</th><th>Activo</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Titulo</td>
+                <td>@item.Tipo</td>
+                <td>@item.FechaPublicacion.ToString("dd/MM/yyyy")</td>
+                <td>@(item.Activo ? "Sí" : "No")</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

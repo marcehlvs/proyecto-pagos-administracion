@@ -1,0 +1,13 @@
+﻿@model pagos_administracion_mvc.Models.Aviso
+@{
+    ViewData["Title"] = "Eliminar aviso";
+}
+
+<h1>Eliminar aviso</h1>
+<div class="alert alert-danger">¿Confirmás que querés eliminar "@Model.Titulo"?</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" class="btn btn-link">Cancelar</a>
+</form>

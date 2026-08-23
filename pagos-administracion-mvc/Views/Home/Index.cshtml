@@ -1,4 +1,5 @@
-﻿@{
+﻿@using pagos_administracion_mvc.Models
+@{
     ViewData["Title"] = "Inicio";
 }
 
@@ -77,29 +78,32 @@
         }
     </div>
 }
+
 <h4 class="mb-3">Novedades y Avisos</h4>
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card p-3 border-start border-success border-4">
-            <span class="badge bg-success mb-1 align-self-start">Importante</span>
-            <strong>Inscripciones abiertas 2026</strong>
-            <p class="text-muted mb-0 small">Ya se encuentra habilitado el portal para la matriculación de alumnos regulares.</p>
+    @{
+        var avisos = (List<Aviso>)ViewBag.Avisos;
+    }
+    @if (!avisos.Any())
+    {
+        <p class="text-muted">No hay avisos publicados por el momento.</p>
+    }
+    @foreach (var aviso in avisos)
+    {
+        var (borderClass, badgeClass) = aviso.Tipo switch
+        {
+            TipoAviso.Importante => ("border-success", "bg-success"),
+            TipoAviso.Calendario => ("border-warning", "bg-warning text-dark"),
+            _ => ("border-danger", "bg-danger")
+        };
+        <div class="col-md-4">
+            <div class="card p-3 border-start @borderClass border-4">
+                <span class="badge @badgeClass mb-1 align-self-start">@aviso.Tipo</span>
+                <strong>@aviso.Titulo</strong>
+                <p class="text-muted mb-0 small">@aviso.Descripcion</p>
+            </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card p-3 border-start border-warning border-4">
-            <span class="badge bg-warning text-dark mb-1 align-self-start">Calendario</span>
-            <strong>Reunión de Padres - Nivel Primario</strong>
-            <p class="text-muted mb-0 small">Se convoca a los tutores de 1° a 3° grado para la presentación del nuevo plan de lectura.</p>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card p-3 border-start border-danger border-4">
-            <span class="badge bg-danger mb-1 align-self-start">Aviso</span>
-            <strong>Feriado Institucional</strong>
-            <p class="text-muted mb-0 small">El próximo viernes la institución permanecerá cerrada por desinfección programada.</p>
-        </div>
-    </div>
+    }
 </div>
 
 <h4 class="mb-3">Accesos Rápidos</h4>
