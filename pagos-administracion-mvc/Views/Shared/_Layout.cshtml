@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
@@ -31,6 +31,8 @@
                     @{
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
+                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas" }
+                            .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
@@ -45,10 +47,6 @@
                                     <vc:pagos-pendientes-badge></vc:pagos-pendientes-badge>
                                 </a>
                             </li>
-                            @{
-                                var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas" }
-                                    .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
-                            }
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(enGestion ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Gestión
