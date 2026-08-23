@@ -38,6 +38,10 @@ namespace pagos_administracion_mvc.Data
                 .WithMany() // un ApplicationUser puede tener varios Alumnos, pero no navegamos la colección desde ApplicationUser
                 .HasForeignKey(a => a.FamiliaUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Soft delete: por defecto, todas las consultas a Pagos ignoran los "eliminados" (Activo = false).
+            // Para incluirlos explícitamente (ej. auditoría), usar .IgnoreQueryFilters().
+            modelBuilder.Entity<Pago>().HasQueryFilter(p => p.Activo);
         }
     }
 }
