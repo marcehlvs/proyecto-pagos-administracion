@@ -10,9 +10,9 @@
     var anios = Model.Select(c => c.Anio).Distinct().OrderByDescending(a => a).ToList();
     var anioActivo = anios.FirstOrDefault();
 
-    // Cuota destacada: la que está pendiente/vencida con vencimiento más próximo
+    // Cuota destacada: la que está pendiente/vencida/parcial con vencimiento más próximo
     var cuotaDestacada = Model
-        .Where(c => c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Vencida)
+        .Where(c => c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Vencida || c.Estado == EstadoCuota.Parcial)
         .OrderBy(c => c.FechaVencimiento)
         .FirstOrDefault();
 }
@@ -25,25 +25,32 @@
 @if (cuotaDestacada != null)
 {
     var esVencida = cuotaDestacada.Estado == EstadoCuota.Vencida;
+    var esParcial = cuotaDestacada.Estado == EstadoCuota.Parcial;
     <div class="card p-4 mb-4 border-start border-4 @(esVencida ? "border-danger" : "border-warning")">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <span class="badge @(esVencida ? "bg-danger" : "bg-warning text-dark") mb-2">
-                    @(esVencida ? "Cuota vencida" : "Próxima a vencer")
+                    @(esVencida ? "Cuota vencida" : esParcial ? "Pago parcial — falta saldo" : "Próxima a vencer")
                 </span>
                 <h2 class="h4 fw-bold mb-1">@meses[cuotaDestacada.Mes] @cuotaDestacada.Anio</h2>
                 <p class="text-muted mb-0">@cuotaDestacada.Alumno.Apellido, @cuotaDestacada.Alumno.Nombre</p>
             </div>
             <div class="text-md-end">
-                @if (cuotaDestacada.MontoConDescuento.HasValue && cuotaDestacada.FechaLimiteDescuento.HasValue && DateTime.Today <= cuotaDestacada.FechaLimiteDescuento.Value)
+                @if (esParcial)
+                {
+                    <div class="small text-muted">Ya pagaste @cuotaDestacada.TotalPagado.ToString("C")</div>
+                    <div class="fs-3 fw-bold">@cuotaDestacada.SaldoPendiente.ToString("C")</div>
+                    <div class="small text-muted">Saldo pendiente</div>
+                }
+                else if (cuotaDestacada.MontoConDescuento.HasValue && cuotaDestacada.FechaLimiteDescuento.HasValue && DateTime.Today <= cuotaDestacada.FechaLimiteDescuento.Value)
                 {
                     <div class="fs-5 text-muted text-decoration-line-through">@cuotaDestacada.Monto.ToString("C")</div>
-                    <div class="fs-3 fw-bold text-success">@cuotaDestacada.MontoConDescuento.Value.ToString("C")</div>
+                    <div class="fs-3 fw-bold text-success">@cuotaDestacada.SaldoPendiente.ToString("C")</div>
                     <div class="small text-success fw-bold">Descuento válido hasta @cuotaDestacada.FechaLimiteDescuento.Value.ToString("dd/MM")</div>
                 }
                 else
                 {
-                    <div class="fs-3 fw-bold">@cuotaDestacada.Monto.ToString("C")</div>
+                    <div class="fs-3 fw-bold">@cuotaDestacada.SaldoPendiente.ToString("C")</div>
                 }
                 <div class="text-muted small">Vence el @cuotaDestacada.FechaVencimiento.ToString("dd/MM/yyyy")</div>
             </div>
@@ -101,7 +108,15 @@ else
                                 </div>
                                 <span class="badge @badgeClass">@cuota.Estado</span>
                             </div>
-                            @if (cuota.MontoConDescuento.HasValue && cuota.FechaLimiteDescuento.HasValue && DateTime.Today <= cuota.FechaLimiteDescuento.Value)
+                            @if (cuota.Estado == EstadoCuota.Parcial)
+                            {
+                                <div class="mb-1">
+                                    <span class="fs-5 fw-bold">@cuota.SaldoPendiente.ToString("C")</span>
+                                    <span class="text-muted small ms-1">saldo</span>
+                                </div>
+                                <div class="text-muted small mb-1" style="font-size: 0.75rem;">Ya pagaste @cuota.TotalPagado.ToString("C")</div>
+                            }
+                            else if (cuota.MontoConDescuento.HasValue && cuota.FechaLimiteDescuento.HasValue && DateTime.Today <= cuota.FechaLimiteDescuento.Value)
                             {
                                 <div class="mb-1">
                                     <span class="text-muted text-decoration-line-through small me-1">@cuota.Monto.ToString("C")</span>
@@ -116,7 +131,7 @@ else
                             <div class="text-muted small mb-3">Vence @cuota.FechaVencimiento.ToString("dd/MM/yyyy")</div>
                             <div class="mt-auto d-flex gap-2">
                                 <a asp-action="Details" asp-route-id="@cuota.Id" class="btn btn-sm btn-outline-primary flex-fill">Ver</a>
-                                @if (cuota.Estado == EstadoCuota.Pendiente || cuota.Estado == EstadoCuota.Vencida)
+                                @if (cuota.Estado == EstadoCuota.Pendiente || cuota.Estado == EstadoCuota.Vencida || cuota.Estado == EstadoCuota.Parcial)
                                 {
                                     <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@cuota.Id" class="btn btn-sm btn-success flex-fill">Pagar</a>
                                 }

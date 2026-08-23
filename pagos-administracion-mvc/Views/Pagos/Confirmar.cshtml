@@ -27,9 +27,14 @@
             <p class="text-muted small mb-2">@Model.Alumno.Apellido, @Model.Alumno.Nombre</p>
 
             <div class="d-flex justify-content-between border-top pt-2 mt-1">
-                <span class="text-muted">Total a pagar</span>
+                <span class="text-muted">@(Model.Estado == EstadoCuota.Parcial ? "Saldo pendiente" : "Total a pagar")</span>
                 <div class="text-end">
-                    @if (Model.MontoConDescuento.HasValue && Model.FechaLimiteDescuento.HasValue && DateTime.Today <= Model.FechaLimiteDescuento.Value)
+                    @if (Model.Estado == EstadoCuota.Parcial)
+                    {
+                        <span class="fw-bold fs-4">@Model.SaldoPendiente.ToString("C")</span>
+                        <div class="small text-muted">Ya pagaste @Model.TotalPagado.ToString("C") de @Model.Monto.ToString("C")</div>
+                    }
+                    else if (Model.MontoConDescuento.HasValue && Model.FechaLimiteDescuento.HasValue && DateTime.Today <= Model.FechaLimiteDescuento.Value)
                     {
                         <span class="text-muted text-decoration-line-through me-2">@Model.Monto.ToString("C")</span>
                         <span class="fw-bold fs-4 text-success">@Model.MontoConDescuento.Value.ToString("C")</span>
@@ -41,7 +46,6 @@
                     }
                 </div>
             </div>
-        </div>
 
         <ul class="nav nav-tabs" id="metodoPagoTabs" role="tablist">
             <li class="nav-item" role="presentation">
