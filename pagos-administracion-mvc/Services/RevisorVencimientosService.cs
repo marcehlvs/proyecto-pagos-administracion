@@ -26,10 +26,10 @@ namespace pagos_administracion_mvc.Services
                     var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
                     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-                    // 1. Marcar vencidas
+                    // 1. Marcar vencidas (Pendiente o Parcial: en ambos casos sigue habiendo saldo impago)
                     var vencidas = await context.Cuotas
                         .Include(c => c.Alumno)
-                        .Where(c => c.Estado == EstadoCuota.Pendiente && c.FechaVencimiento < DateTime.Today)
+                        .Where(c => (c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Parcial) && c.FechaVencimiento < DateTime.Today)
                         .ToListAsync(stoppingToken);
 
                     foreach (var cuota in vencidas)
@@ -41,7 +41,7 @@ namespace pagos_administracion_mvc.Services
                     // 2. Avisar 3 días antes del vencimiento (una sola vez -- ver nota abajo)
                     var proximasAVencer = await context.Cuotas
                         .Include(c => c.Alumno)
-                        .Where(c => c.Estado == EstadoCuota.Pendiente && c.FechaVencimiento == DateTime.Today.AddDays(3))
+                        .Where(c => (c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Parcial) && c.FechaVencimiento == DateTime.Today.AddDays(3))
                         .ToListAsync(stoppingToken);
 
                     foreach (var cuota in proximasAVencer.Concat(vencidas))
