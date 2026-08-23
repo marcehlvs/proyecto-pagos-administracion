@@ -36,7 +36,11 @@ namespace pagos_administracion_mvc.Controllers
                     .OrderBy(p => p.Fecha)
                     .ToListAsync();
             }
-
+                ViewBag.Avisos = await _context.Avisos
+                    .Where(a => a.Activo)
+                    .OrderByDescending(a => a.FechaPublicacion)
+                    .Take(3)
+                    .ToListAsync();
             return View();
         }
 
