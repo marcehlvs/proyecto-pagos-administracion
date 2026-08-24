@@ -2,15 +2,16 @@
 @using pagos_administracion_mvc.Models
 
 @{
-    ViewData["Title"] = "Nuevo aviso";
+    ViewData["Title"] = "Editar aviso";
 }
 
-<h1>Nuevo aviso</h1>
+<h1>Editar aviso</h1>
 
 <div class="card p-4" style="max-width: 500px;">
-    <form asp-action="Create">
+    <form asp-action="Edit">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="FechaPublicacion" />
 
         <div class="mb-3">
             <label asp-for="Titulo" class="form-label"></label>
