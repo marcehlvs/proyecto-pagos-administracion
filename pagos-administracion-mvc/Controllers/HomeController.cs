@@ -46,6 +46,15 @@ namespace pagos_administracion_mvc.Controllers
 
         public IActionResult Nosotros() => View();
 
+        public async Task<IActionResult> Calendario()
+        {
+            var eventos = await _context.Avisos
+                .Where(a => a.Activo && a.Tipo == TipoAviso.Calendario)
+                .OrderBy(a => a.FechaPublicacion)
+                .ToListAsync();
+            return View(eventos);
+        }
+
         public IActionResult Privacy() => View();
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
