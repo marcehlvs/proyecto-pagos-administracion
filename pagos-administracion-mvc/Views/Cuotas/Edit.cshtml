@@ -1,43 +1,64 @@
-﻿@model pagos_administracion_mvc.Models.Aviso
-@using pagos_administracion_mvc.Models
+@model pagos_administracion_mvc.Models.Cuota
 
 @{
-    ViewData["Title"] = "Editar aviso";
+    ViewData["Title"] = "Editar cuota";
 }
 
-<h1>Editar aviso</h1>
+<h1>Editar cuota</h1>
 
-<div class="card p-4" style="max-width: 500px;">
+<div class="card p-4 mb-3" style="max-width: 500px;">
     <form asp-action="Edit">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         <input type="hidden" asp-for="Id" />
-        <input type="hidden" asp-for="FechaPublicacion" />
 
-        <div class="mb-3">
-            <label asp-for="Titulo" class="form-label"></label>
-            <input asp-for="Titulo" class="form-control" />
-            <span asp-validation-for="Titulo" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="Descripcion" class="form-label"></label>
-            <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
-            <span asp-validation-for="Descripcion" class="text-danger"></span>
+        <div class="form-group">
+            <label asp-for="AlumnoId" class="control-label">Alumno</label>
+            <select asp-for="AlumnoId" class="form-control" asp-items="ViewBag.AlumnoId"></select>
+            <span asp-validation-for="AlumnoId" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="Tipo" class="form-label"></label>
-            <select asp-for="Tipo" class="form-select" asp-items="Html.GetEnumSelectList<TipoAviso>()"></select>
+        <div class="form-group">
+            <label asp-for="Mes" class="control-label"></label>
+            <input asp-for="Mes" class="form-control" />
+            <span asp-validation-for="Mes" class="text-danger"></span>
         </div>
-        <div class="mb-3 form-check">
-            <input asp-for="Activo" class="form-check-input" />
-            <label asp-for="Activo" class="form-check-label"></label>
+
+        <div class="form-group">
+            <label asp-for="Anio" class="control-label">Año</label>
+            <input asp-for="Anio" class="form-control" />
+            <span asp-validation-for="Anio" class="text-danger"></span>
         </div>
-        <button type="submit" class="btn btn-primary">Guardar</button>
-        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+
+        <div class="form-group">
+            <label asp-for="Monto" class="control-label"></label>
+            <input asp-for="Monto" class="form-control" />
+            <span asp-validation-for="Monto" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="FechaVencimiento" class="control-label">Fecha de Vencimiento</label>
+            <input asp-for="FechaVencimiento" class="form-control" type="date" />
+            <span asp-validation-for="FechaVencimiento" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Estado" class="control-label"></label>
+            <select asp-for="Estado" class="form-control" asp-items="Html.GetEnumSelectList<pagos_administracion_mvc.Models.Enums.EstadoCuota>()"></select>
+            <span asp-validation-for="Estado" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
     </form>
 </div>
 
+<div>
+    <a asp-action="Index" class="btn btn-link px-0">Volver a la lista</a>
+</div>
+
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
