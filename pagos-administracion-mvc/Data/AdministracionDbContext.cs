@@ -7,8 +7,8 @@ namespace pagos_administracion_mvc.Data
     public class AdministracionDbContext : IdentityDbContext<ApplicationUser>
     {
         public AdministracionDbContext(DbContextOptions<AdministracionDbContext> options)
-            : base(options){}
-        public DbSet<Alumno>Alumnos { get; set; }
+            : base(options) { }
+        public DbSet<Alumno> Alumnos { get; set; }
         public DbSet<Cuota> Cuotas { get; set; }
         public DbSet<Pago> Pagos { get; set; }
         public DbSet<ContactoManual> ContactosManuales { get; set; }
@@ -45,6 +45,10 @@ namespace pagos_administracion_mvc.Data
             // Para incluirlos explícitamente (ej. auditoría), usar .IgnoreQueryFilters().
             modelBuilder.Entity<Pago>().HasQueryFilter(p => p.Activo);
             modelBuilder.Entity<Cuota>().HasQueryFilter(c => c.Activo);
+            // ContactoManual requiere una Cuota (no-nullable): si no replicamos el mismo filtro acá,
+            // un ContactoManual cuya Cuota esté soft-deleted podría resolver Cuota como null en tiempo
+            // de ejecución pese a que el modelo lo declara no-nullable (warning EF 10622).
+            modelBuilder.Entity<ContactoManual>().HasQueryFilter(cm => cm.Cuota.Activo);
         }
     }
 }
