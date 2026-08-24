@@ -40,7 +40,7 @@ namespace pagos_administracion_mvc.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Titulo,Descripcion,Tipo,Activo")] Aviso aviso)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Titulo,Descripcion,Tipo,Activo,FechaPublicacion")] Aviso aviso)
         {
             if (id != aviso.Id) return NotFound();
             if (ModelState.IsValid)

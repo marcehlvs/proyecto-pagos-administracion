@@ -105,6 +105,10 @@
                     {
                         <span class="fst-italic text-muted">(@contacto.Notas)</span>
                     }
+                    @if (!string.IsNullOrEmpty(contacto.RegistradoPorNombre))
+                    {
+                        <span class="text-muted"> · @contacto.RegistradoPorNombre</span>
+                    }
                 </li>
             }
         </ul>
@@ -121,6 +125,7 @@
                     <th>Fecha</th>
                     <th>Monto</th>
                     <th>Estado</th>
+                    <th>Registrado por</th>
                 </tr>
             </thead>
             <tbody>
@@ -130,6 +135,7 @@
                         <td>@pago.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@pago.Monto.ToString("C")</td>
                         <td>@pago.Estado</td>
+                        <td class="small text-muted">@(pago.RegistradoPorNombre ?? "—")</td>
                     </tr>
                 }
             </tbody>
@@ -140,6 +146,14 @@ else
 {
     <p class="text-muted mt-3">No hay pagos registrados para esta cuota.</p>
 }
+
+<p class="text-muted small mt-3">
+    Creada por @(Model.CreadaPorNombre ?? "—") el @Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+    @if (Model.FechaModificacion.HasValue)
+    {
+        <text> · Última edición: @Model.ModificadaPorNombre el @Model.FechaModificacion.Value.ToString("dd/MM/yyyy HH:mm")</text>
+    }
+</p>
 
 <div class="mt-3">
     <a asp-action="Index" class="btn btn-link px-0">Volver a la lista</a>

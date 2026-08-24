@@ -8,5 +8,6 @@
         public DateTime Fecha { get; set; } = DateTime.Now;
         public string Medio { get; set; } = "WhatsApp"; // WhatsApp, Llamada, Presencial
         public string? Notas { get; set; }
+        public string? RegistradoPorNombre { get; set; }
     }
 }

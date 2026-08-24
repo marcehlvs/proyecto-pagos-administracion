@@ -25,7 +25,7 @@ public class AlumnosController : Controller
         return new SelectList(familias.OrderBy(f => f.Email), "Id", "Email", seleccionado);
     }
 
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "Admin")]
     // GET: ALUMNOS
     public async Task<IActionResult> Index(NivelEducativo? nivel, int? gradoAnio, Turno? turno)
     {
@@ -41,7 +41,7 @@ public class AlumnosController : Controller
 
         return View(await query.OrderBy(a => a.Apellido).ToListAsync());
     }
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "Admin")]
     // GET: ALUMNOS/Details/5
     public async Task<IActionResult> Details(int? id)
     {
