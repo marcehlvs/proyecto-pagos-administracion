@@ -21,6 +21,17 @@ namespace pagos_administracion_mvc.Models
 
         // Soft delete: nunca se borra un pago de la base, se lo oculta.
         public bool Activo { get; set; } = true;
+
+        // Auditoría: quién generó este registro de pago y cuándo (no confundir con "Fecha",
+        // que es la fecha del pago en sí, informada manualmente en pagos manuales).
+        public string? RegistradoPorUserId { get; set; }
+        public string? RegistradoPorNombre { get; set; }
+        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+
+        // Auditoría: quién dejó el pago en su estado actual (aprobó/rechazó un comprobante,
+        // o "Mercado Pago (automático)" si vino del webhook) y cuándo.
+        public string? ActualizadoPorNombre { get; set; }
+        public DateTime? FechaActualizacion { get; set; }
     }
     
 }

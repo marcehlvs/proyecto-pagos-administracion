@@ -40,7 +40,7 @@ namespace pagos_administracion_mvc.Controllers
             _config = config;
             _emailService = emailService;
         }
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         // GET: PAGOS
         public async Task<IActionResult> Index(string? buscarAlumno, EstadoPago? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
         {
@@ -144,7 +144,7 @@ namespace pagos_administracion_mvc.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"pagos_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         // GET: PAGOS/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -215,20 +215,32 @@ namespace pagos_administracion_mvc.Controllers
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int? id, [Bind("Id,CuotaId,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pago)
+        public async Task<IActionResult> Edit(int? id, [Bind("Id,CuotaId,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pagoForm)
         {
-            if (id != pago.Id) return NotFound();
+            if (id != pagoForm.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(pago);
+                    // Igual que en CuotasController: cargamos la entidad trackeada en vez de
+                    // "_context.Update" sobre un objeto recién armado por el binder, para no pisar
+                    // con null lo que no está en el [Bind] (ComprobanteRuta, Activo, etc.).
+                    var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.Id == id);
+                    if (pago == null) return NotFound();
+
+                    pago.CuotaId = pagoForm.CuotaId;
+                    pago.Monto = pagoForm.Monto;
+                    pago.Fecha = pagoForm.Fecha;
+                    pago.Estado = pagoForm.Estado;
+                    pago.MercadoPagoPaymentId = pagoForm.MercadoPagoPaymentId;
+                    pago.MercadoPagoPreferenceId = pagoForm.MercadoPagoPreferenceId;
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!PagoExists(pago.Id)) return NotFound();
+                    if (!PagoExists(pagoForm.Id)) return NotFound();
                     else throw;
                 }
                 return RedirectToAction(nameof(Index));
@@ -237,8 +249,8 @@ namespace pagos_administracion_mvc.Controllers
                 _context.Cuotas.Include(c => c.Alumno)
                     .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
                     .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
-                "Id", "Detalle", pago.CuotaId);
-            return View(pago);
+                "Id", "Detalle", pagoForm.CuotaId);
+            return View(pagoForm);
         }
 
         [Authorize(Roles = "Admin")]
@@ -324,7 +336,10 @@ namespace pagos_administracion_mvc.Controllers
                 CuotaId = cuota.Id,
                 Monto = cuota.SaldoPendiente,
                 Fecha = DateTime.Now,
-                Estado = EstadoPago.Pendiente
+                Estado = EstadoPago.Pendiente,
+                RegistradoPorUserId = userId,
+                RegistradoPorNombre = User.Identity?.Name,
+                FechaRegistro = DateTime.Now
             };
             _context.Pagos.Add(pago);
             await _context.SaveChangesAsync();
@@ -376,6 +391,8 @@ namespace pagos_administracion_mvc.Controllers
                     "rejected" => EstadoPago.Rechazado,
                     _ => EstadoPago.Pendiente
                 };
+                pago.ActualizadoPorNombre = "Mercado Pago (automático)";
+                pago.FechaActualizacion = DateTime.Now;
 
                 if (pago.Estado == EstadoPago.Aprobado)
                 {
@@ -449,7 +466,15 @@ namespace pagos_administracion_mvc.Controllers
             var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.CuotaId == cuotaId && p.Estado == EstadoPago.Pendiente);
             if (pago == null)
             {
-                pago = new Pago { CuotaId = cuotaId, Monto = cuota.SaldoPendiente, Fecha = DateTime.Now };
+                pago = new Pago
+                {
+                    CuotaId = cuotaId,
+                    Monto = cuota.SaldoPendiente,
+                    Fecha = DateTime.Now,
+                    RegistradoPorUserId = userId,
+                    RegistradoPorNombre = User.Identity?.Name,
+                    FechaRegistro = DateTime.Now
+                };
                 _context.Pagos.Add(pago);
             }
 
@@ -489,6 +514,8 @@ namespace pagos_administracion_mvc.Controllers
 
             pago.Estado = EstadoPago.Aprobado;
             pago.Cuota.Estado = EstadoCuota.Pagada;
+            pago.ActualizadoPorNombre = User.Identity?.Name;
+            pago.FechaActualizacion = DateTime.Now;
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
@@ -502,6 +529,8 @@ namespace pagos_administracion_mvc.Controllers
             if (pago == null) return NotFound();
 
             pago.Estado = EstadoPago.Rechazado;
+            pago.ActualizadoPorNombre = User.Identity?.Name;
+            pago.FechaActualizacion = DateTime.Now;
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
@@ -562,7 +591,12 @@ namespace pagos_administracion_mvc.Controllers
                 Monto = monto,
                 Fecha = fecha,
                 Estado = EstadoPago.Aprobado,
-                ComprobanteRuta = nombreArchivo
+                ComprobanteRuta = nombreArchivo,
+                RegistradoPorUserId = _userManager.GetUserId(User),
+                RegistradoPorNombre = User.Identity?.Name,
+                FechaRegistro = DateTime.Now,
+                ActualizadoPorNombre = User.Identity?.Name,
+                FechaActualizacion = DateTime.Now
             };
             _context.Pagos.Add(pago);
 

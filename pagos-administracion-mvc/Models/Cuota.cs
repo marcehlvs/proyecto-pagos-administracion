@@ -36,5 +36,14 @@ namespace pagos_administracion_mvc.Models
         // seguro por defecto: nunca subestima lo que falta pagar).
         public decimal TotalPagado => Pagos.Where(p => p.Estado == EstadoPago.Aprobado).Sum(p => p.Monto);
         public decimal SaldoPendiente => MontoAPagar - TotalPagado;
+
+        // Soft delete: mismo criterio que en Pago, nunca se borra una cuota físicamente.
+        public bool Activo { get; set; } = true;
+
+        // Auditoría de creación/edición.
+        public string? CreadaPorNombre { get; set; }
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public string? ModificadaPorNombre { get; set; }
+        public DateTime? FechaModificacion { get; set; }
     }
 }

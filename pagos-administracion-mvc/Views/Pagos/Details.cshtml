@@ -45,5 +45,18 @@
     }
 </dl>
 
+<hr />
+<h6 class="text-muted">Auditoría</h6>
+<dl class="row small text-muted">
+    <dt class="col-sm-3">Registrado por</dt>
+    <dd class="col-sm-9">@(Model.RegistradoPorNombre ?? "—") · @Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</dd>
+
+    @if (Model.FechaActualizacion.HasValue)
+    {
+        <dt class="col-sm-3">Última actualización</dt>
+        <dd class="col-sm-9">@(Model.ActualizadoPorNombre ?? "—") · @Model.FechaActualizacion.Value.ToString("dd/MM/yyyy HH:mm")</dd>
+    }
+</dl>
+
 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">Editar</a>
 <a asp-action="Index" class="btn btn-link btn-sm">Volver al listado</a>

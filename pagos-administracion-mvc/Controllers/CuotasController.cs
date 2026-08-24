@@ -1,5 +1,6 @@
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +11,14 @@ using static pagos_administracion_mvc.Models.Enums;
 public class CuotasController : Controller
 {
     private readonly AdministracionDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public CuotasController(AdministracionDbContext context)
+    public CuotasController(AdministracionDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _userManager = userManager;
     }
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "Admin")]
     // GET: CUOTAS
     public async Task<IActionResult> Index(string? buscarAlumno, EstadoCuota? estado, NivelEducativo? nivel, int? gradoAnio, Turno? turno)
     {
@@ -41,7 +44,7 @@ public class CuotasController : Controller
 
         return View(await query.OrderByDescending(c => c.Anio).ThenBy(c => c.Mes).ToListAsync());
     }
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "Admin")]
     // GET: CUOTAS/Details/5
     public async Task<IActionResult> Details(int? id)
     {
@@ -80,6 +83,8 @@ public class CuotasController : Controller
     {
         if (ModelState.IsValid)
         {
+            cuota.FechaCreacion = DateTime.Now;
+            cuota.CreadaPorNombre = User.Identity?.Name;
             _context.Add(cuota);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
@@ -111,9 +116,9 @@ public class CuotasController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,AlumnoId,Mes,Anio,Monto,FechaVencimiento,Estado")] Cuota cuota)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,AlumnoId,Mes,Anio,Monto,FechaVencimiento,Estado")] Cuota cuotaForm)
     {
-        if (id != cuota.Id)
+        if (id != cuotaForm.Id)
         {
             return NotFound();
         }
@@ -122,12 +127,27 @@ public class CuotasController : Controller
         {
             try
             {
-                _context.Update(cuota);
+                // Cargamos la entidad trackeada en vez de "_context.Update(cuotaForm)" sobre un objeto
+                // recién armado por el model binder: ese patrón pisa con default/null TODO lo que no
+                // esté en el [Bind] (MontoConDescuento, FechaLimiteDescuento, etc.) en cada edición,
+                // aunque el form nunca haya tocado esos campos. Ya nos pasó en Familias/Alumnos.
+                var cuota = await _context.Cuotas.FirstOrDefaultAsync(c => c.Id == id);
+                if (cuota == null) return NotFound();
+
+                cuota.AlumnoId = cuotaForm.AlumnoId;
+                cuota.Mes = cuotaForm.Mes;
+                cuota.Anio = cuotaForm.Anio;
+                cuota.Monto = cuotaForm.Monto;
+                cuota.FechaVencimiento = cuotaForm.FechaVencimiento;
+                cuota.Estado = cuotaForm.Estado;
+                cuota.ModificadaPorNombre = User.Identity?.Name;
+                cuota.FechaModificacion = DateTime.Now;
+
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!CuotaExists(cuota.Id))
+                if (!CuotaExists(cuotaForm.Id))
                 {
                     return NotFound();
                 }
@@ -138,8 +158,8 @@ public class CuotasController : Controller
             }
             return RedirectToAction(nameof(Index));
         }
-        ViewData["AlumnoId"] = new SelectList(_context.Alumnos, "Id", "Apellido", cuota.AlumnoId);
-        return View(cuota);
+        ViewData["AlumnoId"] = new SelectList(_context.Alumnos, "Id", "Apellido", cuotaForm.AlumnoId);
+        return View(cuotaForm);
     }
     [Authorize(Roles = "Admin")]
     // GET: CUOTAS/Delete/5
@@ -161,6 +181,7 @@ public class CuotasController : Controller
     }
     [Authorize(Roles = "Admin")]
     // POST: CUOTAS/Delete/5
+    // Soft delete: igual criterio que en Pagos, nunca se borra físicamente (auditoría).
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int? id)
@@ -168,10 +189,12 @@ public class CuotasController : Controller
         var cuota = await _context.Cuotas.FindAsync(id);
         if (cuota != null)
         {
-            _context.Cuotas.Remove(cuota);
+            cuota.Activo = false;
+            cuota.ModificadaPorNombre = User.Identity?.Name;
+            cuota.FechaModificacion = DateTime.Now;
+            await _context.SaveChangesAsync();
         }
 
-        await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
 
@@ -185,7 +208,7 @@ public class CuotasController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RegistrarContacto(int cuotaId, string medio, string? notas)
     {
-        _context.ContactosManuales.Add(new ContactoManual { CuotaId = cuotaId, Medio = medio, Notas = notas });
+        _context.ContactosManuales.Add(new ContactoManual { CuotaId = cuotaId, Medio = medio, Notas = notas, RegistradoPorNombre = User.Identity?.Name });
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Details), new { id = cuotaId });
     }

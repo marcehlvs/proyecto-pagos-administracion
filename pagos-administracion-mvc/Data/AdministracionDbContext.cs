@@ -44,6 +44,7 @@ namespace pagos_administracion_mvc.Data
             // Soft delete: por defecto, todas las consultas a Pagos ignoran los "eliminados" (Activo = false).
             // Para incluirlos explícitamente (ej. auditoría), usar .IgnoreQueryFilters().
             modelBuilder.Entity<Pago>().HasQueryFilter(p => p.Activo);
+            modelBuilder.Entity<Cuota>().HasQueryFilter(c => c.Activo);
         }
     }
 }

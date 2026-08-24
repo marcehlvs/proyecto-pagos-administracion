@@ -71,7 +71,9 @@ namespace pagos_administracion_mvc.Controllers
                     MontoConDescuento = montoConDescuento,
                     FechaLimiteDescuento = fechaLimiteDescuento,
                     FechaVencimiento = modelo.FechaVencimiento,
-                    Estado = EstadoCuota.Pendiente
+                    Estado = EstadoCuota.Pendiente,
+                    FechaCreacion = DateTime.Now,
+                    CreadaPorNombre = $"Generación masiva ({User.Identity?.Name})"
                 });
                 creadas++;
             }
