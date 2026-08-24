@@ -11,7 +11,9 @@ using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
-    
+    // Autorización por defecto: cualquier acción nueva que se agregue queda protegida
+    // salvo que se marque explícitamente [AllowAnonymous] (Webhook, PagoExitoso, PagoFallido, PagoPendiente).
+    [Authorize]
     public class PagosController : Controller
     {
         private readonly AdministracionDbContext _context;
@@ -298,6 +300,7 @@ namespace pagos_administracion_mvc.Controllers
         // ==========================================
         // CONFIRMACIÓN DE PAGO (pantalla 5 simplificada: resumen + botón)
         // ==========================================
+        [Authorize(Roles = "Familia")]
         public async Task<IActionResult> Confirmar(int cuotaId)
         {
             var userId = _userManager.GetUserId(User);
@@ -578,6 +581,12 @@ namespace pagos_administracion_mvc.Controllers
                     nombreArchivo = $"{Guid.NewGuid()}{extension}";
                     using var stream = new FileStream(Path.Combine(carpeta, nombreArchivo), FileMode.Create);
                     await comprobante.CopyToAsync(stream);
+                }
+                else
+                {
+                    // Antes se descartaba el archivo en silencio y el pago se guardaba sin comprobante.
+                    // Ahora avisamos al admin para que sepa que el archivo no se adjuntó.
+                    TempData["ErrorComprobante"] = "El pago se registró, pero el archivo adjunto no era válido (solo jpg/png/pdf, máx 5MB) y no se guardó.";
                 }
             }
 
