@@ -1,0 +1,31 @@
+@model List<pagos_administracion_mvc.Models.Aviso>
+@{
+    ViewData["Title"] = "Calendario Escolar";
+}
+
+<h1 class="mb-4">Calendario Escolar</h1>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">TodavÃ­a no hay fechas del calendario cargadas.</p>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var evento in Model)
+        {
+            <div class="list-group-item d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <strong>@evento.Titulo</strong>
+                    <p class="text-muted small mb-0">@evento.Descripcion</p>
+                </div>
+                <span class="badge bg-warning text-dark ms-3">@evento.FechaPublicacion.ToString("dd/MM/yyyy")</span>
+            </div>
+        }
+    </div>
+}
+
+@if (User.IsInRole("Admin"))
+{
+    <a asp-controller="Avisos" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-3">Cargar nueva fecha</a>
+}
