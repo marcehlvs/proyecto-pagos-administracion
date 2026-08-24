@@ -1,4 +1,4 @@
-﻿@using pagos_administracion_mvc.Models
+@using pagos_administracion_mvc.Models
 @{
     ViewData["Title"] = "Inicio";
 }
@@ -109,27 +109,9 @@
 <h4 class="mb-3">Accesos Rápidos</h4>
 <div class="row g-3">
     <div class="col-6 col-md-3">
-        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
+        <a asp-controller="Home" asp-action="Calendario" class="card p-3 text-center text-decoration-none">
             <div class="fs-2">📅</div>
             Calendario Escolar
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
-            <div class="fs-2">🍽️</div>
-            Menú Comedor
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
-            <div class="fs-2">📄</div>
-            Certificados Online
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="#" class="card p-3 text-center text-decoration-none text-muted" title="Próximamente">
-            <div class="fs-2">💬</div>
-            Contacto Docente
         </a>
     </div>
 </div>
