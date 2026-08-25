@@ -45,5 +45,11 @@ namespace pagos_administracion_mvc.Models
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
         public string? ModificadaPorNombre { get; set; }
         public DateTime? FechaModificacion { get; set; }
+
+        // Idempotencia de los avisos por mail de RevisorVencimientosService: cada aviso se manda
+        // una única vez por cuota, sin importar cuántas veces corra el job en el día ni si el Estado
+        // oscila (ej. Vencida -> Parcial por un pago parcial -> Vencida de nuevo).
+        public bool AvisoProximoVencimientoEnviado { get; set; } = false;
+        public bool AvisoVencidaEnviado { get; set; } = false;
     }
 }
