@@ -85,10 +85,17 @@ namespace pagos_administracion_mvc.Controllers
 
                         await _context.SaveChangesAsync();   
                     }
-                    await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín",
+                    var (exito, error) = await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín",
     $"<p>Se creó tu cuenta de acceso al portal de la escuela.</p>" +
     $"<p><strong>Usuario:</strong> {usuario.Email}<br/><strong>Contraseña provisoria:</strong> {modelo.Password}</p>" +
     $"<p>Te recomendamos cambiarla después de tu primer ingreso, desde \"Mi perfil\".</p>");
+
+                    if (!exito)
+                    {
+                        // La familia y su acceso ya quedaron creados igual; solo avisamos que el mail
+                        // de bienvenida no salió, para no dejarlo enterrado en el log de consola.
+                        TempData["EmailError"] = $"La familia se creó bien, pero el mail de bienvenida no se pudo enviar: {error}";
+                    }
 
                     return RedirectToAction(nameof(Index));
                 }
