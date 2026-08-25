@@ -5,6 +5,10 @@
 }
 
 <h1>Familias</h1>
+@if (TempData["EmailError"] != null)
+{
+    <div class="alert alert-warning">@TempData["EmailError"]</div>
+}
 <a asp-action="Create" class="btn btn-primary mb-3">+ Crear familia</a>
 <form method="get" class="row g-2 mb-3 align-items-end">
     <div class="col-auto">

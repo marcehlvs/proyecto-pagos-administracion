@@ -11,7 +11,7 @@ namespace pagos_administracion_mvc.Services
             _emailService = emailService;
         }
 
-        public Task SendEmailAsync(string email, string subject, string htmlMessage)
-            => _emailService.EnviarAsync(email, subject, htmlMessage);
+        public async Task SendEmailAsync(string email, string subject, string htmlMessage)
+            => await _emailService.EnviarAsync(email, subject, htmlMessage);
     }
 }

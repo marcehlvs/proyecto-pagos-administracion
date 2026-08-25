@@ -14,7 +14,10 @@ namespace pagos_administracion_mvc.Services
             _logger = logger;
         }
 
-        public async Task EnviarAsync(string destinatario, string asunto, string cuerpoHtml)
+        // Devuelve (true, null) si se mandó bien, o (false, mensaje) si falló -- así el llamador
+        // puede decidir si le importa mostrarle el error a un admin en pantalla, sin tener que ir
+        // a buscarlo en el log de consola cada vez que algo no llega.
+        public async Task<(bool Exito, string? Error)> EnviarAsync(string destinatario, string asunto, string cuerpoHtml)
         {
             var mensaje = new MimeMessage();
             mensaje.From.Add(new MailboxAddress("Escuela José de San Martín", _config["Smtp:User"]));
@@ -29,10 +32,12 @@ namespace pagos_administracion_mvc.Services
                 await cliente.AuthenticateAsync(_config["Smtp:User"], _config["Smtp:Password"]);
                 await cliente.SendAsync(mensaje);
                 await cliente.DisconnectAsync(true);
+                return (true, null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error enviando email a {Destinatario}", destinatario);
+                return (false, ex.Message);
             }
         }
     }
