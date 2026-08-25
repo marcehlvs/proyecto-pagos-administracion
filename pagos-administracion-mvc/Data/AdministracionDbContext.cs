@@ -49,6 +49,12 @@ namespace pagos_administracion_mvc.Data
             // un ContactoManual cuya Cuota esté soft-deleted podría resolver Cuota como null en tiempo
             // de ejecución pese a que el modelo lo declara no-nullable (warning EF 10622).
             modelBuilder.Entity<ContactoManual>().HasQueryFilter(cm => cm.Cuota.Activo);
+
+            // Precisión explícita para columnas monetarias: sin esto, SQL Server usa decimal(18,2) por
+            // default y trunca en silencio cualquier valor con más de 2 decimales (warning EF 30000).
+            modelBuilder.Entity<Cuota>().Property(c => c.Monto).HasPrecision(18, 2);
+            modelBuilder.Entity<Cuota>().Property(c => c.MontoConDescuento).HasPrecision(18, 2);
+            modelBuilder.Entity<Pago>().Property(p => p.Monto).HasPrecision(18, 2);
         }
     }
 }

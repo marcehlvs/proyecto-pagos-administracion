@@ -7,7 +7,7 @@
 
 @if (!Model.Any())
 {
-    <p class="text-muted">TodavÃ­a no hay fechas del calendario cargadas.</p>
+    <p class="text-muted">Todavía no hay fechas del calendario cargadas.</p>
 }
 else
 {
@@ -27,5 +27,5 @@ else
 
 @if (User.IsInRole("Admin"))
 {
-    <a asp-controller="Avisos" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-3">Cargar nueva fecha</a>
+    <a asp-controller="Avisos" asp-action="Create" asp-route-tipo="Calendario" class="btn btn-outline-secondary btn-sm mt-3">Cargar nueva fecha</a>
 }

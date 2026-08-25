@@ -15,7 +15,7 @@ namespace pagos_administracion_mvc.Controllers
         public async Task<IActionResult> Index() =>
             View(await _context.Avisos.OrderByDescending(a => a.FechaPublicacion).ToListAsync());
 
-        public IActionResult Create() => View();
+        public IActionResult Create(TipoAviso? tipo) => View(new Aviso { Tipo = tipo ?? TipoAviso.Aviso });
 
         [HttpPost]
         [ValidateAntiForgeryToken]
