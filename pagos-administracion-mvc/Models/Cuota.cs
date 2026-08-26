@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Models
@@ -7,6 +8,10 @@ namespace pagos_administracion_mvc.Models
     {
         public int Id { get; set; }
         public int AlumnoId { get; set; }
+
+        // Mismo caso que Pago.Cuota: no viene en el [Bind] de CuotasController, así que
+        // sin [ValidateNever] queda null y hace fallar ModelState.IsValid en silencio.
+        [ValidateNever]
         public Alumno Alumno { get; set; } = null!;
         [Range(1, 12, ErrorMessage = "El mes debe estar entre 1 y 12.")]
         public int Mes { get; set; }
