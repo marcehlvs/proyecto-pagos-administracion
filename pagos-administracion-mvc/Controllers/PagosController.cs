@@ -404,11 +404,15 @@ namespace pagos_administracion_mvc.Controllers
                     var admins = await _userManager.GetUsersInRoleAsync("Admin");
                     foreach (var admin in admins.Where(a => a.Email != null))
                     {
+                        var cuerpoPago = EmailService.EnvolverPlantilla(
+                            "Pago recibido",
+                            $@"<p style=""margin:0 0 10px 0;"">Se registró un pago de <strong>{pago.Monto:C}</strong> para la cuota {pago.Cuota.Mes}/{pago.Cuota.Anio}.</p>
+                            <p style=""margin:0;"">Alumno: <strong>{pago.Cuota.Alumno.Apellido}, {pago.Cuota.Alumno.Nombre}</strong></p>");
+
                         await _emailService.EnviarAsync(
                         admin.Email!,
                         $"Pago recibido - {pago.Cuota.Alumno.Apellido}, {pago.Cuota.Alumno.Nombre}",
-                        $"<p>Se registró un pago de {pago.Monto:C} para la cuota {pago.Cuota.Mes}/{pago.Cuota.Anio} " +
-                        $"de {pago.Cuota.Alumno.Apellido}, {pago.Cuota.Alumno.Nombre}.</p>"
+                        cuerpoPago
                         );
                     }
                 }

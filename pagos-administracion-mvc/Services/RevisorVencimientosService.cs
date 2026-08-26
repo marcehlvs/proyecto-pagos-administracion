@@ -74,9 +74,11 @@ namespace pagos_administracion_mvc.Services
                             : $"Recordatorio: cuota próxima a vencer - {cuota.Alumno.Nombre} {cuota.Alumno.Apellido}";
 
                         var montoAviso = cuota.Estado == EstadoCuota.Parcial ? cuota.SaldoPendiente : cuota.Monto;
-                        var cuerpo = $"<p>La cuota de {cuota.Mes}/{cuota.Anio} tiene un saldo de {montoAviso:C} " +
-                                     $"{(cuota.Estado == EstadoCuota.Vencida ? "vencido, con vencimiento el" : "pendiente, que vence el")} " +
-                                     $"{cuota.FechaVencimiento:dd/MM/yyyy}. Ingresá al portal para abonarla.</p>";
+                        var esVencida = cuota.Estado == EstadoCuota.Vencida;
+                        var cuerpo = EmailService.EnvolverPlantilla(
+                            esVencida ? "Tenés una cuota vencida" : "Tu cuota está por vencer",
+                            $@"<p style=""margin:0 0 10px 0;"">La cuota de <strong>{cuota.Mes}/{cuota.Anio}</strong> tiene un saldo de <strong>{montoAviso:C}</strong>, {(esVencida ? "vencido con fecha" : "que vence el")} <strong>{cuota.FechaVencimiento:dd/MM/yyyy}</strong>.</p>
+                            <p style=""margin:0; color:#4A5568; font-size:14px;"">Ingresá al portal para abonarla.</p>");
 
                         await emailService.EnviarAsync(familia.Email, asunto, cuerpo);
 
