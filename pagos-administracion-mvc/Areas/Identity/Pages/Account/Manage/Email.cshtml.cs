@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Services;
 
 namespace pagos_administracion_mvc.Areas.Identity.Pages.Account.Manage;
 
@@ -125,8 +126,12 @@ public class EmailModel : PageModel
                 protocol: Request.Scheme)!;
             await _emailSender.SendEmailAsync(
                 Input.NewEmail,
-                "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                "Confirmá tu nuevo email - Escuela José de San Martín",
+                EmailService.EnvolverPlantilla(
+                    "Confirmá tu nuevo email",
+                    @"<p style=""margin:0;"">Pediste cambiar el email de tu cuenta. Confirmá esta nueva dirección haciendo clic en el botón de abajo.</p>",
+                    HtmlEncoder.Default.Encode(callbackUrl),
+                    "Confirmar nuevo email"));
 
             StatusMessage = "Confirmation link to change email sent. Please check your email.";
             return RedirectToPage();
@@ -161,8 +166,12 @@ public class EmailModel : PageModel
             protocol: Request.Scheme)!;
         await _emailSender.SendEmailAsync(
             email!,
-            "Confirm your email",
-            $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+            "Confirmá tu email - Escuela José de San Martín",
+            EmailService.EnvolverPlantilla(
+                "Confirmá tu cuenta",
+                @"<p style=""margin:0;"">Para terminar de crear tu cuenta, confirmá tu dirección de email haciendo clic en el botón de abajo.</p>",
+                HtmlEncoder.Default.Encode(callbackUrl),
+                "Confirmar email"));
 
         StatusMessage = "Verification email sent. Please check your email.";
         return RedirectToPage();

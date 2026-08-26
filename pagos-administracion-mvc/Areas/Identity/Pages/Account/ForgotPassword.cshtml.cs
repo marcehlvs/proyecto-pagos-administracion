@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Services;
 
 namespace pagos_administracion_mvc.Areas.Identity.Pages.Account;
 
@@ -72,8 +73,12 @@ public class ForgotPasswordModel : PageModel
 
             await _emailSender.SendEmailAsync(
                 Input.Email,
-                "Reset Password",
-                $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                "Restablecer contraseña - Escuela José de San Martín",
+                EmailService.EnvolverPlantilla(
+                    "Restablecé tu contraseña",
+                    @"<p style=""margin:0;"">Pediste restablecer tu contraseña. Hacé clic en el botón de abajo para elegir una nueva. Si no fuiste vos, podés ignorar este mensaje.</p>",
+                    HtmlEncoder.Default.Encode(callbackUrl),
+                    "Restablecer contraseña"));
 
             return RedirectToPage("./ForgotPasswordConfirmation");
         }

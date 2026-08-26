@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using pagos_administracion_mvc.Data;
+using pagos_administracion_mvc.Services;
 
 namespace pagos_administracion_mvc.Areas.Identity.Pages.Account;
 
@@ -173,8 +174,12 @@ public class ExternalLoginModel : PageModel
                         values: new { area = "Identity", userId = userId, code = code },
                         protocol: Request.Scheme)!;
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    await _emailSender.SendEmailAsync(Input.Email, "Confirmá tu email - Escuela José de San Martín",
+                        EmailService.EnvolverPlantilla(
+                            "Confirmá tu cuenta",
+                            @"<p style=""margin:0;"">Para terminar de crear tu cuenta, confirmá tu dirección de email haciendo clic en el botón de abajo.</p>",
+                            HtmlEncoder.Default.Encode(callbackUrl),
+                            "Confirmar email"));
 
                     // If account confirmation is required, we need to show the link if we don't have a real email sender
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
