@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Models
@@ -7,6 +8,12 @@ namespace pagos_administracion_mvc.Models
     {
         public int Id { get; set; }
         public int CuotaId { get; set; }
+
+        // Propiedad de navegación: no viene en el [Bind] del Create/Edit (solo CuotaId),
+        // así que sin [ValidateNever] queda null y ASP.NET Core la trata como campo
+        // requerido implícito (por Nullable habilitado) -> ModelState.IsValid = false
+        // en silencio, sin mostrar error visible en el formulario.
+        [ValidateNever]
         public Cuota Cuota { get; set; } = null!;
         [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor a 0.")]
 

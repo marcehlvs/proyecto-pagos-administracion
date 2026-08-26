@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
+using System.Security.Cryptography;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -61,6 +62,8 @@ namespace pagos_administracion_mvc.Controllers
         {
             if (ModelState.IsValid)
             {
+                var passwordTemporal = GenerarPasswordTemporal();
+
                 var usuario = new ApplicationUser
                 {
                     UserName = modelo.Email,
@@ -68,7 +71,7 @@ namespace pagos_administracion_mvc.Controllers
                     EmailConfirmed = true // el admin lo da de alta directo, no requiere confirmar por mail
                 };
 
-                var resultado = await _userManager.CreateAsync(usuario, modelo.Password);
+                var resultado = await _userManager.CreateAsync(usuario, passwordTemporal);
 
                 if (resultado.Succeeded)
                 {
@@ -89,7 +92,7 @@ namespace pagos_administracion_mvc.Controllers
                         "¡Bienvenido/a al portal de pagos!",
                         $@"<p style=""margin:0 0 16px 0;"">Se creó tu cuenta de acceso al portal de la escuela.</p>
                         <p style=""margin:0 0 6px 0;""><strong>Usuario:</strong> {usuario.Email}</p>
-                        <p style=""margin:0 0 16px 0;""><strong>Contraseña provisoria:</strong> {modelo.Password}</p>
+                        <p style=""margin:0 0 16px 0;""><strong>Contraseña provisoria:</strong> {passwordTemporal}</p>
                         <p style=""margin:0; color:#4A5568; font-size:14px;"">Te recomendamos cambiarla después de tu primer ingreso, desde "Mi perfil".</p>");
 
                     var (exito, error) = await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín", cuerpoBienvenida);
@@ -113,6 +116,35 @@ namespace pagos_administracion_mvc.Controllers
                 .OrderBy(a => a.Apellido)
                 .ToListAsync();
             return View(modelo);
+        }
+
+        // Password temporal random, criptográficamente segura: 10 caracteres combinando
+        // mayúsculas, minúsculas, números y símbolos (aunque la política de Identity
+        // configurada es laxa, para una clave que viaja por mail conviene que sea fuerte).
+        private static string GenerarPasswordTemporal()
+        {
+            const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sin I/O para evitar confusión visual
+            const string minusculas = "abcdefghijkmnpqrstuvwxyz";
+            const string numeros = "23456789";
+            const string simbolos = "!@#$%&*";
+            const string todos = mayusculas + minusculas + numeros + simbolos;
+
+            Span<char> clave = stackalloc char[10];
+            clave[0] = mayusculas[RandomNumberGenerator.GetInt32(mayusculas.Length)];
+            clave[1] = minusculas[RandomNumberGenerator.GetInt32(minusculas.Length)];
+            clave[2] = numeros[RandomNumberGenerator.GetInt32(numeros.Length)];
+            clave[3] = simbolos[RandomNumberGenerator.GetInt32(simbolos.Length)];
+            for (int i = 4; i < clave.Length; i++)
+                clave[i] = todos[RandomNumberGenerator.GetInt32(todos.Length)];
+
+            // mezclar para que las posiciones fijas de arriba no sean predecibles
+            for (int i = clave.Length - 1; i > 0; i--)
+            {
+                int j = RandomNumberGenerator.GetInt32(i + 1);
+                (clave[i], clave[j]) = (clave[j], clave[i]);
+            }
+
+            return new string(clave);
         }
 
 

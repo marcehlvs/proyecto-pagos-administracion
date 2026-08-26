@@ -168,36 +168,6 @@ namespace pagos_administracion_mvc.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        public IActionResult Create()
-        {
-            ViewBag.CuotaId = new SelectList(
-                _context.Cuotas.Include(c => c.Alumno)
-                    .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
-                    .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
-                "Id", "Detalle");
-            return View();
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,CuotaId,Monto,Fecha,Estado,MercadoPagoPaymentId,MercadoPagoPreferenceId")] Pago pago)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(pago);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewBag.CuotaId = new SelectList(
-                _context.Cuotas.Include(c => c.Alumno)
-                    .OrderBy(c => c.Alumno.Apellido).ThenBy(c => c.Anio).ThenBy(c => c.Mes)
-                    .Select(c => new { c.Id, Detalle = c.Alumno.Apellido + " " + c.Alumno.Nombre + " - " + c.Mes + "/" + c.Anio }),
-                "Id", "Detalle", pago.CuotaId);
-            return View(pago);
-        }
-
-        [Authorize(Roles = "Admin")]
         // GET: PAGOS/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
