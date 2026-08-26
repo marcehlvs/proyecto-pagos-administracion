@@ -93,7 +93,7 @@ namespace pagos_administracion_mvc.Controllers
                         $@"<p style=""margin:0 0 16px 0;"">Se creó tu cuenta de acceso al portal de la escuela.</p>
                         <p style=""margin:0 0 6px 0;""><strong>Usuario:</strong> {usuario.Email}</p>
                         <p style=""margin:0 0 16px 0;""><strong>Contraseña provisoria:</strong> {passwordTemporal}</p>
-                        <p style=""margin:0; color:#4A5568; font-size:14px;"">Te recomendamos cambiarla después de tu primer ingreso, desde "Mi perfil".</p>");
+                        <p style=""margin:0; color:#4A5568; font-size:14px;"">Te recomendamos cambiarla después de tu primer ingreso, desde 'Mi perfil'.</p>");
 
                     var (exito, error) = await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de Pagos - Escuela José de San Martín", cuerpoBienvenida);
 
