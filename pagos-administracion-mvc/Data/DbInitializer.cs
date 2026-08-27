@@ -1,4 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using pagos_administracion_mvc.Models;
 using static pagos_administracion_mvc.Models.Enums;
 
@@ -50,6 +53,9 @@ namespace pagos_administracion_mvc.Data
         {
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var config = services.GetRequiredService<IConfiguration>();
+            var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
+
             string[] roles = { "Admin", "Familia" };
 
             foreach (var rol in roles)
@@ -57,7 +63,21 @@ namespace pagos_administracion_mvc.Data
                 if (!await roleManager.RoleExistsAsync(rol))
                     await roleManager.CreateAsync(new IdentityRole(rol));
             }
-            const string adminEmail = "admin@escuela.com";
+
+            // El admin inicial ya NO se crea con credenciales hardcodeadas.
+            // Se lee de configuración: en desarrollo, vía user-secrets (SeedAdmin:Email / SeedAdmin:Password);
+            // en producción, vía variables de entorno del hosting (SeedAdmin__Email / SeedAdmin__Password).
+            // Si no están configuradas, no se crea ningún admin automáticamente.
+            var adminEmail = config["SeedAdmin:Email"];
+            var adminPassword = config["SeedAdmin:Password"];
+
+            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            {
+                logger.LogWarning("No se configuró SeedAdmin:Email / SeedAdmin:Password: no se creó ningún usuario Admin automáticamente. " +
+                    "Configuralo en user-secrets (desarrollo) o en las variables de entorno del hosting (producción) para crear el primer admin.");
+                return;
+            }
+
             if (await userManager.FindByEmailAsync(adminEmail) is null)
             {
                 var admin = new ApplicationUser
@@ -66,13 +86,19 @@ namespace pagos_administracion_mvc.Data
                     Email = adminEmail,
                     EmailConfirmed = true
                 };
-                var result = await userManager.CreateAsync(admin, "Admin123!");
+                var result = await userManager.CreateAsync(admin, adminPassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(admin, "Admin");
+                    logger.LogInformation("Usuario Admin inicial creado ({Email}). Cambiá la contraseña desde " +
+                        "/Identity/Account/Manage/ChangePassword apenas inicies sesión por primera vez.", adminEmail);
+                }
+                else
+                {
+                    logger.LogError("No se pudo crear el usuario Admin inicial: {Errores}",
+                        string.Join("; ", result.Errors.Select(e => e.Description)));
                 }
             }
-
         }
     }
 }
