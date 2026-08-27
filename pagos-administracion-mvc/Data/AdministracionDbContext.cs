@@ -43,12 +43,14 @@ namespace pagos_administracion_mvc.Data
 
             // Soft delete: por defecto, todas las consultas a Pagos ignoran los "eliminados" (Activo = false).
             // Para incluirlos explícitamente (ej. auditoría), usar .IgnoreQueryFilters().
-            modelBuilder.Entity<Pago>().HasQueryFilter(p => p.Activo);
-            modelBuilder.Entity<Cuota>().HasQueryFilter(c => c.Activo);
-            // ContactoManual requiere una Cuota (no-nullable): si no replicamos el mismo filtro acá,
-            // un ContactoManual cuya Cuota esté soft-deleted podría resolver Cuota como null en tiempo
-            // de ejecución pese a que el modelo lo declara no-nullable (warning EF 10622).
-            modelBuilder.Entity<ContactoManual>().HasQueryFilter(cm => cm.Cuota.Activo);
+            // Los filtros están encadenados hacia arriba (Cuota depende de Alumno.Activo, Pago y
+            // ContactoManual dependen de Cuota.Activo Y de Alumno.Activo): si no se encadenan así,
+            // dar de baja un Alumno dejaría sus Cuotas/Pagos visibles igual, con la navegación no-nullable
+            // (Cuota.Alumno, Pago.Cuota, ContactoManual.Cuota) resolviendo null en tiempo de ejecución.
+            modelBuilder.Entity<Alumno>().HasQueryFilter(a => a.Activo);
+            modelBuilder.Entity<Cuota>().HasQueryFilter(c => c.Activo && c.Alumno.Activo);
+            modelBuilder.Entity<Pago>().HasQueryFilter(p => p.Activo && p.Cuota.Activo && p.Cuota.Alumno.Activo);
+            modelBuilder.Entity<ContactoManual>().HasQueryFilter(cm => cm.Cuota.Activo && cm.Cuota.Alumno.Activo);
 
             // Precisión explícita para columnas monetarias: sin esto, SQL Server usa decimal(18,2) por
             // default y trunca en silencio cualquier valor con más de 2 decimales (warning EF 30000).

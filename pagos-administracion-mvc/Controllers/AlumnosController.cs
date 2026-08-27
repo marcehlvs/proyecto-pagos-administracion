@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +10,12 @@ using static pagos_administracion_mvc.Models.Enums;
 public class AlumnosController : Controller
 {
     private readonly AdministracionDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager; 
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public AlumnosController(AdministracionDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
-        _userManager = userManager; 
+        _userManager = userManager;
     }
 
     private async Task<SelectList> ObtenerFamiliasSelectListAsync(string? seleccionado = null)
@@ -156,11 +155,20 @@ public class AlumnosController : Controller
         }
 
         var alumno = await _context.Alumnos
+            .Include(a => a.Cuotas).ThenInclude(c => c.Pagos)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (alumno == null)
         {
             return NotFound();
         }
+
+        // Cuotas con saldo pendiente (Pendiente/Parcial/Vencida): se muestra como advertencia
+        // antes de confirmar, no bloquea la baja (el historial de todas formas queda intacto).
+        var cuotasPendientes = alumno.Cuotas
+            .Where(c => c.Estado != EstadoCuota.Pagada)
+            .ToList();
+        ViewBag.CuotasPendientes = cuotasPendientes.Count;
+        ViewBag.SaldoPendiente = cuotasPendientes.Sum(c => c.SaldoPendiente);
 
         return View(alumno);
     }
@@ -174,7 +182,9 @@ public class AlumnosController : Controller
         var alumno = await _context.Alumnos.FindAsync(id);
         if (alumno != null)
         {
-            _context.Alumnos.Remove(alumno);
+            // Soft delete: un alumno con cuotas ya cargadas no se puede borrar físicamente
+            // (Cuota -> Alumno es Restrict a propósito, para no perder historial de pagos).
+            alumno.Activo = false;
         }
 
         await _context.SaveChangesAsync();

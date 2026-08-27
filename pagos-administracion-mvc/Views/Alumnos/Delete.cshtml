@@ -2,11 +2,22 @@
 @using static pagos_administracion_mvc.Models.Enums
 
 @{
-    ViewData["Title"] = "Eliminar alumno";
+    ViewData["Title"] = "Dar de baja alumno";
 }
 
-<h1>Eliminar alumno</h1>
-<div class="alert alert-danger">¿Confirmás que querés eliminar este alumno? Esta acción no se puede deshacer.</div>
+<h1>Dar de baja alumno</h1>
+
+@if ((int)ViewBag.CuotasPendientes > 0)
+{
+    <div class="alert alert-danger">
+        <strong>⚠ Tiene @ViewBag.CuotasPendientes cuota(s) con saldo pendiente, por un total de @(((decimal)ViewBag.SaldoPendiente).ToString("C")).</strong>
+        <p class="mb-0">Podés dar de baja igual — no se pierde nada, el historial de cuotas y pagos queda intacto y accesible — pero la deuda va a dejar de aparecer en los listados activos.</p>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">¿Confirmás que querés dar de baja a este alumno? No se borra su historial de cuotas y pagos, pero deja de aparecer en los listados.</div>
+}
 
 <div class="card p-4 mb-3" style="max-width: 500px;">
     <dl class="row mb-0">
@@ -23,6 +34,6 @@
 
 <form asp-action="Delete">
     <input type="hidden" asp-for="Id" />
-    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <button type="submit" class="btn btn-warning">Dar de baja</button>
     <a asp-action="Index" class="btn btn-link">Cancelar</a>
 </form>
