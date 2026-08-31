@@ -124,7 +124,7 @@ namespace pagos_administracion_mvc.Controllers
 
             using var libro = new ClosedXML.Excel.XLWorkbook();
             var hoja = libro.Worksheets.Add("Pagos");
-            hoja.SheetView.ShowGridLines = false;
+            hoja.ShowGridLines = false;
             hoja.TabColor = colorPrimario;
 
             string[] encabezados = { "Alumno", "DNI", "Nivel", "Grado-Año", "Turno", "Mes/Año Cuota", "Fecha Pago", "Monto", "Estado" };
