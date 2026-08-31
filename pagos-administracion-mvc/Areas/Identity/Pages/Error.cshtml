@@ -1,23 +1,25 @@
-@page
 @model ErrorModel
 @{
     ViewData["Title"] = "Error";
 }
 
 <h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<h2 class="text-danger">Ocurrió un error al procesar tu solicitud.</h2>
 
 @if (Model.ShowRequestId)
 {
     <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
+        <strong>Identificador de solicitud:</strong> <code>@Model.RequestId</code>
     </p>
 }
 
-<h3>Development Mode</h3>
+<h3>Modo desarrollo</h3>
 <p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+    Cambiar al entorno de <strong>Development</strong> va a mostrar información más detallada sobre el error ocurrido.
 </p>
 <p>
-    <strong>Development environment should not be enabled in deployed applications</strong>, as it can result in sensitive information from exceptions being displayed to end users. For local debugging, development environment can be enabled by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>, and restarting the application.
+    <strong>El entorno de Development no debería estar habilitado en aplicaciones desplegadas.</strong>
+    Puede resultar en la exposición de información sensible de las excepciones a los usuarios finales.
+    Para debuguear en forma local, habilitá el entorno <strong>Development</strong> seteando la variable de entorno <strong>ASPNETCORE_ENVIRONMENT</strong> en <strong>Development</strong>
+    y reiniciando la app.
 </p>
