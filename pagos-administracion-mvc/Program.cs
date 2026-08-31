@@ -24,10 +24,14 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedEmail = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequiredLength = 6;
+    // Política reforzada: antes permitía passwords de 6 caracteres sin mayúsculas ni símbolos.
+    // GenerarPasswordTemporal (FamiliasController) ya genera claves de 10 caracteres con
+    // las 4 clases de carácter, así que el alta de familias no se ve afectada.
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AdministracionDbContext>();

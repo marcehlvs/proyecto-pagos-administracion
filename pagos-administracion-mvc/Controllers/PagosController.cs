@@ -112,15 +112,60 @@ namespace pagos_administracion_mvc.Controllers
         {
             var pagos = await ConstruirConsultaFiltrada(buscarAlumno, estado, nivel, gradoAnio, turno).ToListAsync();
 
+            // Paleta alineada al design system de la app (wwwroot/css/site.css)
+            var colorPrimario = ClosedXML.Excel.XLColor.FromHtml("#1A365D");
+            var colorPrimarioOscuro = ClosedXML.Excel.XLColor.FromHtml("#002045");
+            var colorFilaAlterna = ClosedXML.Excel.XLColor.FromHtml("#F7FAFC");
+            var colorBorde = ClosedXML.Excel.XLColor.FromHtml("#E2E8F0");
+            var colorAprobado = ClosedXML.Excel.XLColor.FromHtml("#10B981");
+            var colorPendiente = ClosedXML.Excel.XLColor.FromHtml("#F59E0B");
+            var colorRechazado = ClosedXML.Excel.XLColor.FromHtml("#E53E3E");
+            var colorTextoClaro = ClosedXML.Excel.XLColor.White;
+
             using var libro = new ClosedXML.Excel.XLWorkbook();
             var hoja = libro.Worksheets.Add("Pagos");
+            hoja.SheetView.ShowGridLines = false;
+            hoja.TabColor = colorPrimario;
 
             string[] encabezados = { "Alumno", "DNI", "Nivel", "Grado-Año", "Turno", "Mes/Año Cuota", "Fecha Pago", "Monto", "Estado" };
-            for (int i = 0; i < encabezados.Length; i++)
-                hoja.Cell(1, i + 1).Value = encabezados[i];
-            hoja.Row(1).Style.Font.Bold = true;
+            const int colInicio = 1;
+            int colFin = encabezados.Length;
 
-            int fila = 2;
+            // --- Encabezado del reporte: título + resumen de filtros aplicados ---
+            hoja.Cell(1, colInicio).Value = "Reporte de Pagos";
+            hoja.Range(1, colInicio, 1, colFin).Merge();
+            hoja.Cell(1, colInicio).Style.Font.FontSize = 16;
+            hoja.Cell(1, colInicio).Style.Font.Bold = true;
+            hoja.Cell(1, colInicio).Style.Font.FontColor = colorPrimarioOscuro;
+
+            var filtrosAplicados = new List<string>();
+            if (!string.IsNullOrWhiteSpace(buscarAlumno)) filtrosAplicados.Add($"Alumno: \"{buscarAlumno}\"");
+            if (estado.HasValue) filtrosAplicados.Add($"Estado: {estado}");
+            if (nivel.HasValue) filtrosAplicados.Add($"Nivel: {nivel}");
+            if (gradoAnio.HasValue) filtrosAplicados.Add($"Grado/Año: {gradoAnio}");
+            if (turno.HasValue) filtrosAplicados.Add($"Turno: {turno}");
+
+            hoja.Cell(2, colInicio).Value = $"Generado el {DateTime.Now:dd/MM/yyyy HH:mm} · {pagos.Count} registro(s)" +
+                (filtrosAplicados.Count > 0 ? $" · Filtros: {string.Join(", ", filtrosAplicados)}" : " · Sin filtros aplicados");
+            hoja.Range(2, colInicio, 2, colFin).Merge();
+            hoja.Cell(2, colInicio).Style.Font.FontSize = 9;
+            hoja.Cell(2, colInicio).Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#4A5568");
+            hoja.Cell(2, colInicio).Style.Font.Italic = true;
+
+            // --- Encabezados de columna ---
+            const int filaEncabezados = 4;
+            for (int i = 0; i < encabezados.Length; i++)
+                hoja.Cell(filaEncabezados, i + 1).Value = encabezados[i];
+
+            var rangoEncabezados = hoja.Range(filaEncabezados, colInicio, filaEncabezados, colFin);
+            rangoEncabezados.Style.Font.Bold = true;
+            rangoEncabezados.Style.Font.FontColor = colorTextoClaro;
+            rangoEncabezados.Style.Fill.BackgroundColor = colorPrimario;
+            rangoEncabezados.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            hoja.Row(filaEncabezados).Height = 22;
+
+            // --- Filas de datos ---
+            int fila = filaEncabezados + 1;
             foreach (var p in pagos)
             {
                 var a = p.Cuota.Alumno;
@@ -133,12 +178,65 @@ namespace pagos_administracion_mvc.Controllers
                 hoja.Cell(fila, 7).Value = p.Fecha;
                 hoja.Cell(fila, 7).Style.DateFormat.Format = "dd/MM/yyyy";
                 hoja.Cell(fila, 8).Value = p.Monto;
-                hoja.Cell(fila, 8).Style.NumberFormat.Format = "#,##0.00";
+                hoja.Cell(fila, 8).Style.NumberFormat.Format = "$ #,##0.00";
                 hoja.Cell(fila, 9).Value = p.Estado.ToString();
+
+                // Zebra striping para lectura rápida en filas largas
+                if ((fila - filaEncabezados) % 2 == 0)
+                    hoja.Range(fila, colInicio, fila, colFin).Style.Fill.BackgroundColor = colorFilaAlterna;
+
+                // Semáforo de color en la columna Estado, igual que las badges de la UI
+                var celdaEstado = hoja.Cell(fila, 9);
+                celdaEstado.Style.Font.Bold = true;
+                celdaEstado.Style.Font.FontColor = p.Estado switch
+                {
+                    EstadoPago.Aprobado => colorAprobado,
+                    EstadoPago.Rechazado => colorRechazado,
+                    _ => colorPendiente // Pendiente, Cancelado, EnRevision
+                };
+
                 fila++;
             }
 
+            int filaTotales = fila;
+            int totalRegistros = pagos.Count;
+
+            // --- Fila de totales ---
+            if (totalRegistros > 0)
+            {
+                hoja.Cell(filaTotales, 7).Value = "Total:";
+                hoja.Cell(filaTotales, 7).Style.Font.Bold = true;
+                hoja.Cell(filaTotales, 7).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                hoja.Cell(filaTotales, 8).FormulaA1 = $"=SUM(H{filaEncabezados + 1}:H{filaTotales - 1})";
+                hoja.Cell(filaTotales, 8).Style.NumberFormat.Format = "$ #,##0.00";
+                hoja.Cell(filaTotales, 8).Style.Font.Bold = true;
+                var rangoTotales = hoja.Range(filaTotales, colInicio, filaTotales, colFin);
+                rangoTotales.Style.Border.TopBorder = ClosedXML.Excel.XLBorderStyleValues.Medium;
+                rangoTotales.Style.Border.TopBorderColor = colorPrimario;
+            }
+
+            // --- Bordes finos en toda la tabla (encabezados + datos) ---
+            var rangoTabla = hoja.Range(filaEncabezados, colInicio, Math.Max(filaTotales, filaEncabezados), colFin);
+            rangoTabla.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            rangoTabla.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            rangoTabla.Style.Border.OutsideBorderColor = colorBorde;
+            rangoTabla.Style.Border.InsideBorderColor = colorBorde;
+
+            // --- Filtro automático + panel congelado (encabezado siempre visible al scrollear) ---
+            if (totalRegistros > 0)
+                hoja.Range(filaEncabezados, colInicio, filaTotales - 1, colFin).SetAutoFilter();
+            hoja.SheetView.FreezeRows(filaEncabezados);
+
             hoja.Columns().AdjustToContents();
+            hoja.Column(1).Width = Math.Max(hoja.Column(1).Width, 24); // nombre de alumno no se corta
+
+            // --- Configuración de impresión: horizontal, encabezado repetido, ajustado al ancho ---
+            hoja.PageSetup.PageOrientation = ClosedXML.Excel.XLPageOrientation.Landscape;
+            hoja.PageSetup.FitToPages(1, 0);
+            hoja.PageSetup.SetRowsToRepeatAtTop(filaEncabezados, filaEncabezados);
+
+            libro.Properties.Title = "Reporte de Pagos";
+            libro.Properties.Author = "Sistema de Administración de Pagos";
 
             using var stream = new MemoryStream();
             libro.SaveAs(stream);
@@ -325,15 +423,37 @@ namespace pagos_administracion_mvc.Controllers
             return Redirect(preferencia.InitPoint);
         }
 
-        // Mercado Pago Webhook Endpoint (Con Idempotencia y Logging)
+        // Mercado Pago Webhook Endpoint (Con Idempotencia, Logging y validación de firma)
         [AllowAnonymous]
         [HttpPost("api/mercadopago/webhook")]
         public async Task<IActionResult> Webhook()
         {
             try
             {
-                var type = Request.Query["type"].FirstOrDefault() ?? Request.Query["topic"].FirstOrDefault();
                 var paymentId = Request.Query["data.id"].FirstOrDefault() ?? Request.Query["id"].FirstOrDefault();
+
+                // Validamos x-signature ANTES de tocar la base o llamar a la API de MP.
+                // Sin esto, cualquiera que conozca la URL del webhook puede pegarle con un
+                // data.id de un pago real (propio, ajeno, o de otro comercio) y forzar que
+                // reprocesemos ese pago como si MP lo hubiera notificado.
+                var webhookSecret = _config["MercadoPago:WebhookSecret"];
+                if (!string.IsNullOrEmpty(webhookSecret))
+                {
+                    if (!FirmaWebhookValida(webhookSecret, paymentId))
+                    {
+                        _logger.LogWarning("Webhook de MP rechazado: firma x-signature inválida o ausente. data.id={PaymentId}", paymentId);
+                        return Unauthorized();
+                    }
+                }
+                else
+                {
+                    // Configurá MercadoPago:WebhookSecret (user-secrets en dev, variable de entorno
+                    // MercadoPago__WebhookSecret en producción) para que esta validación se active.
+                    // Hasta entonces seguimos procesando sin validar, igual que antes.
+                    _logger.LogWarning("MercadoPago:WebhookSecret no configurado: la firma del webhook no se está validando.");
+                }
+
+                var type = Request.Query["type"].FirstOrDefault() ?? Request.Query["topic"].FirstOrDefault();
 
                 if (type != "payment" || string.IsNullOrEmpty(paymentId))
                     return Ok();
@@ -396,6 +516,46 @@ namespace pagos_administracion_mvc.Controllers
                 _logger.LogError(ex, "Error procesando webhook de Mercado Pago.");
                 return Ok(); // Devolvemos 200 OK para evitar reintentos infinitos de MP ante fallos internos
             }
+        }
+
+        // Valida el header x-signature que Mercado Pago manda en cada notificación de webhook.
+        // Formato: "ts=1704908010,v1=<hmac-sha256 hex>". El hash se calcula sobre un "manifest"
+        // armado con data.id + x-request-id + ts, usando el secreto que figura en el panel de MP
+        // (Tu negocio > Configuración > Webhooks > Firma secreta). Documentación:
+        // https://www.mercadopago.com.ar/developers/es/docs/checkout-api/additional-content/notifications/webhooks
+        private bool FirmaWebhookValida(string webhookSecret, string? paymentId)
+        {
+            var xSignature = Request.Headers["x-signature"].FirstOrDefault();
+            var xRequestId = Request.Headers["x-request-id"].FirstOrDefault();
+
+            if (string.IsNullOrEmpty(xSignature) || string.IsNullOrEmpty(paymentId))
+                return false;
+
+            string? ts = null, v1 = null;
+            foreach (var parte in xSignature.Split(','))
+            {
+                var kv = parte.Split('=', 2);
+                if (kv.Length != 2) continue;
+
+                var clave = kv[0].Trim();
+                var valor = kv[1].Trim();
+                if (clave == "ts") ts = valor;
+                else if (clave == "v1") v1 = valor;
+            }
+
+            if (string.IsNullOrEmpty(ts) || string.IsNullOrEmpty(v1))
+                return false;
+
+            // MP pide el data.id en minúsculas dentro del manifest cuando es alfanumérico.
+            var manifest = $"id:{paymentId.ToLowerInvariant()};request-id:{xRequestId};ts:{ts};";
+
+            using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(webhookSecret));
+            var hashCalculado = Convert.ToHexString(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(manifest))).ToLowerInvariant();
+
+            // Comparación en tiempo constante para no filtrar el hash por timing attack.
+            return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(hashCalculado),
+                System.Text.Encoding.UTF8.GetBytes(v1));
         }
 
         [AllowAnonymous]
