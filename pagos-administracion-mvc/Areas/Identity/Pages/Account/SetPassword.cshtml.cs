@@ -3,24 +3,25 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.WebUtilities;
 using pagos_administracion_mvc.Data;
 
-namespace pagos_administracion_mvc.Areas.Identity.Pages.Account;
+namespace pagos_administracion_mvc.Areas.Identity.Pages.Account.Manage;
 
-public class ResetPasswordModel : PageModel
+public class SetPasswordModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public ResetPasswordModel(UserManager<ApplicationUser> userManager)
+    public SetPasswordModel(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager)
     {
         _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     /// <summary>
@@ -34,6 +35,13 @@ public class ResetPasswordModel : PageModel
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
+    [TempData]
+    public string? StatusMessage { get; set; }
+
+    /// <summary>
+    ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+    ///     directly from your code. This API may change or be removed in future releases.
+    /// </summary>
     public class InputModel
     {
         /// <summary>
@@ -41,50 +49,37 @@ public class ResetPasswordModel : PageModel
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         [Required]
-        [EmailAddress]
-        public string Email { get; set; } = default!;
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 8)]
         [DataType(DataType.Password)]
-        public string Password { get; set; } = default!;
+        [Display(Name = "New password")]
+        public string NewPassword { get; set; } = default!;
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        [Display(Name = "Confirm new password")]
+        [Compare("NewPassword", ErrorMessage = "The new password and confirmation password do not match.")]
         public string? ConfirmPassword { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [Required]
-        public string Code { get; set; } = default!;
-
     }
 
-    public IActionResult OnGet(string? code = null)
+    public async Task<IActionResult> OnGetAsync()
     {
-        if (code == null)
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
         {
-            return BadRequest("A code must be supplied for password reset.");
+            return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
         }
-        else
+
+        var hasPassword = await _userManager.HasPasswordAsync(user);
+
+        if (hasPassword)
         {
-            Input = new InputModel
-            {
-                Code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code))
-            };
-            return Page();
+            return RedirectToPage("./ChangePassword");
         }
+
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -94,23 +89,25 @@ public class ResetPasswordModel : PageModel
             return Page();
         }
 
-        var user = await _userManager.FindByEmailAsync(Input.Email);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            // Don't reveal that the user does not exist
-            return RedirectToPage("./ResetPasswordConfirmation");
+            return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
         }
 
-        var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
-        if (result.Succeeded)
+        var addPasswordResult = await _userManager.AddPasswordAsync(user, Input.NewPassword);
+        if (!addPasswordResult.Succeeded)
         {
-            return RedirectToPage("./ResetPasswordConfirmation");
+            foreach (var error in addPasswordResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return Page();
         }
 
-        foreach (var error in result.Errors)
-        {
-            ModelState.AddModelError(string.Empty, error.Description);
-        }
-        return Page();
+        await _signInManager.RefreshSignInAsync(user);
+        StatusMessage = "Your password has been set.";
+
+        return RedirectToPage();
     }
 }
