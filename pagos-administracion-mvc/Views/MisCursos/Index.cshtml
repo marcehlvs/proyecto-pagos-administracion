@@ -1,0 +1,48 @@
+@model IEnumerable<pagos_administracion_mvc.Models.Curso>
+
+@{
+    ViewData["Title"] = "Mis Cursos";
+}
+
+<h1>Mis Cursos</h1>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">Todavía no tenés cursos asignados. Pedile al administrador que te asigne uno.</p>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Curso</th>
+            <th>Nivel</th>
+            <th>Turno</th>
+            <th>Ed. Física</th>
+            <th>Alumnos</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var curso in Model)
+        {
+            <tr>
+                <td class="align-middle">@curso.Nombre</td>
+                <td class="align-middle">@curso.Nivel — @curso.GradoAnio°</td>
+                <td class="align-middle">@curso.Turno</td>
+                <td class="align-middle">
+                    @(curso.DiasEducacionFisica == pagos_administracion_mvc.Models.Enums.DiasSemana.Ninguno
+                        ? "-"
+                        : curso.DiasEducacionFisica.ToString().Replace(", ", " / "))
+                </td>
+                <td class="align-middle">
+                    <span class="badge bg-secondary">@curso.Inscripciones.Count</span>
+                </td>
+                <td class="align-middle text-end">
+                    <a asp-controller="Asistencias" asp-action="Tomar" asp-route-cursoId="@curso.Id" class="btn btn-sm btn-primary">
+                        <i class="bi bi-clipboard-check"></i> Tomar asistencia
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

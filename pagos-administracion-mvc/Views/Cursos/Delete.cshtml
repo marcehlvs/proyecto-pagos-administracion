@@ -1,0 +1,36 @@
+@model pagos_administracion_mvc.Models.Curso
+
+@{
+    ViewData["Title"] = "Dar de baja curso";
+}
+
+<h1>Dar de baja curso</h1>
+
+@if ((int)ViewBag.AlumnosInscriptos > 0)
+{
+    <div class="alert alert-danger">
+        <strong>⚠ Tiene @ViewBag.AlumnosInscriptos alumno(s) inscripto(s).</strong>
+        <p class="mb-0">Podés dar de baja igual — no se pierde nada, el historial de asistencias queda intacto y accesible — pero el curso va a dejar de aparecer en los listados activos y en la asistencia de sus alumnos.</p>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">¿Confirmás que querés dar de baja este curso? No se borra su historial, pero deja de aparecer en los listados.</div>
+}
+
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <dl class="row mb-0">
+        <dt class="col-sm-4">Nombre</dt>
+        <dd class="col-sm-8">@Model.Nombre</dd>
+        <dt class="col-sm-4">Nivel</dt>
+        <dd class="col-sm-8">@Model.Nivel — @Model.GradoAnio° grado/año</dd>
+        <dt class="col-sm-4">Turno</dt>
+        <dd class="col-sm-8">@Model.Turno</dd>
+    </dl>
+</div>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-warning">Dar de baja</button>
+    <a asp-action="Index" class="btn btn-link">Cancelar</a>
+</form>

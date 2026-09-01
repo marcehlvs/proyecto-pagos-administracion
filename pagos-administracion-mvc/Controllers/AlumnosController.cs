@@ -5,17 +5,21 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
+using pagos_administracion_mvc.Services;
+using System.Security.Cryptography;
 using static pagos_administracion_mvc.Models.Enums;
 [Authorize]
 public class AlumnosController : Controller
 {
     private readonly AdministracionDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly EmailService _emailService;
 
-    public AlumnosController(AdministracionDbContext context, UserManager<ApplicationUser> userManager)
+    public AlumnosController(AdministracionDbContext context, UserManager<ApplicationUser> userManager, EmailService emailService)
     {
         _context = context;
         _userManager = userManager;
+        _emailService = emailService;
     }
 
     private async Task<SelectList> ObtenerFamiliasSelectListAsync(string? seleccionado = null)
@@ -51,6 +55,7 @@ public class AlumnosController : Controller
 
         var alumno = await _context.Alumnos
             .Include(a => a.FamiliaUser)
+            .Include(a => a.AlumnoUser)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (alumno == null)
         {
@@ -189,6 +194,106 @@ public class AlumnosController : Controller
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: ALUMNOS/CrearAcceso/5
+    // Alta independiente del login del Alumno: no requiere que tenga FamiliaUserId cargado.
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CrearAcceso(int? id)
+    {
+        if (id == null) return NotFound();
+
+        var alumno = await _context.Alumnos.FindAsync(id);
+        if (alumno == null) return NotFound();
+        if (alumno.AlumnoUserId != null)
+        {
+            TempData["EmailError"] = "Este alumno ya tiene un acceso creado.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return View(alumno);
+    }
+
+    // POST: ALUMNOS/CrearAcceso/5
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CrearAcceso(int id, string email)
+    {
+        var alumno = await _context.Alumnos.FindAsync(id);
+        if (alumno == null) return NotFound();
+        if (alumno.AlumnoUserId != null)
+        {
+            TempData["EmailError"] = "Este alumno ya tiene un acceso creado.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var passwordTemporal = GenerarPasswordTemporal();
+
+        var usuario = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true // el admin lo da de alta directo, no requiere confirmar por mail
+        };
+
+        var resultado = await _userManager.CreateAsync(usuario, passwordTemporal);
+
+        if (resultado.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(usuario, "Alumno");
+            alumno.AlumnoUserId = usuario.Id;
+            await _context.SaveChangesAsync();
+
+            var cuerpoBienvenida = EmailService.EnvolverPlantilla(
+                "¡Bienvenido/a al portal de la escuela!",
+                $@"<p style=""margin:0 0 16px 0;"">Se creó tu cuenta de acceso al portal de la escuela para ver tu asistencia.</p>
+                <p style=""margin:0 0 6px 0;""><strong>Usuario:</strong> {usuario.Email}</p>
+                <p style=""margin:0 0 16px 0;""><strong>Contraseña provisoria:</strong> {passwordTemporal}</p>
+                <p style=""margin:0; color:#4A5568; font-size:14px;"">Te recomendamos cambiarla después de tu primer ingreso, desde 'Mi perfil'.</p>");
+
+            var (exito, error) = await _emailService.EnviarAsync(usuario.Email!, "Acceso al Portal de la Escuela José de San Martín", cuerpoBienvenida);
+
+            if (!exito)
+            {
+                // El alumno y su acceso ya quedaron creados igual; solo avisamos que el mail
+                // de bienvenida no salió, mismo criterio que FamiliasController.
+                TempData["EmailError"] = $"El acceso se creó bien, pero el mail de bienvenida no se pudo enviar: {error}";
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        foreach (var error in resultado.Errors)
+            ModelState.AddModelError(string.Empty, error.Description);
+
+        return View(alumno);
+    }
+
+    // Idéntico al de FamiliasController: password temporal random, criptográficamente segura.
+    private static string GenerarPasswordTemporal()
+    {
+        const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sin I/O para evitar confusión visual
+        const string minusculas = "abcdefghijkmnpqrstuvwxyz";
+        const string numeros = "23456789";
+        const string simbolos = "!@#$%&*";
+        const string todos = mayusculas + minusculas + numeros + simbolos;
+
+        Span<char> clave = stackalloc char[10];
+        clave[0] = mayusculas[RandomNumberGenerator.GetInt32(mayusculas.Length)];
+        clave[1] = minusculas[RandomNumberGenerator.GetInt32(minusculas.Length)];
+        clave[2] = numeros[RandomNumberGenerator.GetInt32(numeros.Length)];
+        clave[3] = simbolos[RandomNumberGenerator.GetInt32(simbolos.Length)];
+        for (int i = 4; i < clave.Length; i++)
+            clave[i] = todos[RandomNumberGenerator.GetInt32(todos.Length)];
+
+        for (int i = clave.Length - 1; i > 0; i--)
+        {
+            int j = RandomNumberGenerator.GetInt32(i + 1);
+            (clave[i], clave[j]) = (clave[j], clave[i]);
+        }
+
+        return new string(clave);
     }
 
     private bool AlumnoExists(int? id)

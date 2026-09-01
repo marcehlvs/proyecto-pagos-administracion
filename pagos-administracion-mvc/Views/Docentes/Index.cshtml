@@ -1,0 +1,53 @@
+@model List<pagos_administracion_mvc.Data.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Docentes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Docentes</h1>
+    <a asp-action="Create" class="btn btn-primary btn-sm">+ Nuevo docente</a>
+</div>
+
+@if (TempData["EmailError"] != null)
+{
+    <div class="alert alert-warning">@TempData["EmailError"]</div>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Cursos asignados</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            var cursosPorDocente = (Dictionary<string, List<string>>)ViewBag.CursosPorDocente;
+        }
+        @foreach (var docente in Model)
+        {
+            <tr>
+                <td class="align-middle">@docente.Email</td>
+                <td class="align-middle">
+                    @if (cursosPorDocente.TryGetValue(docente.Id, out var cursos) && cursos.Any())
+                    {
+                        @string.Join(", ", cursos)
+                    }
+                    else
+                    {
+                        <span class="text-muted">Sin cursos asignados</span>
+                    }
+                </td>
+                <td class="align-middle text-end">
+                    <a asp-action="Delete" asp-route-id="@docente.Id" class="btn btn-sm btn-outline-danger">Eliminar</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="3" class="text-muted">Todavía no hay docentes cargados.</td></tr>
+        }
+    </tbody>
+</table>
