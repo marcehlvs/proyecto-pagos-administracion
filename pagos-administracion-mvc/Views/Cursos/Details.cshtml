@@ -1,0 +1,69 @@
+@model pagos_administracion_mvc.Models.Curso
+
+@{
+    ViewData["Title"] = "Detalle del curso";
+}
+
+<h1>@Model.Nombre</h1>
+<p class="text-muted">@Model.Nivel — @Model.GradoAnio° grado/año — Turno @Model.Turno</p>
+
+<div class="row">
+    <div class="col-md-7">
+        <h5>Alumnos inscriptos (@Model.Inscripciones.Count)</h5>
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th>DNI</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in Model.Inscripciones.OrderBy(i => i.Alumno.Apellido))
+                {
+                    <tr>
+                        <td class="align-middle">@i.Alumno.Apellido, @i.Alumno.Nombre</td>
+                        <td class="align-middle">@i.Alumno.Dni</td>
+                        <td class="align-middle text-end">
+                            <form asp-action="Desmatricular" method="post" onsubmit="return confirm('¿Quitar a este alumno del curso?');">
+                                <input type="hidden" name="inscripcionId" value="@i.Id" />
+                                <input type="hidden" name="cursoId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Inscripciones.Any())
+                {
+                    <tr><td colspan="3" class="text-muted">Todavía no hay alumnos inscriptos.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-md-5">
+        <h5>Matricular alumno</h5>
+        <div class="card p-3">
+            <form asp-action="Matricular" method="post">
+                <input type="hidden" name="cursoId" value="@Model.Id" />
+                <div class="form-group mb-2">
+                    <select name="alumnoId" class="form-control" required>
+                        <option value="">Seleccioná un alumno...</option>
+                        @foreach (var a in (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.AlumnosDisponibles)
+                        {
+                            <option value="@a.Id">@a.Apellido, @a.Nombre — DNI @a.Dni</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">+ Agregar al curso</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-controller="Asistencias" asp-action="Tomar" asp-route-cursoId="@Model.Id" class="btn btn-success btn-sm">
+        <i class="bi bi-clipboard-check"></i> Tomar asistencia
+    </a>
+    <a asp-action="Index" class="btn btn-link">Volver a la lista</a>
+</div>

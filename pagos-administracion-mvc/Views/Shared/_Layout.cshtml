@@ -33,7 +33,7 @@
                     @{
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
-                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Avisos" }
+                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Avisos", "Cursos", "Asistencias", "Docentes" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
                     <ul class="navbar-nav flex-grow-1">
@@ -57,6 +57,8 @@
                                     <li><a class="dropdown-item" asp-controller="Alumnos" asp-action="Index"><i class="bi bi-people"></i> Alumnos</a></li>
                                     <li><a class="dropdown-item" asp-controller="Familias" asp-action="Index"><i class="bi bi-house-heart"></i> Familias</a></li>
                                     <li><a class="dropdown-item" asp-controller="Cuotas" asp-action="Index"><i class="bi bi-receipt"></i> Cuotas</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Cursos" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Cursos</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Docentes" asp-action="Index"><i class="bi bi-person-workspace"></i> Docentes</a></li>
                                     <li><a class="dropdown-item" asp-controller="Avisos" asp-action="Index"><i class="bi bi-megaphone"></i> Avisos</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
@@ -66,6 +68,14 @@
                         else if (User.IsInRole("Familia"))
                         {
                             <li class="nav-item"><a class="@clase("MisCuotas")" asp-controller="MisCuotas" asp-action="Index">Mis Cuotas</a></li>
+                        }
+                        else if (User.IsInRole("Alumno"))
+                        {
+                            <li class="nav-item"><a class="@clase("MisAsistencias")" asp-controller="MisAsistencias" asp-action="Index">Mis Asistencias</a></li>
+                        }
+                        else if (User.IsInRole("Docente"))
+                        {
+                            <li class="nav-item"><a class="@clase("MisCursos")" asp-controller="MisCursos" asp-action="Index">Mis Cursos</a></li>
                         }
                     </ul>
 

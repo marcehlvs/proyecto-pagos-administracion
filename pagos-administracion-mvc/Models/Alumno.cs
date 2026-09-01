@@ -19,6 +19,14 @@ namespace pagos_administracion_mvc.Models
         public string? FamiliaUserId { get; set; }
         public ApplicationUser? FamiliaUser { get; set; }
 
+        // Login propio del alumno (rol "Alumno"), independiente del login de la Familia.
+        // Alta independiente por ahora: no requiere que el alumno tenga FamiliaUserId cargado.
+        public string? AlumnoUserId { get; set; }
+        public ApplicationUser? AlumnoUser { get; set; }
+
+        //Un alumno puede estar inscripto en varios cursos
+        public ICollection<Inscripcion> Inscripciones { get; set; } = new List<Inscripcion>();
+
         // Soft delete: mismo criterio que Pago/Cuota. Un alumno con cuotas cargadas no se puede
         // borrar físicamente (Cuota -> Alumno es Restrict a propósito, para no perder historial de
         // pagos), así que "eliminar" en la UI da de baja en vez de borrar la fila.

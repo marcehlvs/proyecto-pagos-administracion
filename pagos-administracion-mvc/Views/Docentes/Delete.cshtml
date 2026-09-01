@@ -1,0 +1,26 @@
+@model pagos_administracion_mvc.Data.ApplicationUser
+
+@{
+    ViewData["Title"] = "Eliminar docente";
+    var cursos = (List<pagos_administracion_mvc.Models.Curso>)ViewBag.CursosAsignados;
+}
+
+<h1>Eliminar docente</h1>
+
+@if (cursos.Any())
+{
+    <div class="alert alert-warning">
+        <strong>⚠ Tiene @cursos.Count curso(s) asignado(s): @string.Join(", ", cursos.Select(c => c.Nombre)).</strong>
+        <p class="mb-0">Si eliminás este docente, esos cursos quedan sin profesor asignado (no se borran ni se pierde el historial de asistencia).</p>
+    </div>
+}
+
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <p class="mb-0"><strong>Email:</strong> @Model.Email</p>
+</div>
+
+<form asp-action="Delete">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" class="btn btn-link">Cancelar</a>
+</form>

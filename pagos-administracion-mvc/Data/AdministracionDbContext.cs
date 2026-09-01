@@ -13,6 +13,9 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Pago> Pagos { get; set; }
         public DbSet<ContactoManual> ContactosManuales { get; set; }
         public DbSet<Aviso> Avisos { get; set; }
+        public DbSet<Curso> Cursos { get; set; }
+        public DbSet<Inscripcion> Inscripciones { get; set; }
+        public DbSet<Asistencia> Asistencias { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -41,6 +44,44 @@ namespace pagos_administracion_mvc.Data
                 .HasForeignKey(a => a.FamiliaUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Login propio del Alumno: 1 a 1 con ApplicationUser, independiente de FamiliaUser.
+            modelBuilder.Entity<Alumno>()
+                .HasOne(a => a.AlumnoUser)
+                .WithMany()
+                .HasForeignKey(a => a.AlumnoUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Inscripcion>()
+                .HasOne(i => i.Alumno)
+                .WithMany(a => a.Inscripciones)
+                .HasForeignKey(i => i.AlumnoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Inscripcion>()
+                .HasOne(i => i.Curso)
+                .WithMany(c => c.Inscripciones)
+                .HasForeignKey(i => i.CursoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Docente asignado a un Curso: 1 a muchos con ApplicationUser, sin navegación inversa.
+            modelBuilder.Entity<Curso>()
+                .HasOne(c => c.ProfesorUser)
+                .WithMany()
+                .HasForeignKey(c => c.ProfesorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Asistencia>()
+                .HasOne(a => a.Inscripcion)
+                .WithMany(i => i.Asistencias)
+                .HasForeignKey(a => a.InscripcionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Un alumno no puede tener dos asistencias el mismo día para la misma Materia
+            // (Clase o Educación Física), pero sí una de cada una (2 registros por día).
+            modelBuilder.Entity<Asistencia>()
+                .HasIndex(a => new { a.InscripcionId, a.Fecha, a.Materia })
+                .IsUnique();
+
             // Soft delete: por defecto, todas las consultas a Pagos ignoran los "eliminados" (Activo = false).
             // Para incluirlos explícitamente (ej. auditoría), usar .IgnoreQueryFilters().
             // Los filtros están encadenados hacia arriba (Cuota depende de Alumno.Activo, Pago y
@@ -51,6 +92,11 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Cuota>().HasQueryFilter(c => c.Activo && c.Alumno.Activo);
             modelBuilder.Entity<Pago>().HasQueryFilter(p => p.Activo && p.Cuota.Activo && p.Cuota.Alumno.Activo);
             modelBuilder.Entity<ContactoManual>().HasQueryFilter(cm => cm.Cuota.Activo && cm.Cuota.Alumno.Activo);
+
+            // Mismo criterio de soft delete encadenado: Curso -> Inscripcion -> Asistencia.
+            modelBuilder.Entity<Curso>().HasQueryFilter(c => c.Activo);
+            modelBuilder.Entity<Inscripcion>().HasQueryFilter(i => i.Activo && i.Alumno.Activo && i.Curso.Activo);
+            modelBuilder.Entity<Asistencia>().HasQueryFilter(a => a.Activo && a.Inscripcion.Activo && a.Inscripcion.Alumno.Activo && a.Inscripcion.Curso.Activo);
 
             // Precisión explícita para columnas monetarias: sin esto, SQL Server usa decimal(18,2) por
             // default y trunca en silencio cualquier valor con más de 2 decimales (warning EF 30000).

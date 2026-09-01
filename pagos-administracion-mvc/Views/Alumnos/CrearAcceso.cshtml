@@ -1,0 +1,32 @@
+@model pagos_administracion_mvc.Models.Alumno
+
+@{
+    ViewData["Title"] = "Crear acceso del alumno";
+}
+
+<h1>Crear acceso del alumno</h1>
+<p class="text-muted">@Model.Apellido, @Model.Nombre — DNI @Model.Dni</p>
+
+<div class="alert alert-info">
+    Se va a crear un login independiente para que el alumno pueda ver únicamente su propia asistencia.
+    No tiene relación con la cuenta de la Familia ni le da acceso a información de pagos.
+</div>
+
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <form asp-action="CrearAcceso" asp-route-id="@Model.Id">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group">
+            <label class="control-label">Email del alumno</label>
+            <input type="email" name="email" class="form-control" required />
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Crear acceso</button>
+        </div>
+    </form>
+</div>
+
+<div>
+    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link px-0">Volver al detalle</a>
+</div>

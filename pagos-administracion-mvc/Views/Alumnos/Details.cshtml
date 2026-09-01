@@ -9,6 +9,11 @@
     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
 </div>
 
+@if (TempData["EmailError"] != null)
+{
+    <div class="alert alert-warning">@TempData["EmailError"]</div>
+}
+
 <div class="card p-4" style="max-width: 500px;">
     <dl class="row mb-0">
         <dt class="col-sm-4">Nombre</dt>
@@ -28,6 +33,18 @@
 
         <dt class="col-sm-4">Familia asignada</dt>
         <dd class="col-sm-8">@(Model.FamiliaUser?.Email ?? "Sin asignar")</dd>
+
+        <dt class="col-sm-4">Acceso propio (Alumno)</dt>
+        <dd class="col-sm-8">
+            @if (Model.AlumnoUser != null)
+            {
+                <span class="badge bg-success">@Model.AlumnoUser.Email</span>
+            }
+            else
+            {
+                <a asp-action="CrearAcceso" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">+ Crear acceso</a>
+            }
+        </dd>
     </dl>
 </div>
 

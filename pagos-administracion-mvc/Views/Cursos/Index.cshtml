@@ -1,0 +1,76 @@
+@model IEnumerable<pagos_administracion_mvc.Models.Curso>
+
+@{
+    ViewData["Title"] = "Cursos";
+}
+
+<h1>Cursos</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary btn-sm">+ Nuevo curso</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.Nombre)</th>
+            <th>@Html.DisplayNameFor(model => model.Nivel)</th>
+            <th>@Html.DisplayNameFor(model => model.GradoAnio)</th>
+            <th>@Html.DisplayNameFor(model => model.Turno)</th>
+            <th>Ed. Física</th>
+            <th>Docente</th>
+            <th>Alumnos</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td class="align-middle">@Html.DisplayFor(model => item.Nombre)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Nivel)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.GradoAnio)</td>
+                <td class="align-middle">@Html.DisplayFor(model => item.Turno)</td>
+                <td class="align-middle">
+                    @(item.DiasEducacionFisica == pagos_administracion_mvc.Models.Enums.DiasSemana.Ninguno
+                        ? "-"
+                        : item.DiasEducacionFisica.ToString().Replace(", ", " / "))
+                </td>
+                <td class="align-middle">@(item.ProfesorUser?.Email ?? "Sin asignar")</td>
+                <td class="align-middle">
+                    <span class="badge bg-secondary">@item.Inscripciones.Count</span>
+                </td>
+                <td class="align-middle text-end">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Acciones
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
+                                    <i class="bi bi-people"></i> Alumnos / Matrícula
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-controller="Asistencias" asp-action="Tomar" asp-route-cursoId="@item.Id">
+                                    <i class="bi bi-clipboard-check"></i> Tomar asistencia
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
