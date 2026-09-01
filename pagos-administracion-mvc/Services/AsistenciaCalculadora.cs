@@ -1,3 +1,4 @@
+using pagos_administracion_mvc.Models;
 using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Services
@@ -43,6 +44,21 @@ namespace pagos_administracion_mvc.Services
                 EstadoAsistencia.Tarde => 0.25m,
                 _ => 0m
             };
+        }
+
+        // Suma el total de faltas de una inscripción completa (todas sus asistencias, agrupadas
+        // por día para calcular correctamente los días con Educación Física). Centraliza la lógica
+        // que antes vivía duplicada en la vista de Mis Asistencias; la usa también el dashboard
+        // de resumen de faltas (Admin/Docente).
+        public static decimal CalcularTotalFaltas(IEnumerable<Asistencia> asistencias, Curso curso)
+        {
+            return asistencias
+                .GroupBy(a => a.Fecha)
+                .Sum(g =>
+                {
+                    var diaTieneEF = curso.TieneEducacionFisica(g.Key);
+                    return g.Sum(a => CalcularFraccionFalta(a.Materia, a.Estado, diaTieneEF));
+                });
         }
     }
 }
