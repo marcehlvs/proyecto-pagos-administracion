@@ -4,11 +4,13 @@
 
 @{
     ViewData["Title"] = "Nuevo curso";
+    var buscado = (bool)ViewBag.Buscado;
+    var diasSeleccionados = (List<int>)ViewBag.DiasEFSeleccionados;
 }
 
 <h1>Nuevo curso</h1>
 
-<div class="card p-4 mb-3" style="max-width: 500px;">
+<div class="card p-4 mb-3" style="max-width: 600px;">
     <form asp-action="Create">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -42,7 +44,7 @@
             @foreach (DiasSemana dia in new[] { DiasSemana.Lunes, DiasSemana.Martes, DiasSemana.Miercoles, DiasSemana.Jueves, DiasSemana.Viernes, DiasSemana.Sabado })
             {
                 <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="checkbox" name="diasEF" value="@((int)dia)" id="dia-@dia" />
+                    <input class="form-check-input" type="checkbox" name="diasEF" value="@((int)dia)" id="dia-@dia" checked="@diasSeleccionados.Contains((int)dia)" />
                     <label class="form-check-label" for="dia-@dia">@dia</label>
                 </div>
             }
@@ -55,8 +57,43 @@
             </select>
         </div>
 
+        <hr class="my-3" />
+
+        <div class="form-group mb-3">
+            <button type="submit" formmethod="get" formaction="@Url.Action("Create")" class="btn btn-outline-secondary btn-sm">
+                🔍 Buscar alumnos que coincidan con Nivel + Grado/Año + Turno
+            </button>
+        </div>
+
+        @if (buscado)
+        {
+            var coincidentes = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.AlumnosCoincidentes;
+            var seleccionados = (List<int>)ViewBag.AlumnosSeleccionados;
+
+            <div class="mb-3">
+                <label class="control-label fw-bold">Alumnos que coinciden (@coincidentes.Count)</label>
+                @if (coincidentes.Any())
+                {
+                    <div class="form-text mb-1">Tildados por default. Destildá los que no correspondan matricular en este curso (por ejemplo, si ya tenés otro curso con la misma combinación de Nivel/Grado/Turno).</div>
+                    <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                        @foreach (var a in coincidentes)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alumnosAMatricular" value="@a.Id" id="alumno-@a.Id" checked="@seleccionados.Contains(a.Id)" />
+                                <label class="form-check-label" for="alumno-@a.Id">@a.Apellido, @a.Nombre — DNI @a.Dni</label>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No hay alumnos cargados con esa combinación de Nivel + Grado/Año + Turno todavía. Podés matricularlos después desde el detalle del curso.</p>
+                }
+            </div>
+        }
+
         <div class="form-group mt-3">
-            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="submit" formmethod="post" formaction="@Url.Action("Create")" class="btn btn-primary">Guardar curso</button>
         </div>
     </form>
 </div>
