@@ -22,10 +22,13 @@
             {
                 <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
             }
-            else
+            else if (User.Identity?.IsAuthenticated != true)
             {
                 <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
             }
+            @* Docente/Alumno ya logueados: sin botón. No tienen acceso al portal de pagos
+               (es solo para Familia/Admin) y mandarlos a Login ya no lleva a ningún lado
+               útil, porque un usuario autenticado vuelve directo a esta misma página. *@
             <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-lg">Conocé nuestra propuesta</a>
         </div>
     </div>

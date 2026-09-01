@@ -26,7 +26,7 @@
         @foreach (var curso in Model)
         {
             <tr>
-                <td class="align-middle">@curso.Nombre</td>
+                <td class="align-middle">@(string.IsNullOrWhiteSpace(curso.Nombre) ? "—" : curso.Nombre)</td>
                 <td class="align-middle">@curso.Nivel — @curso.GradoAnio°</td>
                 <td class="align-middle">@curso.Turno</td>
                 <td class="align-middle">

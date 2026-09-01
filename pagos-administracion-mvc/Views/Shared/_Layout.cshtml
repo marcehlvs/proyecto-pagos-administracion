@@ -58,6 +58,7 @@
                                     <li><a class="dropdown-item" asp-controller="Familias" asp-action="Index"><i class="bi bi-house-heart"></i> Familias</a></li>
                                     <li><a class="dropdown-item" asp-controller="Cuotas" asp-action="Index"><i class="bi bi-receipt"></i> Cuotas</a></li>
                                     <li><a class="dropdown-item" asp-controller="Cursos" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Cursos</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Asistencias" asp-action="Resumen"><i class="bi bi-clipboard-data"></i> Asistencias</a></li>
                                     <li><a class="dropdown-item" asp-controller="Docentes" asp-action="Index"><i class="bi bi-person-workspace"></i> Docentes</a></li>
                                     <li><a class="dropdown-item" asp-controller="Avisos" asp-action="Index"><i class="bi bi-megaphone"></i> Avisos</a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -76,6 +77,7 @@
                         else if (User.IsInRole("Docente"))
                         {
                             <li class="nav-item"><a class="@clase("MisCursos")" asp-controller="MisCursos" asp-action="Index">Mis Cursos</a></li>
+                            <li class="nav-item"><a class="@clase("Asistencias")" asp-controller="Asistencias" asp-action="Resumen">Asistencias</a></li>
                         }
                     </ul>
 

@@ -21,7 +21,7 @@ else
 <div class="card p-4 mb-3" style="max-width: 500px;">
     <dl class="row mb-0">
         <dt class="col-sm-4">Nombre</dt>
-        <dd class="col-sm-8">@Model.Nombre</dd>
+        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Nombre) ? "—" : Model.Nombre)</dd>
         <dt class="col-sm-4">Nivel</dt>
         <dd class="col-sm-8">@Model.Nivel — @Model.GradoAnio° grado/año</dd>
         <dt class="col-sm-4">Turno</dt>

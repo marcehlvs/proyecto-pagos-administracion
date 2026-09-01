@@ -13,7 +13,7 @@
 <table class="table table-striped">
     <thead>
         <tr>
-            <th>@Html.DisplayNameFor(model => model.Nombre)</th>
+            <th>Curso</th>
             <th>@Html.DisplayNameFor(model => model.Nivel)</th>
             <th>@Html.DisplayNameFor(model => model.GradoAnio)</th>
             <th>@Html.DisplayNameFor(model => model.Turno)</th>
@@ -27,7 +27,16 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td class="align-middle">@Html.DisplayFor(model => item.Nombre)</td>
+                <td class="align-middle">
+                    @if (string.IsNullOrWhiteSpace(item.Nombre))
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                    else
+                    {
+                        @item.Nombre
+                    }
+                </td>
                 <td class="align-middle">@Html.DisplayFor(model => item.Nivel)</td>
                 <td class="align-middle">@Html.DisplayFor(model => item.GradoAnio)</td>
                 <td class="align-middle">@Html.DisplayFor(model => item.Turno)</td>
