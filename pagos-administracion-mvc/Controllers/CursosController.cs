@@ -61,16 +61,45 @@ namespace pagos_administracion_mvc.Controllers
         }
 
         // GET: Cursos/Create
-        public async Task<IActionResult> Create()
+        // Si vienen nivel/gradoAnio/turno por querystring (desde el botón "Buscar coincidencias"
+        // del propio formulario), calcula qué alumnos ya cargados matchean esa combinación,
+        // para poder matricularlos de una sin tener que hacerlo a mano desde Details.
+        public async Task<IActionResult> Create(NivelEducativo? nivel, int? gradoAnio, Turno? turno, string? nombre, string? profesorUserId, List<int>? diasEF, List<int>? alumnosAMatricular)
         {
-            ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync();
-            return View();
+            var curso = new Curso
+            {
+                Nivel = nivel ?? default,
+                GradoAnio = gradoAnio ?? 0,
+                Turno = turno ?? default,
+                Nombre = nombre ?? string.Empty,
+                ProfesorUserId = profesorUserId,
+                DiasEducacionFisica = CombinarDias(diasEF)
+            };
+
+            ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync(profesorUserId);
+            ViewBag.DiasEFSeleccionados = diasEF ?? new List<int>();
+            ViewBag.Buscado = nivel.HasValue && gradoAnio.HasValue && turno.HasValue;
+
+            if (ViewBag.Buscado)
+            {
+                var coincidentes = await _context.Alumnos
+                    .Where(a => a.Nivel == nivel && a.GradoAnio == gradoAnio && a.Turno == turno)
+                    .OrderBy(a => a.Apellido)
+                    .ToListAsync();
+
+                ViewBag.AlumnosCoincidentes = coincidentes;
+                // Primera búsqueda: todos tildados por default. Si el admin ya destildó alguno
+                // y volvió a buscar (o falló la validación), se respeta lo que venía marcado.
+                ViewBag.AlumnosSeleccionados = alumnosAMatricular ?? coincidentes.Select(a => a.Id).ToList();
+            }
+
+            return View(curso);
         }
 
         // POST: Cursos/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId")] Curso curso, List<int>? diasEF)
+        public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId")] Curso curso, List<int>? diasEF, List<int>? alumnosAMatricular)
         {
             curso.DiasEducacionFisica = CombinarDias(diasEF);
 
@@ -78,9 +107,27 @@ namespace pagos_administracion_mvc.Controllers
             {
                 _context.Add(curso);
                 await _context.SaveChangesAsync();
+
+                if (alumnosAMatricular != null && alumnosAMatricular.Any())
+                {
+                    foreach (var alumnoId in alumnosAMatricular)
+                        _context.Inscripciones.Add(new Inscripcion { CursoId = curso.Id, AlumnoId = alumnoId });
+
+                    await _context.SaveChangesAsync();
+                }
+
                 return RedirectToAction(nameof(Index));
             }
+
             ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync(curso.ProfesorUserId);
+            ViewBag.DiasEFSeleccionados = diasEF ?? new List<int>();
+            ViewBag.Buscado = true;
+            ViewBag.AlumnosCoincidentes = await _context.Alumnos
+                .Where(a => a.Nivel == curso.Nivel && a.GradoAnio == curso.GradoAnio && a.Turno == curso.Turno)
+                .OrderBy(a => a.Apellido)
+                .ToListAsync();
+            ViewBag.AlumnosSeleccionados = alumnosAMatricular ?? new List<int>();
+
             return View(curso);
         }
 
