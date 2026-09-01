@@ -60,5 +60,23 @@ namespace pagos_administracion_mvc.Services
                     return g.Sum(a => CalcularFraccionFalta(a.Materia, a.Estado, diaTieneEF));
                 });
         }
+
+        // Cantidad de días distintos con al menos un registro de asistencia (Clase o EF).
+        // Es la base "sobre cuántos días" se calcula el % de presentismo.
+        public static int CalcularDiasRegistrados(IEnumerable<Asistencia> asistencias) =>
+            asistencias.Select(a => a.Fecha).Distinct().Count();
+
+        // % de presentismo = 100 - (promedio de falta por día registrado). Si todavía no se
+        // tomó asistencia ningún día, se muestra 100% (no hay evidencia de faltas todavía).
+        public static decimal CalcularPresentismo(IEnumerable<Asistencia> asistencias, Curso curso)
+        {
+            var lista = asistencias as ICollection<Asistencia> ?? asistencias.ToList();
+            var diasRegistrados = CalcularDiasRegistrados(lista);
+            if (diasRegistrados == 0) return 100m;
+
+            var faltas = CalcularTotalFaltas(lista, curso);
+            var presentismo = (1m - (faltas / diasRegistrados)) * 100m;
+            return Math.Round(Math.Clamp(presentismo, 0m, 100m), 1);
+        }
     }
 }

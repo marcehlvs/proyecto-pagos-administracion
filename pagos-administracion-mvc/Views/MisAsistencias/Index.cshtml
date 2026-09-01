@@ -4,10 +4,39 @@
 
 @{
     ViewData["Title"] = "Mis Asistencias";
+    var vista = (string)ViewBag.Vista;
+    var inicio = (DateTime?)ViewBag.Inicio;
+    var fin = (DateTime?)ViewBag.Fin;
+    var fechaPrev = (DateTime)ViewBag.FechaPrev;
+    var fechaNext = (DateTime)ViewBag.FechaNext;
+    var tituloPeriodo = (string)ViewBag.TituloPeriodo;
+
+    string ClaseTab(string v) => vista == v ? "btn btn-primary btn-sm" : "btn btn-outline-secondary btn-sm";
 }
 
 <h1>Mis Asistencias</h1>
 <p class="text-muted">Se muestran solo tus llegadas tarde y ausencias. Los días sin novedades no aparecen listados.</p>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div class="btn-group" role="group">
+        <a class="@ClaseTab("semana")" asp-action="Index" asp-route-vista="semana" asp-route-fecha="@DateTime.Today.ToString("yyyy-MM-dd")">Semana</a>
+        <a class="@ClaseTab("mes")" asp-action="Index" asp-route-vista="mes" asp-route-fecha="@DateTime.Today.ToString("yyyy-MM-dd")">Mes</a>
+        <a class="@ClaseTab("todo")" asp-action="Index" asp-route-vista="todo">Todo</a>
+    </div>
+
+    @if (vista != "todo")
+    {
+        <div class="btn-group ms-2" role="group">
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-vista="@vista" asp-route-fecha="@fechaPrev.ToString("yyyy-MM-dd")">‹ Anterior</a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-vista="@vista" asp-route-fecha="@fechaNext.ToString("yyyy-MM-dd")">Siguiente ›</a>
+        </div>
+        <strong class="ms-2 text-capitalize">@tituloPeriodo</strong>
+    }
+    else
+    {
+        <strong class="ms-2">@tituloPeriodo</strong>
+    }
+</div>
 
 @if (!Model.Any())
 {
@@ -18,10 +47,17 @@
 {
     var curso = inscripcion.Curso;
 
-    // Agrupa las asistencias (Clase + Educación Física) por día para poder calcular
-    // la fracción de falta total de cada jornada, aunque solo se muestren los días
-    // con Tarde o Ausente (nunca los Presente).
-    var porDia = inscripcion.Asistencias
+    // Asistencias dentro del período elegido (semana/mes) o todas, si vista == "todo".
+    var asistenciasDelPeriodo = inscripcion.Asistencias
+        .Where(a => (inicio == null || a.Fecha >= inicio) && (fin == null || a.Fecha <= fin))
+        .ToList();
+
+    var presentismoPeriodo = AsistenciaCalculadora.CalcularPresentismo(asistenciasDelPeriodo, curso);
+    var faltasPeriodo = AsistenciaCalculadora.CalcularTotalFaltas(asistenciasDelPeriodo, curso);
+
+    // Agrupa por día para poder calcular la fracción de falta total de cada jornada, aunque
+    // solo se muestren los días con Tarde o Ausente (nunca los Presente).
+    var porDia = asistenciasDelPeriodo
         .GroupBy(a => a.Fecha)
         .Select(g =>
         {
@@ -34,28 +70,23 @@
         .OrderByDescending(d => d.Fecha)
         .ToList();
 
-    var totalFaltas = porDia.Sum(d => d.Fraccion);
+    var totalFaltasHistorico = AsistenciaCalculadora.CalcularTotalFaltas(inscripcion.Asistencias, curso);
+    var promediosPorCurso = (Dictionary<int, decimal>)ViewBag.PromedioPorCurso;
+    var promedioCurso = promediosPorCurso.TryGetValue(curso.Id, out var p) ? p : 0m;
+
+    var colorPresentismo = presentismoPeriodo >= 90 ? "bg-success" : presentismoPeriodo >= 75 ? "bg-warning text-dark" : "bg-danger";
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            @if (!string.IsNullOrWhiteSpace(curso.Nombre))
-            {
-                <strong>@curso.Nombre</strong>
-            }
-            else
-            {
-                <strong>Curso</strong>
-            }
+            <strong>@curso.Etiqueta</strong>
             <span class="text-muted small">@curso.Nivel — @curso.GradoAnio° grado/año — Turno @curso.Turno</span>
         </div>
         <div class="card-body">
-            <div class="mb-3">
-                <span class="badge bg-danger">Total acumulado: @totalFaltas.ToString("0.##") falta@(totalFaltas == 1 ? "" : "s")</span>
-                @{
-                    var promediosPorCurso = (Dictionary<int, decimal>)ViewBag.PromedioPorCurso;
-                    var promedioCurso = promediosPorCurso.TryGetValue(curso.Id, out var p) ? p : 0m;
-                }
-                <span class="badge bg-secondary ms-1">Promedio del curso: @promedioCurso.ToString("0.##")</span>
+            <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+                <span class="badge @colorPresentismo fs-6">Presentismo del período: @presentismoPeriodo.ToString("0.#")%</span>
+                <span class="badge bg-danger">Faltas del período: @faltasPeriodo.ToString("0.##")</span>
+                <span class="badge bg-secondary">Total histórico: @totalFaltasHistorico.ToString("0.##") falta@(totalFaltasHistorico == 1 ? "" : "s")</span>
+                <span class="badge bg-secondary">Promedio del curso (histórico): @promedioCurso.ToString("0.##")</span>
             </div>
 
             @if (porDia.Any())
@@ -89,7 +120,7 @@
             }
             else
             {
-                <p class="text-muted mb-0">Sin ausencias ni llegadas tarde registradas. ¡Todo en orden!</p>
+                <p class="text-muted mb-0">Sin ausencias ni llegadas tarde en este período. ¡Todo en orden!</p>
             }
         </div>
     </div>

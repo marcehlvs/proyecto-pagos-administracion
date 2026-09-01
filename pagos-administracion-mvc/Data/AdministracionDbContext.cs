@@ -75,6 +75,13 @@ namespace pagos_administracion_mvc.Data
                 .HasForeignKey(c => c.ProfesorUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Nombre es "string?" en C# solo para desactivar el [Required] implícito de MVC
+            // (Nullable Reference Types). La columna en la DB sigue siendo NOT NULL: esto evita
+            // que EF quiera generar una migración para volverla nullable.
+            modelBuilder.Entity<Curso>()
+                .Property(c => c.Nombre)
+                .IsRequired();
+
             modelBuilder.Entity<Asistencia>()
                 .HasOne(a => a.Inscripcion)
                 .WithMany(i => i.Asistencias)
