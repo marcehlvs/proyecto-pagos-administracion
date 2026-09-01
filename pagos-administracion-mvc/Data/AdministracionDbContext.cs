@@ -45,11 +45,16 @@ namespace pagos_administracion_mvc.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Login propio del Alumno: 1 a 1 con ApplicationUser, independiente de FamiliaUser.
+            // Restrict (no SetNull): Alumnos ya tiene otra FK nullable a AspNetUsers (FamiliaUserId)
+            // con SetNull. Si ambas columnas usaran SetNull, SQL Server rechaza la constraint
+            // (Error 1785, "may cause cycles or multiple cascade paths") porque no puede garantizar
+            // cómo resolver el SET NULL de las dos columnas si la misma fila de AspNetUsers
+            // terminara referenciada por ambas en un mismo Alumno.
             modelBuilder.Entity<Alumno>()
                 .HasOne(a => a.AlumnoUser)
                 .WithMany()
                 .HasForeignKey(a => a.AlumnoUserId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Inscripcion>()
                 .HasOne(i => i.Alumno)
