@@ -8,7 +8,13 @@ namespace pagos_administracion_mvc.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        // Opcional: para la mayoría de los cursos alcanza con Nivel+GradoAnio+Turno (ver
+        // Etiqueta más abajo). Sirve para casos como "Proyecto" o "Sección A" donde el admin
+        // quiere un nombre propio además de esos datos.
+        // string no-nullable (no string?) a propósito: la columna Nombre en la DB es NOT NULL
+        // (ver migración 20260901013227_Asistencias) — dejarlo vacío ("") evita pedir una
+        // migración nueva para volverla nullable.
+        [Display(Name = "Nombre (opcional)")]
         public string Nombre { get; set; } = string.Empty;
 
         public NivelEducativo Nivel { get; set; }
@@ -34,6 +40,14 @@ namespace pagos_administracion_mvc.Models
         public bool Activo { get; set; } = true;
 
         public ICollection<Inscripcion> Inscripciones { get; set; } = new List<Inscripcion>();
+
+        // Para mostrar en listados/títulos donde antes se usaba Nombre a secas. Si el admin
+        // puso un nombre propio lo respeta; si no, arma uno a partir de Nivel+GradoAnio+Turno
+        // (que ya son obligatorios), para que un curso sin Nombre nunca se vea en blanco.
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public string Etiqueta => string.IsNullOrWhiteSpace(Nombre)
+            ? $"{Nivel} {GradoAnio}° - Turno {Turno}"
+            : Nombre;
 
         // Determina si una fecha puntual corresponde a un día de Educación Física de este curso.
         public bool TieneEducacionFisica(DateTime fecha)

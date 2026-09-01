@@ -1,0 +1,133 @@
+@model pagos_administracion_mvc.Models.AsistenciasResumenViewModel
+
+@{
+    ViewData["Title"] = "Resumen de asistencias";
+    var totalAlumnosConFaltas = Model.Cursos.Sum(c => c.AlumnosInscriptos);
+    var cursoConMasFaltas = Model.Cursos.OrderByDescending(c => c.TotalFaltas).FirstOrDefault();
+}
+
+<h1 class="mb-1">Resumen de asistencias</h1>
+<p class="text-muted mb-4">
+    @if (User.IsInRole("Admin"))
+    {
+        <text>Faltas acumuladas de todos los cursos.</text>
+    }
+    else
+    {
+        <text>Faltas acumuladas de tus cursos asignados.</text>
+    }
+</p>
+
+@if (!Model.Cursos.Any())
+{
+    <p class="text-muted">No hay cursos para mostrar.</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 p-3">
+                <span class="text-muted small">Cursos</span>
+                <span class="fs-3 fw-bold">@Model.Cursos.Count</span>
+                <span class="text-muted small">@totalAlumnosConFaltas alumno(s) inscripto(s) en total</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 p-3">
+                <span class="text-muted small">Curso con más faltas acumuladas</span>
+                @if (cursoConMasFaltas != null && cursoConMasFaltas.TotalFaltas > 0)
+                {
+                    <span class="fs-5 fw-bold text-warning">@cursoConMasFaltas.Curso.Etiqueta</span>
+                    <span class="text-muted small">@cursoConMasFaltas.TotalFaltas.ToString("0.##") falta(s) en total</span>
+                }
+                else
+                {
+                    <span class="fs-5 fw-bold text-success">Sin faltas registradas</span>
+                }
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 p-3">
+                <span class="text-muted small">Alumnos en el ranking</span>
+                <span class="fs-3 fw-bold">@Model.RankingGeneral.Count</span>
+                <span class="text-muted small">con al menos una falta registrada</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card p-3">
+                <h6 class="mb-3">Totales por curso</h6>
+                <table class="table table-striped table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Alumnos</th>
+                            <th>Total faltas</th>
+                            <th>Promedio por alumno</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var fila in Model.Cursos)
+                        {
+                            <tr>
+                                <td class="align-middle">@fila.Curso.Etiqueta</td>
+                                <td class="align-middle">@fila.AlumnosInscriptos</td>
+                                <td class="align-middle">
+                                    @if (fila.TotalFaltas > 0)
+                                    {
+                                        <span class="badge bg-warning text-dark">@fila.TotalFaltas.ToString("0.##")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">0</span>
+                                    }
+                                </td>
+                                <td class="align-middle">@fila.PromedioFaltas.ToString("0.##")</td>
+                                <td class="align-middle text-end">
+                                    <a asp-action="ResumenCurso" asp-route-cursoId="@fila.Curso.Id" class="btn btn-outline-secondary btn-sm">Ver detalle</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card p-3">
+                <h6 class="mb-3">Ranking general — alumnos con más faltas</h6>
+                @if (!Model.RankingGeneral.Any())
+                {
+                    <p class="text-muted mb-0">Nadie tiene faltas registradas todavía.</p>
+                }
+                else
+                {
+                    <table class="table table-striped table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Alumno</th>
+                                <th>Curso</th>
+                                <th>Faltas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var fila in Model.RankingGeneral)
+                            {
+                                <tr>
+                                    <td class="align-middle">@fila.AlumnoNombre</td>
+                                    <td class="align-middle text-muted small">@fila.CursoEtiqueta</td>
+                                    <td class="align-middle">
+                                        <span class="badge bg-warning text-dark">@fila.TotalFaltas.ToString("0.##")</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+}

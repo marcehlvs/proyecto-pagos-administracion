@@ -31,7 +31,7 @@ namespace pagos_administracion_mvc.Controllers
 
             var cursosPorDocente = (await _context.Cursos.Where(c => c.ProfesorUserId != null).ToListAsync())
                 .GroupBy(c => c.ProfesorUserId!)
-                .ToDictionary(g => g.Key, g => g.Select(c => c.Nombre).ToList());
+                .ToDictionary(g => g.Key, g => g.Select(c => c.Etiqueta).ToList());
 
             ViewBag.CursosPorDocente = cursosPorDocente;
 

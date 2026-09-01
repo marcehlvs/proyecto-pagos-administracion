@@ -118,5 +118,95 @@ namespace pagos_administracion_mvc.Controllers
                 }
             }
         }
+
+        // GET: Asistencias/Resumen
+        // Dashboard de faltas: totales por curso + ranking general de alumnos con más faltas.
+        // Admin ve todos los cursos activos; Docente solo los que tiene asignados (mismo criterio
+        // de scoping que ObtenerCursoConPermiso, pero acá se filtra a nivel de listado en vez de
+        // curso puntual).
+        public async Task<IActionResult> Resumen()
+        {
+            var cursosQuery = _context.Cursos.AsQueryable();
+
+            if (User.IsInRole("Docente") && !User.IsInRole("Admin"))
+            {
+                var userId = _userManager.GetUserId(User);
+                cursosQuery = cursosQuery.Where(c => c.ProfesorUserId == userId);
+            }
+
+            var cursos = await cursosQuery
+                .OrderBy(c => c.Nivel).ThenBy(c => c.GradoAnio).ThenBy(c => c.Turno)
+                .ToListAsync();
+            var cursoIds = cursos.Select(c => c.Id).ToList();
+
+            var inscripciones = await _context.Inscripciones
+                .Include(i => i.Alumno)
+                .Include(i => i.Curso)
+                .Include(i => i.Asistencias)
+                .Where(i => cursoIds.Contains(i.CursoId))
+                .ToListAsync();
+
+            var filasPorAlumno = inscripciones
+                .Select(i => new FilaAlumnoFaltas
+                {
+                    InscripcionId = i.Id,
+                    AlumnoNombre = $"{i.Alumno.Apellido}, {i.Alumno.Nombre}",
+                    CursoId = i.CursoId,
+                    CursoEtiqueta = i.Curso.Etiqueta,
+                    TotalFaltas = AsistenciaCalculadora.CalcularTotalFaltas(i.Asistencias, i.Curso)
+                })
+                .Where(f => f.TotalFaltas > 0)
+                .OrderByDescending(f => f.TotalFaltas)
+                .ToList();
+
+            var modelo = new AsistenciasResumenViewModel
+            {
+                Cursos = cursos.Select(c =>
+                {
+                    var totalesDelCurso = filasPorAlumno.Where(f => f.CursoId == c.Id).Select(f => f.TotalFaltas).ToList();
+                    var alumnosInscriptos = inscripciones.Count(i => i.CursoId == c.Id);
+                    return new ResumenCursoFila
+                    {
+                        Curso = c,
+                        AlumnosInscriptos = alumnosInscriptos,
+                        TotalFaltas = totalesDelCurso.Sum(),
+                        PromedioFaltas = alumnosInscriptos > 0 ? Math.Round(totalesDelCurso.Sum() / alumnosInscriptos, 2) : 0m
+                    };
+                }).ToList(),
+                // Top 20: alcanza para detectar los casos que necesitan seguimiento sin saturar la pantalla.
+                RankingGeneral = filasPorAlumno.Take(20).ToList()
+            };
+
+            return View(modelo);
+        }
+
+        // GET: Asistencias/ResumenCurso?cursoId=1
+        // Detalle de faltas de un curso puntual: todos sus alumnos, ordenados por más faltas.
+        public async Task<IActionResult> ResumenCurso(int cursoId)
+        {
+            var (curso, error) = await ObtenerCursoConPermiso(cursoId);
+            if (error != null) return error;
+
+            var inscripciones = await _context.Inscripciones
+                .Include(i => i.Alumno)
+                .Include(i => i.Asistencias)
+                .Where(i => i.CursoId == cursoId)
+                .ToListAsync();
+
+            var filas = inscripciones
+                .Select(i => new FilaAlumnoFaltas
+                {
+                    InscripcionId = i.Id,
+                    AlumnoNombre = $"{i.Alumno.Apellido}, {i.Alumno.Nombre}",
+                    CursoId = cursoId,
+                    CursoEtiqueta = curso!.Etiqueta,
+                    TotalFaltas = AsistenciaCalculadora.CalcularTotalFaltas(i.Asistencias, curso!)
+                })
+                .OrderByDescending(f => f.TotalFaltas)
+                .ToList();
+
+            ViewBag.Curso = curso;
+            return View(filas);
+        }
     }
 }

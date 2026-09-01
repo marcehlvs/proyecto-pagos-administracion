@@ -33,7 +33,7 @@ namespace pagos_administracion_mvc.Controllers
             var cursos = await _context.Cursos
                 .Include(c => c.Inscripciones)
                 .Include(c => c.ProfesorUser)
-                .OrderBy(c => c.Nombre)
+                .OrderBy(c => c.Nivel).ThenBy(c => c.GradoAnio).ThenBy(c => c.Turno)
                 .ToListAsync();
 
             return View(cursos);

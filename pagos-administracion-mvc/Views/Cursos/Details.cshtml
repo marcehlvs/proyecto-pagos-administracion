@@ -4,8 +4,11 @@
     ViewData["Title"] = "Detalle del curso";
 }
 
-<h1>@Model.Nombre</h1>
-<p class="text-muted">@Model.Nivel — @Model.GradoAnio° grado/año — Turno @Model.Turno</p>
+<h1>@Model.Etiqueta</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Nombre))
+{
+    <p class="text-muted">@Model.Nivel — @Model.GradoAnio° grado/año — Turno @Model.Turno</p>
+}
 
 <div class="row">
     <div class="col-md-7">

@@ -14,7 +14,11 @@
 
 <h1>Tomar asistencia</h1>
 <p class="text-muted">
-    @curso.Nombre — @curso.Nivel, @curso.GradoAnio° grado/año, turno @curso.Turno
+    @if (!string.IsNullOrWhiteSpace(curso.Nombre))
+    {
+        @curso.Nombre <text> — </text>
+    }
+    @curso.Nivel, @curso.GradoAnio° grado/año, turno @curso.Turno
     @if (diaTieneEF)
     {
         <span class="badge bg-info text-dark ms-2">Hoy hay Educación Física</span>
