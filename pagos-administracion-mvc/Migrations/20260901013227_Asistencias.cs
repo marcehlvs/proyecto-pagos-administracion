@@ -130,7 +130,7 @@ namespace pagos_administracion_mvc.Migrations
                 column: "AlumnoUserId",
                 principalTable: "AspNetUsers",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.Restrict);
         }
 
         /// <inheritdoc />

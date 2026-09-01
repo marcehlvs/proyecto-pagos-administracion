@@ -621,7 +621,7 @@ namespace pagos_administracion_mvc.Migrations
                     b.HasOne("pagos_administracion_mvc.Data.ApplicationUser", "AlumnoUser")
                         .WithMany()
                         .HasForeignKey("AlumnoUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("pagos_administracion_mvc.Data.ApplicationUser", "FamiliaUser")
                         .WithMany()
