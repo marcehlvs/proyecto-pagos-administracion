@@ -102,6 +102,7 @@ namespace pagos_administracion_mvc.Controllers
         public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId")] Curso curso, List<int>? diasEF, List<int>? alumnosAMatricular)
         {
             curso.DiasEducacionFisica = CombinarDias(diasEF);
+            curso.Nombre ??= string.Empty;
 
             if (ModelState.IsValid)
             {
@@ -151,6 +152,7 @@ namespace pagos_administracion_mvc.Controllers
             if (id != curso.Id) return NotFound();
 
             curso.DiasEducacionFisica = CombinarDias(diasEF);
+            curso.Nombre ??= string.Empty;
 
             if (ModelState.IsValid)
             {

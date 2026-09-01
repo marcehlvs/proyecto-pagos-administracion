@@ -11,11 +11,13 @@ namespace pagos_administracion_mvc.Models
         // Opcional: para la mayoría de los cursos alcanza con Nivel+GradoAnio+Turno (ver
         // Etiqueta más abajo). Sirve para casos como "Proyecto" o "Sección A" donde el admin
         // quiere un nombre propio además de esos datos.
-        // string no-nullable (no string?) a propósito: la columna Nombre en la DB es NOT NULL
-        // (ver migración 20260901013227_Asistencias) — dejarlo vacío ("") evita pedir una
-        // migración nueva para volverla nullable.
+        // string? (nullable) a propósito: con Nullable Reference Types habilitado, ASP.NET Core
+        // agrega un [Required] IMPLÍCITO a cualquier string no-nullable, así que aunque sacamos
+        // el [Required] de acá, el binding lo seguía pidiendo. Marcándolo "?" se lo desactivamos.
+        // La columna en la DB sigue siendo NOT NULL (ver AdministracionDbContext, Property(...).IsRequired()),
+        // así que no hace falta una migración nueva; el controller garantiza que nunca se guarde null.
         [Display(Name = "Nombre (opcional)")]
-        public string Nombre { get; set; } = string.Empty;
+        public string? Nombre { get; set; } = string.Empty;
 
         public NivelEducativo Nivel { get; set; }
 
