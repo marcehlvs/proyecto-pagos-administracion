@@ -81,11 +81,11 @@ public class LoginModel : PageModel
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
-        [Display(Name = "Remember me?")]
+        [Display(Name = "Recordarme")]
         public bool RememberMe { get; set; }
     }
 
-    public async Task OnGetAsync(string? returnUrl = null)
+    public async Task<IActionResult> OnGetAsync(string? returnUrl = null)
     {
         if (!string.IsNullOrEmpty(ErrorMessage))
         {
@@ -94,12 +94,22 @@ public class LoginModel : PageModel
 
         returnUrl ??= Url.Content("~/");
 
+        // Si ya estás logueado, mostrar el formulario de nuevo no tiene sentido: te manda
+        // directo a donde ibas (o a Inicio). Antes, un usuario autenticado que llegaba acá
+        // (ej. por un link viejo) veía el form de nuevo, y volver a loguearse lo devolvía a
+        // Inicio sin ningún aviso — parecía que "no pasaba nada".
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return LocalRedirect(returnUrl);
+        }
+
         // Clear the existing external cookie to ensure a clean login process
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
         ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
         ReturnUrl = returnUrl;
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
@@ -129,7 +139,7 @@ public class LoginModel : PageModel
             }
             else
             {
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                ModelState.AddModelError(string.Empty, "Correo o contraseña incorrectos.");
                 return Page();
             }
         }
