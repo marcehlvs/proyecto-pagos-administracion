@@ -56,6 +56,16 @@
             </select>
         </div>
 
+        <div class="form-group mb-3">
+            <label asp-for="MetaPresentismo" class="control-label"></label>
+            <div class="input-group" style="max-width: 160px;">
+                <input asp-for="MetaPresentismo" class="form-control" min="1" max="100" />
+                <span class="input-group-text">%</span>
+            </div>
+            <div class="form-text">Define cuándo la barra de presentismo del alumno se muestra "cumplida".</div>
+            <span asp-validation-for="MetaPresentismo" class="text-danger"></span>
+        </div>
+
         <div class="form-group mt-3">
             <button type="submit" class="btn btn-primary">Guardar</button>
         </div>

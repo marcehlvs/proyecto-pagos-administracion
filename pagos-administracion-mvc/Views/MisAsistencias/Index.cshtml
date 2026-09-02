@@ -74,7 +74,18 @@
     var promediosPorCurso = (Dictionary<int, decimal>)ViewBag.PromedioPorCurso;
     var promedioCurso = promediosPorCurso.TryGetValue(curso.Id, out var p) ? p : 0m;
 
-    var colorPresentismo = presentismoPeriodo >= 90 ? "bg-success" : presentismoPeriodo >= 75 ? "bg-warning text-dark" : "bg-danger";
+    var meta = curso.MetaPresentismo;
+    var cumpleMeta = presentismoPeriodo >= meta;
+    var cercaDeMeta = presentismoPeriodo >= (meta - 10) && !cumpleMeta;
+
+    var colorPresentismo = cumpleMeta ? "bg-success" : cercaDeMeta ? "bg-warning text-dark" : "bg-danger";
+    var colorBarra = cumpleMeta ? "bg-success" : cercaDeMeta ? "bg-warning" : "bg-danger";
+    var avatar = cumpleMeta ? "😄" : cercaDeMeta ? "😐" : "😢";
+    var mensajeAvatar = cumpleMeta
+        ? "¡Vas cumpliendo el objetivo de presentismo!"
+        : cercaDeMeta
+            ? "Estás cerca del objetivo, ¡no aflojes!"
+            : "Estás por debajo del objetivo de presentismo.";
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -82,11 +93,36 @@
             <span class="text-muted small">@curso.Nivel — @curso.GradoAnio° grado/año — Turno @curso.Turno</span>
         </div>
         <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div style="font-size: 2.5rem; line-height: 1;">@avatar</div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">@mensajeAvatar</span>
+                        <span class="small fw-bold">@presentismoPeriodo.ToString("0.#")% / meta @meta%</span>
+                    </div>
+                    <div class="progress position-relative" style="height: 18px;">
+                        <div class="progress-bar @colorBarra" role="progressbar" style="width: @(presentismoPeriodo.ToString(System.Globalization.CultureInfo.InvariantCulture))%;" aria-valuenow="@presentismoPeriodo" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="position-absolute top-0 bottom-0 border-start border-dark border-2" style="left: @(meta)%;" title="Meta: @meta%"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
                 <span class="badge @colorPresentismo fs-6">Presentismo del período: @presentismoPeriodo.ToString("0.#")%</span>
                 <span class="badge bg-danger">Faltas del período: @faltasPeriodo.ToString("0.##")</span>
                 <span class="badge bg-secondary">Total histórico: @totalFaltasHistorico.ToString("0.##") falta@(totalFaltasHistorico == 1 ? "" : "s")</span>
                 <span class="badge bg-secondary">Promedio del curso (histórico): @promedioCurso.ToString("0.##")</span>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small text-muted">Evolución del presentismo (@(vista == "mes" ? "por mes" : "por semana"))</span>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" data-chart-toggle="line" data-curso-id="@curso.Id">Línea</button>
+                        <button type="button" class="btn btn-outline-secondary" data-chart-toggle="bar" data-curso-id="@curso.Id">Barras</button>
+                    </div>
+                </div>
+                <canvas id="chart-curso-@curso.Id" height="80"></canvas>
             </div>
 
             @if (porDia.Any())
@@ -124,4 +160,62 @@
             }
         </div>
     </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const datosGraficoPorCurso = @Html.Raw(ViewBag.ChartDataPorCursoJson);
+        const graficos = {};
+
+        function crearGrafico(cursoId, tipo) {
+            const datos = datosGraficoPorCurso[cursoId];
+            if (!datos || !datos.labels || datos.labels.length === 0) return;
+
+            const canvas = document.getElementById('chart-curso-' + cursoId);
+            if (!canvas) return;
+
+            if (graficos[cursoId]) {
+                graficos[cursoId].destroy();
+            }
+
+            graficos[cursoId] = new Chart(canvas.getContext('2d'), {
+                type: tipo,
+                data: {
+                    labels: datos.labels,
+                    datasets: [{
+                        label: 'Presentismo (%)',
+                        data: datos.valores,
+                        borderColor: '#0d6efd',
+                        backgroundColor: tipo === 'bar' ? 'rgba(13,110,253,0.6)' : 'rgba(13,110,253,0.15)',
+                        fill: tipo === 'line',
+                        tension: 0.3,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+                    }
+                }
+            });
+        }
+
+        Object.keys(datosGraficoPorCurso).forEach(cursoId => crearGrafico(cursoId, 'line'));
+
+        document.querySelectorAll('[data-chart-toggle]').forEach(boton => {
+            boton.addEventListener('click', function () {
+                const cursoId = this.getAttribute('data-curso-id');
+                const tipo = this.getAttribute('data-chart-toggle');
+
+                // Marca el botón activo dentro de su mismo grupo (por curso).
+                this.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                crearGrafico(cursoId, tipo);
+            });
+        });
+    </script>
 }

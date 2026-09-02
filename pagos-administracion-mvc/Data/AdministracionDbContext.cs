@@ -82,6 +82,12 @@ namespace pagos_administracion_mvc.Data
                 .Property(c => c.Nombre)
                 .IsRequired();
 
+            // Default en DB para que los cursos ya existentes (creados antes de este campo)
+            // no queden con meta 0 tras la migración.
+            modelBuilder.Entity<Curso>()
+                .Property(c => c.MetaPresentismo)
+                .HasDefaultValue(90);
+
             modelBuilder.Entity<Asistencia>()
                 .HasOne(a => a.Inscripcion)
                 .WithMany(i => i.Asistencias)
