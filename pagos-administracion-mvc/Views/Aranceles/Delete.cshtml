@@ -1,0 +1,36 @@
+﻿@model pagos_administracion_mvc.Models.ArancelNivel
+
+@{
+    ViewData["Title"] = "Eliminar arancel";
+}
+
+<h1>Eliminar arancel</h1>
+
+<div class="alert alert-warning" style="max-width: 500px;">
+    ¿Seguro que querés eliminar este arancel? Las cuotas ya generadas con este arancel no se modifican.
+</div>
+
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <dl class="row mb-0">
+        <dt class="col-sm-5">Nivel</dt>
+        <dd class="col-sm-7">@Model.Nivel</dd>
+
+        <dt class="col-sm-5">Vigente desde</dt>
+        <dd class="col-sm-7">@Model.VigenteDesde.ToString("dd/MM/yyyy")</dd>
+
+        <dt class="col-sm-5">Cuota real</dt>
+        <dd class="col-sm-7">@Model.CuotaReal.ToString("C")</dd>
+
+        <dt class="col-sm-5">Bonificación</dt>
+        <dd class="col-sm-7">-@Model.BonificacionPagoATiempo.ToString("C")</dd>
+
+        <dt class="col-sm-5">Total</dt>
+        <dd class="col-sm-7 fw-bold">@Model.TotalConBonificacion.ToString("C")</dd>
+    </dl>
+
+    <form asp-action="Delete" class="mt-3">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+    </form>
+</div>

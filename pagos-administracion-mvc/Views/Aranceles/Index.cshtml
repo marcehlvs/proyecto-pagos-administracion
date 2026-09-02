@@ -1,0 +1,59 @@
+﻿@model IEnumerable<pagos_administracion_mvc.Models.ArancelNivel>
+
+@{
+    ViewData["Title"] = "Aranceles";
+}
+
+<h1>Aranceles por Nivel</h1>
+<p class="text-muted">
+    Estos son los valores que toma "Generar cuotas" para calcular el monto de cada alumno según su Nivel.
+    Cuando la Comisión de Aranceles publica un aumento, cargá un nuevo registro con la fecha desde la que rige
+    en vez de editar el anterior: así queda el histórico de lo que se cobró cada mes.
+</p>
+
+<p>
+    <a asp-action="Create" class="btn btn-outline-primary btn-sm">+ Nuevo arancel</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nivel</th>
+            <th>Vigente desde</th>
+            <th>Curricular</th>
+            <th>Extra curricular</th>
+            <th>Equip. Didáctico</th>
+            <th>Mantenimiento</th>
+            <th>Emerg. Médica</th>
+            <th>Cuota real</th>
+            <th>Bonificación</th>
+            <th>Total</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td class="align-middle">@item.Nivel</td>
+                <td class="align-middle">@item.VigenteDesde.ToString("dd/MM/yyyy")</td>
+                <td class="align-middle">@item.Curricular.ToString("C")</td>
+                <td class="align-middle">@item.ExtraCurricular.ToString("C")</td>
+                <td class="align-middle">@item.EquipamientoDidactico.ToString("C")</td>
+                <td class="align-middle">@item.Mantenimiento.ToString("C")</td>
+                <td class="align-middle">@item.EmergenciaMedica.ToString("C")</td>
+                <td class="align-middle">@item.CuotaReal.ToString("C")</td>
+                <td class="align-middle text-danger">-@item.BonificacionPagoATiempo.ToString("C")</td>
+                <td class="align-middle fw-bold">@item.TotalConBonificacion.ToString("C")</td>
+                <td class="align-middle text-end">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">
+                        <i class="bi bi-pencil"></i> Editar
+                    </a>
+                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

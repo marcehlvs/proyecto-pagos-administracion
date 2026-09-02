@@ -33,7 +33,7 @@
                     @{
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
-                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Avisos", "Cursos", "Asistencias", "Docentes" }
+                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "Avisos", "Cursos", "Asistencias", "Docentes" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
                     <ul class="navbar-nav flex-grow-1">
@@ -63,6 +63,7 @@
                                     <li><a class="dropdown-item" asp-controller="Avisos" asp-action="Index"><i class="bi bi-megaphone"></i> Avisos</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Aranceles" asp-action="Index"><i class="bi bi-cash-stack"></i> Aranceles</a></li>
                                 </ul>
                             </li>
                         }

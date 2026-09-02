@@ -16,6 +16,7 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Curso> Cursos { get; set; }
         public DbSet<Inscripcion> Inscripciones { get; set; }
         public DbSet<Asistencia> Asistencias { get; set; }
+        public DbSet<ArancelNivel> ArancelesNivel { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -115,6 +116,14 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Curso>().HasQueryFilter(c => c.Activo);
             modelBuilder.Entity<Inscripcion>().HasQueryFilter(i => i.Activo && i.Alumno.Activo && i.Curso.Activo);
             modelBuilder.Entity<Asistencia>().HasQueryFilter(a => a.Activo && a.Inscripcion.Activo && a.Inscripcion.Alumno.Activo && a.Inscripcion.Curso.Activo);
+
+            modelBuilder.Entity<ArancelNivel>().HasQueryFilter(a => a.Activo);
+            modelBuilder.Entity<ArancelNivel>().Property(a => a.Curricular).HasPrecision(18, 2);
+            modelBuilder.Entity<ArancelNivel>().Property(a => a.ExtraCurricular).HasPrecision(18, 2);
+            modelBuilder.Entity<ArancelNivel>().Property(a => a.EquipamientoDidactico).HasPrecision(18, 2);
+            modelBuilder.Entity<ArancelNivel>().Property(a => a.Mantenimiento).HasPrecision(18, 2);
+            modelBuilder.Entity<ArancelNivel>().Property(a => a.EmergenciaMedica).HasPrecision(18, 2);
+            modelBuilder.Entity<ArancelNivel>().Property(a => a.BonificacionPagoATiempo).HasPrecision(18, 2);
 
             // Precisión explícita para columnas monetarias: sin esto, SQL Server usa decimal(18,2) por
             // default y trunca en silencio cualquier valor con más de 2 decimales (warning EF 30000).
