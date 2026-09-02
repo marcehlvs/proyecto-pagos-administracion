@@ -1,0 +1,83 @@
+﻿@model pagos_administracion_mvc.Models.ArancelNivel
+@using static pagos_administracion_mvc.Models.Enums
+
+@{
+    ViewData["Title"] = "Editar arancel";
+}
+
+<h1>Editar arancel</h1>
+
+
+<div class="card p-4 mb-3" style="max-width: 500px;">
+    <form asp-action="Edit">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Nivel" class="control-label"></label>
+            <select asp-for="Nivel" class="form-control" asp-items="Html.GetEnumSelectList<NivelEducativo>()"></select>
+            <span asp-validation-for="Nivel" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="VigenteDesde" class="control-label"></label>
+            <input asp-for="VigenteDesde" class="form-control" type="date" />
+            <span asp-validation-for="VigenteDesde" class="text-danger"></span>
+        </div>
+
+        <hr />
+
+        <div class="form-group mb-3">
+            <label asp-for="Curricular" class="control-label"></label>
+            <input asp-for="Curricular" class="form-control" />
+            <span asp-validation-for="Curricular" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="ExtraCurricular" class="control-label"></label>
+            <input asp-for="ExtraCurricular" class="form-control" />
+            <span asp-validation-for="ExtraCurricular" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="EquipamientoDidactico" class="control-label"></label>
+            <input asp-for="EquipamientoDidactico" class="form-control" />
+            <span asp-validation-for="EquipamientoDidactico" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Mantenimiento" class="control-label"></label>
+            <input asp-for="Mantenimiento" class="form-control" />
+            <span asp-validation-for="Mantenimiento" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="EmergenciaMedica" class="control-label"></label>
+            <input asp-for="EmergenciaMedica" class="form-control" />
+            <span asp-validation-for="EmergenciaMedica" class="text-danger"></span>
+        </div>
+
+        <hr />
+
+        <div class="form-group mb-3">
+            <label asp-for="BonificacionPagoATiempo" class="control-label"></label>
+            <input asp-for="BonificacionPagoATiempo" class="form-control" />
+            <span asp-validation-for="BonificacionPagoATiempo" class="text-danger"></span>
+            <div class="form-text">Monto fijo que se resta si paga dentro del plazo (no es %).</div>
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+    </form>
+</div>
+
+<div>
+    <a asp-action="Index" class="btn btn-link px-0">Volver a la lista</a>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

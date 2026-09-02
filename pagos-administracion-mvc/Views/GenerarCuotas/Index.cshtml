@@ -12,6 +12,10 @@
     <div class="alert alert-success">@TempData["Resultado"]</div>
 }
 
+<div class="alert alert-info" style="max-width: 500px;">
+    El monto de cada cuota se calcula solo, a partir del <a asp-controller="Aranceles" asp-action="Index" class="alert-link">arancel vigente</a> para el Nivel de cada alumno (Primaria/Secundaria). Si falta cargar el arancel de algún Nivel, esos alumnos se saltean.
+</div>
+
 <form asp-action="Index" method="post" class="card p-4" style="max-width: 500px;">
     <div class="mb-3">
         <label class="form-label">Nivel</label>
@@ -47,11 +51,6 @@
     </div>
 
     <div class="mb-3">
-        <label asp-for="MontoBase" class="form-label">Monto base (antes de descuentos)</label>
-        <input asp-for="MontoBase" class="form-control" />
-    </div>
-
-    <div class="mb-3">
         <label asp-for="FechaVencimiento" class="form-label"></label>
         <input asp-for="FechaVencimiento" class="form-control" />
     </div>
@@ -65,8 +64,9 @@
     </div>
 
     <div class="mb-3">
-        <label asp-for="DescuentoPagoATiempoPorcentaje" class="form-label">% descuento por pago anticipado</label>
+        <label asp-for="DescuentoPagoATiempoPorcentaje" class="form-label">% descuento adicional por pago anticipado</label>
         <input asp-for="DescuentoPagoATiempoPorcentaje" class="form-control" />
+        <div class="form-text">Se suma a la bonificación fija del arancel (si la hay); no hace falta tocarlo si solo querés aplicar la bonificación de la circular.</div>
     </div>
 
     <div class="mb-3">
