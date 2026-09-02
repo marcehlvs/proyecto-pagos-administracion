@@ -32,6 +32,12 @@ namespace pagos_administracion_mvc.Models
         [Display(Name = "Días de Educación Física")]
         public DiasSemana DiasEducacionFisica { get; set; } = DiasSemana.Ninguno;
 
+        // Meta de presentismo (%) que define el Admin para este curso. La usan la barra de
+        // progreso y el avatar del Alumno para saber si está "cumpliendo objetivo" o no.
+        [Display(Name = "Meta de presentismo (%)")]
+        [Range(1, 100, ErrorMessage = "La meta debe estar entre 1 y 100.")]
+        public int MetaPresentismo { get; set; } = 90;
+
         // Docente a cargo de tomar asistencia de este curso. Nullable: el Admin siempre puede
         // tomar asistencia de cualquier curso, tenga o no un Docente asignado.
         public string? ProfesorUserId { get; set; }

@@ -99,7 +99,7 @@ namespace pagos_administracion_mvc.Controllers
         // POST: Cursos/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId")] Curso curso, List<int>? diasEF, List<int>? alumnosAMatricular)
+        public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId,MetaPresentismo")] Curso curso, List<int>? diasEF, List<int>? alumnosAMatricular)
         {
             curso.DiasEducacionFisica = CombinarDias(diasEF);
             curso.Nombre ??= string.Empty;
@@ -147,7 +147,7 @@ namespace pagos_administracion_mvc.Controllers
         // POST: Cursos/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId")] Curso curso, List<int>? diasEF)
+        public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId,MetaPresentismo")] Curso curso, List<int>? diasEF)
         {
             if (id != curso.Id) return NotFound();
 

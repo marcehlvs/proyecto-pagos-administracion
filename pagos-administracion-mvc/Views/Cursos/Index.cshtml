@@ -19,6 +19,7 @@
             <th>@Html.DisplayNameFor(model => model.Turno)</th>
             <th>Ed. Física</th>
             <th>Docente</th>
+            <th>Meta</th>
             <th>Alumnos</th>
             <th></th>
         </tr>
@@ -46,6 +47,7 @@
                         : item.DiasEducacionFisica.ToString().Replace(", ", " / "))
                 </td>
                 <td class="align-middle">@(item.ProfesorUser?.Email ?? "Sin asignar")</td>
+                <td class="align-middle">@(item.MetaPresentismo)%</td>
                 <td class="align-middle">
                     <span class="badge bg-secondary">@item.Inscripciones.Count</span>
                 </td>

@@ -6,6 +6,7 @@ using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
 using System.Globalization;
+using System.Text.Json;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -101,7 +102,60 @@ namespace pagos_administracion_mvc.Controllers
             }
 
             ViewBag.PromedioPorCurso = promedioPorCurso;
+
+            // Serie para el gráfico de tendencia (una por curso). Granularidad: si la pestaña
+            // activa es "mes", agrupa por mes (últimos 12); en "semana" o "todo", agrupa por
+            // semana (últimas 12). Se omiten los períodos sin ningún registro de asistencia,
+            // para no mostrar un 100% "falso" en semanas donde todavía no se tomó lista.
+            var chartDataPorCurso = new Dictionary<int, object>();
+            foreach (var inscripcion in inscripciones)
+            {
+                var (labels, valores) = ConstruirSerieGrafico(inscripcion, vista, fechaRef);
+                chartDataPorCurso[inscripcion.CursoId] = new { labels, valores };
+            }
+            ViewBag.ChartDataPorCursoJson = JsonSerializer.Serialize(chartDataPorCurso);
+
             return View(inscripciones);
+        }
+
+        private (List<string> Labels, List<decimal> Valores) ConstruirSerieGrafico(Inscripcion inscripcion, string vista, DateTime fechaRef)
+        {
+            var curso = inscripcion.Curso;
+            var asistencias = inscripcion.Asistencias;
+            var labels = new List<string>();
+            var valores = new List<decimal>();
+
+            if (vista == "mes")
+            {
+                for (var i = 11; i >= 0; i--)
+                {
+                    var mesInicio = new DateTime(fechaRef.Year, fechaRef.Month, 1).AddMonths(-i);
+                    var mesFin = mesInicio.AddMonths(1).AddDays(-1);
+                    var delMes = asistencias.Where(a => a.Fecha >= mesInicio && a.Fecha <= mesFin).ToList();
+                    if (delMes.Count == 0) continue;
+
+                    labels.Add(mesInicio.ToString("MMM yyyy", CulturaEs));
+                    valores.Add(AsistenciaCalculadora.CalcularPresentismo(delMes, curso));
+                }
+            }
+            else // "semana" o "todo": agrupa por semana, últimas 12 con datos
+            {
+                var diasDesdeLunes = ((int)fechaRef.DayOfWeek + 6) % 7;
+                var lunesActual = fechaRef.AddDays(-diasDesdeLunes);
+
+                for (var i = 11; i >= 0; i--)
+                {
+                    var semanaInicio = lunesActual.AddDays(-7 * i);
+                    var semanaFin = semanaInicio.AddDays(6);
+                    var deLaSemana = asistencias.Where(a => a.Fecha >= semanaInicio && a.Fecha <= semanaFin).ToList();
+                    if (deLaSemana.Count == 0) continue;
+
+                    labels.Add(semanaInicio.ToString("dd/MM"));
+                    valores.Add(AsistenciaCalculadora.CalcularPresentismo(deLaSemana, curso));
+                }
+            }
+
+            return (labels, valores);
         }
     }
 }
