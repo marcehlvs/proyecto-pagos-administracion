@@ -1,0 +1,133 @@
+﻿@model pagos_administracion_mvc.Models.ConfiguracionSitio
+
+@{
+    ViewData["Title"] = "Estilo del sitio";
+}
+
+<h1>Estilo del sitio</h1>
+<p class="text-muted">
+    Estos colores se aplican a todo el sitio (para todos los usuarios), no confundir con el switch 🌙 de modo claro/oscuro
+    de la barra de navegación, que es una preferencia de cada uno y no se guarda acá.
+</p>
+
+@if (TempData["Resultado"] != null)
+{
+    <div class="alert alert-success">@TempData["Resultado"]</div>
+}
+
+<div class="card p-4 mb-3" style="max-width: 560px;">
+
+    <label class="form-label fw-bold">Estilos rápidos</label>
+    <div class="d-flex flex-wrap gap-2 mb-4" id="presets">
+        <button type="button" class="btn btn-outline-secondary btn-sm preset-btn"
+                data-nombre="Institucional (por defecto)" data-primario="#1A365D" data-oscuro="#002045" data-exito="#10B981" data-advertencia="#F59E0B">
+            <span class="preset-swatch" style="background:#1A365D"></span> Institucional
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm preset-btn"
+                data-nombre="Verde escolar" data-primario="#14532D" data-oscuro="#0B3B1F" data-exito="#22C55E" data-advertencia="#EAB308">
+            <span class="preset-swatch" style="background:#14532D"></span> Verde escolar
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm preset-btn"
+                data-nombre="Bordó tradicional" data-primario="#7F1D1D" data-oscuro="#5C1414" data-exito="#16A34A" data-advertencia="#D97706">
+            <span class="preset-swatch" style="background:#7F1D1D"></span> Bordó tradicional
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm preset-btn"
+                data-nombre="Gris pizarra" data-primario="#334155" data-oscuro="#1E293B" data-exito="#059669" data-advertencia="#D97706">
+            <span class="preset-swatch" style="background:#334155"></span> Gris pizarra
+        </button>
+    </div>
+
+    <form asp-action="Edit" id="form-estilo">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group mb-3">
+            <label asp-for="NombrePreset" class="control-label"></label>
+            <input asp-for="NombrePreset" class="form-control" />
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <label asp-for="ColorPrimario" class="control-label d-block"></label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="color" asp-for="ColorPrimario" class="form-control form-control-color" id="colorPrimarioPicker" title="Elegir color">
+                    <input type="text" class="form-control" id="colorPrimarioTexto" value="@Model.ColorPrimario" autocomplete="off" />
+                </div>
+                <span asp-validation-for="ColorPrimario" class="text-danger"></span>
+            </div>
+            <div class="col-6">
+                <label asp-for="ColorPrimarioOscuro" class="control-label d-block"></label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="color" asp-for="ColorPrimarioOscuro" class="form-control form-control-color" id="colorOscuroPicker" title="Elegir color">
+                    <input type="text" class="form-control" id="colorOscuroTexto" value="@Model.ColorPrimarioOscuro" autocomplete="off" />
+                </div>
+                <span asp-validation-for="ColorPrimarioOscuro" class="text-danger"></span>
+            </div>
+            <div class="col-6">
+                <label asp-for="ColorExito" class="control-label d-block"></label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="color" asp-for="ColorExito" class="form-control form-control-color" id="colorExitoPicker" title="Elegir color">
+                    <input type="text" class="form-control" id="colorExitoTexto" value="@Model.ColorExito" autocomplete="off" />
+                </div>
+                <span asp-validation-for="ColorExito" class="text-danger"></span>
+            </div>
+            <div class="col-6">
+                <label asp-for="ColorAdvertencia" class="control-label d-block"></label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="color" asp-for="ColorAdvertencia" class="form-control form-control-color" id="colorAdvertenciaPicker" title="Elegir color">
+                    <input type="text" class="form-control" id="colorAdvertenciaTexto" value="@Model.ColorAdvertencia" autocomplete="off" />
+                </div>
+                <span asp-validation-for="ColorAdvertencia" class="text-danger"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+</div>
+
+@section Scripts {
+    <style>
+        .preset-swatch {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 4px;
+            border: 1px solid rgba(255,255,255,0.4);
+            vertical-align: middle;
+        }
+    </style>
+    <script>
+        // Cada picker de color y su input de texto quedan sincronizados entre sí.
+        function sincronizar(pickerId, textoId) {
+            var picker = document.getElementById(pickerId);
+            var texto = document.getElementById(textoId);
+            picker.addEventListener('input', function () { texto.value = picker.value; });
+            texto.addEventListener('input', function () {
+                if (/^#[0-9A-Fa-f]{6}$/.test(texto.value)) picker.value = texto.value;
+            });
+        }
+        sincronizar('colorPrimarioPicker', 'colorPrimarioTexto');
+        sincronizar('colorOscuroPicker', 'colorOscuroTexto');
+        sincronizar('colorExitoPicker', 'colorExitoTexto');
+        sincronizar('colorAdvertenciaPicker', 'colorAdvertenciaTexto');
+
+        // Los botones de "Estilos rápidos" solo completan el formulario; el color se aplica recién
+        // al guardar (no hay preview en vivo para no confundir con el switch de modo oscuro).
+        document.querySelectorAll('.preset-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('NombrePreset').value = btn.dataset.nombre;
+                document.getElementById('colorPrimarioTexto').value = btn.dataset.primario;
+                document.getElementById('colorPrimarioPicker').value = btn.dataset.primario;
+                document.getElementById('colorOscuroTexto').value = btn.dataset.oscuro;
+                document.getElementById('colorOscuroPicker').value = btn.dataset.oscuro;
+                document.getElementById('colorExitoTexto').value = btn.dataset.exito;
+                document.getElementById('colorExitoPicker').value = btn.dataset.exito;
+                document.getElementById('colorAdvertenciaTexto').value = btn.dataset.advertencia;
+                document.getElementById('colorAdvertenciaPicker').value = btn.dataset.advertencia;
+            });
+        });
+    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

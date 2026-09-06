@@ -10,4 +10,10 @@
     <li class="nav-item">
         <a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">Contraseña</a>
     </li>
+    @if (User.IsInRole("Admin"))
+    {
+        <li class="nav-item">
+            <a class="nav-link" id="estilo-sitio" asp-controller="ConfiguracionSitio" asp-action="Edit">Estilo del sitio</a>
+        </li>
+    }
 </ul>
