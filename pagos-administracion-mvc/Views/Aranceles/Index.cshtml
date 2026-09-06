@@ -15,45 +15,49 @@
     <a asp-action="Create" class="btn btn-outline-primary btn-sm">+ Nuevo arancel</a>
 </p>
 
-<table class="table table-striped">
+<div class="table-responsive">
+<table class="table table-striped table-hover align-middle mb-0">
     <thead>
-        <tr>
+        <tr class="text-nowrap">
             <th>Nivel</th>
             <th>Vigente desde</th>
-            <th>Curricular</th>
-            <th>Extra curricular</th>
-            <th>Equip. Didáctico</th>
-            <th>Mantenimiento</th>
-            <th>Emerg. Médica</th>
-            <th>Cuota real</th>
-            <th>Bonificación</th>
-            <th>Total</th>
-            <th></th>
+            <th class="text-end">Curricular</th>
+            <th class="text-end">Extra curricular</th>
+            <th class="text-end">Equip. Didáctico</th>
+            <th class="text-end">Mantenimiento</th>
+            <th class="text-end">Emerg. Médica</th>
+            <th class="text-end border-start">Cuota real</th>
+            <th class="text-end">Bonificación</th>
+            <th class="text-end">Total</th>
+            <th class="text-end"></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var item in Model)
         {
             <tr>
-                <td class="align-middle">@item.Nivel</td>
-                <td class="align-middle">@item.VigenteDesde.ToString("dd/MM/yyyy")</td>
-                <td class="align-middle">@item.Curricular.ToString("C")</td>
-                <td class="align-middle">@item.ExtraCurricular.ToString("C")</td>
-                <td class="align-middle">@item.EquipamientoDidactico.ToString("C")</td>
-                <td class="align-middle">@item.Mantenimiento.ToString("C")</td>
-                <td class="align-middle">@item.EmergenciaMedica.ToString("C")</td>
-                <td class="align-middle">@item.CuotaReal.ToString("C")</td>
-                <td class="align-middle text-danger">-@item.BonificacionPagoATiempo.ToString("C")</td>
-                <td class="align-middle fw-bold">@item.TotalConBonificacion.ToString("C")</td>
-                <td class="align-middle text-end">
-                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">
-                        <i class="bi bi-pencil"></i> Editar
-                    </a>
-                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">
-                        <i class="bi bi-trash"></i>
-                    </a>
+                <td class="text-nowrap">@item.Nivel</td>
+                <td class="text-nowrap">@item.VigenteDesde.ToString("dd/MM/yyyy")</td>
+                <td class="text-end text-nowrap">@item.Curricular.ToString("C")</td>
+                <td class="text-end text-nowrap">@item.ExtraCurricular.ToString("C")</td>
+                <td class="text-end text-nowrap">@item.EquipamientoDidactico.ToString("C")</td>
+                <td class="text-end text-nowrap">@item.Mantenimiento.ToString("C")</td>
+                <td class="text-end text-nowrap">@item.EmergenciaMedica.ToString("C")</td>
+                <td class="text-end text-nowrap border-start">@item.CuotaReal.ToString("C")</td>
+                <td class="text-end text-nowrap text-danger">-@item.BonificacionPagoATiempo.ToString("C")</td>
+                <td class="text-end text-nowrap fw-bold">@item.TotalConBonificacion.ToString("C")</td>
+                <td class="text-end text-nowrap">
+                    <div class="d-inline-flex gap-1">
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
                 </td>
             </tr>
         }
     </tbody>
 </table>
+</div>

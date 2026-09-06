@@ -42,7 +42,8 @@
     <input type="hidden" name="cursoId" value="@curso.Id" />
     <input type="hidden" name="fecha" value="@fecha.ToString("yyyy-MM-dd")" />
 
-    <table class="table table-striped align-middle">
+    <div class="table-responsive">
+<table class="table table-striped align-middle">
         <thead>
             <tr>
                 <th rowspan="2" class="align-middle">Alumno</th>
@@ -113,6 +114,7 @@
             }
         </tbody>
     </table>
+</div>
 
     @if (Model.Any())
     {

@@ -17,6 +17,7 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Inscripcion> Inscripciones { get; set; }
         public DbSet<Asistencia> Asistencias { get; set; }
         public DbSet<ArancelNivel> ArancelesNivel { get; set; }
+        public DbSet<ConfiguracionSitio> ConfiguracionSitio { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -124,6 +125,20 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<ArancelNivel>().Property(a => a.Mantenimiento).HasPrecision(18, 2);
             modelBuilder.Entity<ArancelNivel>().Property(a => a.EmergenciaMedica).HasPrecision(18, 2);
             modelBuilder.Entity<ArancelNivel>().Property(a => a.BonificacionPagoATiempo).HasPrecision(18, 2);
+
+            // Fila única (Id=1) con los colores de marca actuales (los mismos que están hardcodeados
+            // hoy en site.css :root), para que la tabla nunca esté vacía y el sitio no se quede sin
+            // estilo mientras el Admin no haya guardado nada todavía.
+            modelBuilder.Entity<ConfiguracionSitio>().Property(c => c.Id).ValueGeneratedNever();
+            modelBuilder.Entity<ConfiguracionSitio>().HasData(new ConfiguracionSitio
+            {
+                Id = 1,
+                ColorPrimario = "#1A365D",
+                ColorPrimarioOscuro = "#002045",
+                ColorExito = "#10B981",
+                ColorAdvertencia = "#F59E0B",
+                NombrePreset = "Institucional (por defecto)"
+            });
 
             // Precisión explícita para columnas monetarias: sin esto, SQL Server usa decimal(18,2) por
             // default y trunca en silencio cualquier valor con más de 2 decimales (warning EF 30000).

@@ -1,4 +1,6 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@inject pagos_administracion_mvc.Data.AdministracionDbContext DbContext
+@using Microsoft.EntityFrameworkCore
 
 <!DOCTYPE html>
 <html lang="es">
@@ -18,6 +20,23 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/pagos_administracion_mvc.styles.css" asp-append-version="true" />
+    @{
+        // Paleta de marca definida por el Admin en Perfil > Estilo del sitio. Solo pisa los 4
+        // colores que no dependen del modo claro/oscuro (ver ConfiguracionSitio.cs), así el switch
+        // 🌙 de tema sigue funcionando igual sin importar el estilo institucional elegido.
+        var configSitio = await DbContext.ConfiguracionSitio.AsNoTracking().FirstOrDefaultAsync(c => c.Id == 1);
+    }
+    @if (configSitio != null)
+    {
+        <style>
+            :root {
+                --color-primary: @configSitio.ColorPrimario;
+                --color-primary-dark: @configSitio.ColorPrimarioOscuro;
+                --color-success: @configSitio.ColorExito;
+                --color-warning: @configSitio.ColorAdvertencia;
+            }
+        </style>
+    }
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
 <body>
@@ -33,7 +52,7 @@
                     @{
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
-                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "Avisos", "Cursos", "Asistencias", "Docentes" }
+                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos", "Cursos", "Asistencias", "Docentes" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
                     <ul class="navbar-nav flex-grow-1">
@@ -64,6 +83,7 @@
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
                                     <li><a class="dropdown-item" asp-controller="Aranceles" asp-action="Index"><i class="bi bi-cash-stack"></i> Aranceles</a></li>
+                                    <li><a class="dropdown-item" asp-controller="ConfiguracionSitio" asp-action="Edit"><i class="bi bi-palette"></i> Estilo del sitio</a></li>
                                 </ul>
                             </li>
                         }
