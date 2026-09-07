@@ -89,8 +89,15 @@
         const mensaje = input.value.trim();
         if (!mensaje) return;
 
+        // Escapa texto antes de insertarlo como HTML, sin depender de jQuery.
+        function escapeHtml(texto) {
+            const div = document.createElement('div');
+            div.textContent = texto;
+            return div.innerHTML;
+        }
+
         historial.insertAdjacentHTML('beforeend',
-            `<div class="asistente-mensaje asistente-mensaje-usuario">${$('<div>').text(mensaje).html()}</div>`);
+            `<div class="asistente-mensaje asistente-mensaje-usuario">${escapeHtml(mensaje)}</div>`);
         input.value = '';
         input.disabled = true;
         cargando.classList.remove('d-none');
@@ -107,7 +114,7 @@
 
             const data = await resp.json();
             historial.insertAdjacentHTML('beforeend',
-                `<div class="asistente-mensaje asistente-mensaje-bot">${$('<div>').text(data.respuesta).html()}</div>`);
+                `<div class="asistente-mensaje asistente-mensaje-bot">${escapeHtml(data.respuesta)}</div>`);
         } catch (err) {
             historial.insertAdjacentHTML('beforeend',
                 `<div class="asistente-mensaje asistente-mensaje-bot">Uy, tuve un problema para responder. Probá de nuevo en un momento.</div>`);
