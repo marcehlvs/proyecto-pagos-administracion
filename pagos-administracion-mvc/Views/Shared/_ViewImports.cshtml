@@ -1,0 +1,121 @@
+@* Botón flotante + modal del asistente de IA. Se incluye una sola vez desde _Layout.cshtml,
+   condicionado por rol (Familia o Alumno) — el propio Controller ya limita qué tools ve
+   cada uno, este partial solo decide si mostrar o no el botón. *@
+
+<button type="button" class="asistente-flotante" data-bs-toggle="modal" data-bs-target="#modalAsistente" title="Preguntale al asistente">
+    <i class="bi bi-chat-dots-fill"></i>
+</button>
+
+<div class="modal fade" id="modalAsistente" tabindex="-1" aria-labelledby="modalAsistenteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAsistenteLabel">
+                    <i class="bi bi-robot me-2"></i>Asistente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="asistenteHistorial" class="asistente-historial mb-3">
+                    <div class="asistente-mensaje asistente-mensaje-bot">
+                        ¡Hola! ¿En qué te puedo ayudar?
+                    </div>
+                </div>
+                <div id="asistenteCargando" class="text-center text-muted small mb-2 d-none">
+                    <span class="spinner-border spinner-border-sm me-1"></span> Pensando...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form id="asistenteForm" class="d-flex w-100 gap-2">
+                    <input type="text" id="asistenteInput" class="form-control" placeholder="Escribí tu consulta..." autocomplete="off" required />
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .asistente-flotante {
+        position: fixed;
+        bottom: 90px; /* arriba del botón de WhatsApp, para no superponerse */
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: var(--color-primary, #0d6efd);
+        color: #fff;
+        border: none;
+        font-size: 1.4rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,.25);
+        z-index: 1040;
+    }
+
+    .asistente-historial {
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .asistente-mensaje {
+        padding: .5rem .75rem;
+        border-radius: .75rem;
+        margin-bottom: .5rem;
+        max-width: 85%;
+        white-space: pre-wrap;
+    }
+
+    .asistente-mensaje-bot {
+        background-color: var(--bs-secondary-bg, #f1f1f1);
+        margin-right: auto;
+    }
+
+    .asistente-mensaje-usuario {
+        background-color: var(--color-primary, #0d6efd);
+        color: #fff;
+        margin-left: auto;
+        text-align: right;
+    }
+</style>
+
+<script>
+    document.getElementById('asistenteForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const input = document.getElementById('asistenteInput');
+        const historial = document.getElementById('asistenteHistorial');
+        const cargando = document.getElementById('asistenteCargando');
+        const mensaje = input.value.trim();
+        if (!mensaje) return;
+
+        historial.insertAdjacentHTML('beforeend',
+            `<div class="asistente-mensaje asistente-mensaje-usuario">${$('<div>').text(mensaje).html()}</div>`);
+        input.value = '';
+        input.disabled = true;
+        cargando.classList.remove('d-none');
+        historial.scrollTop = historial.scrollHeight;
+
+        try {
+            const resp = await fetch('@Url.Action("Consultar", "Asistente")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensaje: mensaje })
+            });
+
+            if (!resp.ok) throw new Error('Error de red');
+
+            const data = await resp.json();
+            historial.insertAdjacentHTML('beforeend',
+                `<div class="asistente-mensaje asistente-mensaje-bot">${$('<div>').text(data.respuesta).html()}</div>`);
+        } catch (err) {
+            historial.insertAdjacentHTML('beforeend',
+                `<div class="asistente-mensaje asistente-mensaje-bot">Uy, tuve un problema para responder. Probá de nuevo en un momento.</div>`);
+        } finally {
+            cargando.classList.add('d-none');
+            input.disabled = false;
+            input.focus();
+            historial.scrollTop = historial.scrollHeight;
+        }
+    });
+</script>
