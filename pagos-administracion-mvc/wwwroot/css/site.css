@@ -146,11 +146,17 @@ h1 {
     justify-content: center;
     color: white;
     font-size: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    /* Brillo verde que resalta en modo claro y oscuro */
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.45);
     z-index: 1000;
+    /* Suaviza la animación al pasar el mouse */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
     .whatsapp-flotante:hover {
         color: white;
-        opacity: 0.9;
+        /* Efecto de salto igual al del asistente */
+        transform: scale(1.05);
+        /* El brillo se intensifica al hacer hover */
+        box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
     }

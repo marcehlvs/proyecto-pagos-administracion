@@ -6,25 +6,35 @@
     <i class="bi bi-chat-dots-fill"></i>
 </button>
 
+<button type="button" class="asistente-flotante" data-bs-toggle="modal" data-bs-target="#modalAsistente" title="Preguntale al asistente">
+    <i class="bi bi-chat-dots-fill"></i>
+</button>
+
+<!-- Agregamos modal-dialog-centered -->
 <div class="modal fade" id="modalAsistente" tabindex="-1" aria-labelledby="modalAsistenteLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalAsistenteLabel">
-                    <i class="bi bi-robot me-2"></i>Asistente
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+
+        <!-- Forzamos fondo blanco y texto oscuro para que no herede el tema dark de la web -->
+        <div class="modal-content bg-white text-dark">
+
+            <!-- Cabecera con fondo sutil y título en negrita -->
+            <div class="modal-header bg-light border-bottom-0 py-3">
+                <h5 class="modal-title fw-bold fs-6" id="modalAsistenteLabel">
+                    <i class="bi bi-robot text-primary me-2"></i>Asistente Escolar
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+
             <div class="modal-body p-0">
                 <div id="asistenteHistorial" class="asistente-historial">
-                    <!-- El texto debe ir en una sola línea sin espacios en blanco antes ni después -->
-                    <div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar?</div>
+                    <div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar hoy?</div>
                 </div>
                 <div id="asistenteCargando" class="text-center text-muted small mt-2 mb-3 d-none">
                     <span class="spinner-border spinner-border-sm me-1"></span> Pensando...
                 </div>
             </div>
-            <div class="modal-footer border-0 bg-transparent pt-0">
+
+            <div class="modal-footer border-0 bg-transparent pt-0 pb-3">
                 <form id="asistenteForm" class="d-flex w-100 chat-input-container">
                     <input type="text" id="asistenteInput" class="form-control chat-input" placeholder="Escribí tu consulta..." autocomplete="off" required />
                     <button type="submit" class="btn btn-primary btn-chat-send">
@@ -32,24 +42,18 @@
                     </button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
 
 <style>
-    /* Estilos generales del Modal para que parezca una app moderna */
     #modalAsistente .modal-content {
         border-radius: 1.25rem;
         border: none;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
 
-    #modalAsistente .modal-header {
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        padding: 1rem 1.25rem;
-    }
-
-    /* Botón flotante con leve gradiente y animación */
     .asistente-flotante {
         position: fixed;
         bottom: 90px;
@@ -71,9 +75,8 @@
             box-shadow: 0 6px 20px rgba(13, 110, 253, 0.45);
         }
 
-    /* Historial con scrollbar afinada */
     .asistente-historial {
-        max-height: 55vh;
+        max-height: 50vh;
         overflow-y: auto;
         padding: 1.25rem;
         display: flex;
@@ -94,15 +97,13 @@
             border-radius: 10px;
         }
 
-    /* Burbujas de chat modernas */
     .asistente-mensaje {
-        padding: 0.65rem 1rem;
+        padding: 0.7rem 1.1rem;
         border-radius: 1.25rem;
         max-width: 85%;
         white-space: pre-wrap;
         line-height: 1.4;
         font-size: 0.95rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.04);
         animation: asistente-aparecer 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
@@ -119,40 +120,44 @@
     }
 
     .asistente-mensaje-bot {
-        background-color: #f8f9fa;
-        color: #212529;
+        background-color: #f1f3f5; /* Gris súper clarito para la burbuja del bot */
+        color: #212529; /* Texto oscuro */
         margin-right: auto;
-        border-bottom-left-radius: 0.3rem;
-        border: 1px solid #e9ecef;
+        border-bottom-left-radius: 0.25rem;
     }
 
     .asistente-mensaje-usuario {
         background: linear-gradient(135deg, var(--bs-primary), #0a58ca);
-        color: #fff;
+        color: #ffffff;
         margin-left: auto;
-        border-bottom-right-radius: 0.3rem;
+        border-bottom-right-radius: 0.25rem;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.25);
     }
 
-    /* Contenedor del Input tipo pastilla */
     .chat-input-container {
-        background-color: #f8f9fa;
+        background-color: #f8f9fa; /* Fondo gris claro para el contenedor */
         border-radius: 2rem;
-        padding: 0.35rem;
+        padding: 0.4rem;
         border: 1px solid #dee2e6;
         align-items: center;
     }
 
     .chat-input {
         border: none;
-        background: transparent;
+        background-color: transparent !important; /* Hacemos que el input sea transparente */
+        color: #212529 !important; /* Forzamos texto oscuro al escribir */
         box-shadow: none !important;
         padding-left: 1rem;
     }
 
+        .chat-input::placeholder {
+            color: #adb5bd !important;
+        }
+
     .btn-chat-send {
         border-radius: 50%;
-        width: 38px;
-        height: 38px;
+        width: 40px;
+        height: 40px;
         padding: 0;
         display: flex;
         align-items: center;
