@@ -45,9 +45,8 @@ namespace pagos_administracion_mvc.Controllers
             };
 
             var systemPrompt = esFamilia
-                ? "Sos el asistente del portal familiar. Respondé en español rioplatense, tono cordial y breve. Solo podés hablar de las cuotas y pagos de los alumnos de esta familia."
-                : "Sos el asistente de asistencia del alumno. Respondé en español rioplatense, tono cordial y breve. Solo podés hablar de la asistencia del propio alumno logueado, nunca de compañeros.";
-
+    ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno. No pidas el ID numérico."
+    : "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Solo informá sobre tu asistencia. No ofrezcas ayuda extra.";
             // Gemini estructura el historial con "parts"
             var mensajes = new List<object>
             {
@@ -140,10 +139,9 @@ namespace pagos_administracion_mvc.Controllers
 
                 return Json(new { respuesta = textoFinal });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Temporal para debug: vemos el error real que escupe el Service
-                return Json(new { respuesta = $"Error técnico: {ex.Message}" });
+                return Json(new { respuesta = "El sistema está procesando muchas consultas en este momento. Por favor, intentá de nuevo en un minuto." });
             }
         }
 
@@ -151,41 +149,41 @@ namespace pagos_administracion_mvc.Controllers
         // Ajustado al formato OpenAPI que requiere Gemini (parameters, types en mayúscula)
 
         private static readonly object[] ToolsFamilia = new object[]
+{
+    new
+    {
+        name = "ConsultarEstadoCuenta",
+        description = "Consulta las cuotas pendientes y vencidas de un alumno. Requiere nombre o DNI.",
+        parameters = new
         {
-            new
-            {
-                name = "ConsultarEstadoCuenta",
-                description = "Consulta las cuotas pendientes y vencidas de un alumno de la familia logueada",
-                parameters = new
-                {
-                    type = "OBJECT",
-                    properties = new { alumnoId = new { type = "INTEGER", description = "ID del alumno" } },
-                    required = new[] { "alumnoId" }
-                }
-            },
-            new
-            {
-                name = "GenerarLinkDePago",
-                description = "Devuelve el saldo pendiente de una cuota y la URL para confirmar el pago. NO ejecuta el pago: el usuario debe confirmar con un click.",
-                parameters = new
-                {
-                    type = "OBJECT",
-                    properties = new { cuotaId = new { type = "INTEGER", description = "ID de la cuota a pagar" } },
-                    required = new[] { "cuotaId" }
-                }
-            },
-            new
-            {
-                name = "ConsultarHistorialPagos",
-                description = "Lista los pagos aprobados de un alumno, con fecha y monto",
-                parameters = new
-                {
-                    type = "OBJECT",
-                    properties = new { alumnoId = new { type = "INTEGER" } },
-                    required = new[] { "alumnoId" }
-                }
-            }
-        };
+            type = "OBJECT",
+            properties = new { nombreODni = new { type = "STRING", description = "Nombre, apellido o DNI del alumno" } },
+            required = new[] { "nombreODni" }
+        }
+    },
+    new
+    {
+        name = "GenerarLinkDePago",
+        description = "Devuelve el saldo pendiente de una cuota y la URL para confirmar el pago. NO ejecuta el pago: el usuario debe confirmar con un click.",
+        parameters = new
+        {
+            type = "OBJECT",
+            properties = new { cuotaId = new { type = "INTEGER", description = "ID de la cuota a pagar" } },
+            required = new[] { "cuotaId" }
+        }
+    },
+    new
+    {
+        name = "ConsultarHistorialPagos",
+        description = "Lista los pagos aprobados de un alumno. Requiere nombre o DNI.",
+        parameters = new
+        {
+            type = "OBJECT",
+            properties = new { nombreODni = new { type = "STRING" } },
+            required = new[] { "nombreODni" }
+        }
+    }
+};
 
         private async Task<object> EjecutarToolFamilia(string toolName, JsonElement input, string userId)
         {
@@ -193,17 +191,18 @@ namespace pagos_administracion_mvc.Controllers
             {
                 case "ConsultarEstadoCuenta":
                     {
-                        // Gemini a veces manda los numéricos como double en el JSON, TryGetInt32 previene errores
-                        var alumnoIdProp = input.GetProperty("alumnoId");
-                        var alumnoId = alumnoIdProp.ValueKind == JsonValueKind.Number ? alumnoIdProp.GetInt32() : int.Parse(alumnoIdProp.GetString()!);
+                        var nombreODni = input.GetProperty("nombreODni").GetString()?.Trim().ToLower() ?? "";
 
+                        // El filtro a.FamiliaUserId == userId es el candado absoluto de seguridad.
                         var alumno = await _context.Alumnos
-                            .FirstOrDefaultAsync(a => a.Id == alumnoId && a.FamiliaUserId == userId);
+                            .FirstOrDefaultAsync(a => a.FamiliaUserId == userId &&
+                                (a.Dni == nombreODni || a.Nombre.ToLower().Contains(nombreODni) || a.Apellido.ToLower().Contains(nombreODni)));
+
                         if (alumno == null) throw new UnauthorizedAccessException();
 
                         var cuotas = await _context.Cuotas
                             .Include(c => c.Pagos)
-                            .Where(c => c.AlumnoId == alumnoId && c.Activo
+                            .Where(c => c.AlumnoId == alumno.Id && c.Activo
                                 && (c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Vencida || c.Estado == EstadoCuota.Parcial))
                             .OrderBy(c => c.FechaVencimiento)
                             .Select(c => new { c.Id, c.Mes, c.Anio, c.Estado, c.SaldoPendiente, c.FechaVencimiento })
@@ -217,10 +216,12 @@ namespace pagos_administracion_mvc.Controllers
                         var cuotaIdProp = input.GetProperty("cuotaId");
                         var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
 
+                        // El candado acá se mantiene verificando que la cuota pertenezca a un alumno de este userId
                         var cuota = await _context.Cuotas
                             .Include(c => c.Alumno)
                             .Include(c => c.Pagos)
                             .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
+
                         if (cuota == null) throw new UnauthorizedAccessException();
 
                         return new
@@ -233,15 +234,16 @@ namespace pagos_administracion_mvc.Controllers
 
                 case "ConsultarHistorialPagos":
                     {
-                        var alumnoIdProp = input.GetProperty("alumnoId");
-                        var alumnoId = alumnoIdProp.ValueKind == JsonValueKind.Number ? alumnoIdProp.GetInt32() : int.Parse(alumnoIdProp.GetString()!);
+                        var nombreODni = input.GetProperty("nombreODni").GetString()?.Trim().ToLower() ?? "";
 
                         var alumno = await _context.Alumnos
-                            .FirstOrDefaultAsync(a => a.Id == alumnoId && a.FamiliaUserId == userId);
+                            .FirstOrDefaultAsync(a => a.FamiliaUserId == userId &&
+                                (a.Dni == nombreODni || a.Nombre.ToLower().Contains(nombreODni) || a.Apellido.ToLower().Contains(nombreODni)));
+
                         if (alumno == null) throw new UnauthorizedAccessException();
 
                         var pagos = await _context.Pagos
-                            .Where(p => p.Cuota.AlumnoId == alumnoId && p.Estado == EstadoPago.Aprobado)
+                            .Where(p => p.Cuota.AlumnoId == alumno.Id && p.Estado == EstadoPago.Aprobado)
                             .OrderByDescending(p => p.Fecha)
                             .Select(p => new { p.Monto, p.Fecha, cuota = $"{p.Cuota.Mes}/{p.Cuota.Anio}" })
                             .ToListAsync();

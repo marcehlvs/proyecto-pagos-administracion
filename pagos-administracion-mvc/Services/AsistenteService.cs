@@ -8,7 +8,7 @@ namespace pagos_administracion_mvc.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
-        private const string Modelo = "gemini-1.5-flash";
+        private const string Modelo = "gemini-3.5-flash";
 
         public AsistenteService(IConfiguration config, IHttpClientFactory httpClientFactory)
         {

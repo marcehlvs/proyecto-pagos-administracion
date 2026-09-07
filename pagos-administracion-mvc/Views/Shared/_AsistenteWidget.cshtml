@@ -15,20 +15,19 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body">
-                <div id="asistenteHistorial" class="asistente-historial mb-3">
-                    <div class="asistente-mensaje asistente-mensaje-bot">
-                        ¡Hola! ¿En qué te puedo ayudar?
-                    </div>
+            <div class="modal-body p-0">
+                <div id="asistenteHistorial" class="asistente-historial">
+                    <!-- El texto debe ir en una sola línea sin espacios en blanco antes ni después -->
+                    <div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar?</div>
                 </div>
-                <div id="asistenteCargando" class="text-center text-muted small mb-2 d-none">
+                <div id="asistenteCargando" class="text-center text-muted small mt-2 mb-3 d-none">
                     <span class="spinner-border spinner-border-sm me-1"></span> Pensando...
                 </div>
             </div>
-            <div class="modal-footer">
-                <form id="asistenteForm" class="d-flex w-100 gap-2">
-                    <input type="text" id="asistenteInput" class="form-control" placeholder="Escribí tu consulta..." autocomplete="off" required />
-                    <button type="submit" class="btn btn-primary">
+            <div class="modal-footer border-0 bg-transparent pt-0">
+                <form id="asistenteForm" class="d-flex w-100 chat-input-container">
+                    <input type="text" id="asistenteInput" class="form-control chat-input" placeholder="Escribí tu consulta..." autocomplete="off" required />
+                    <button type="submit" class="btn btn-primary btn-chat-send">
                         <i class="bi bi-send-fill"></i>
                     </button>
                 </form>
@@ -38,65 +37,128 @@
 </div>
 
 <style>
+    /* Estilos generales del Modal para que parezca una app moderna */
+    #modalAsistente .modal-content {
+        border-radius: 1.25rem;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+
+    #modalAsistente .modal-header {
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 1rem 1.25rem;
+    }
+
+    /* Botón flotante con leve gradiente y animación */
     .asistente-flotante {
         position: fixed;
-        bottom: 90px; /* arriba del botón de WhatsApp, para no superponerse */
+        bottom: 90px;
         right: 20px;
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background-color: var(--color-primary, #0d6efd);
+        background: linear-gradient(135deg, var(--bs-primary), #0a58ca);
         color: #fff;
         border: none;
-        font-size: 1.4rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,.25);
+        font-size: 1.5rem;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.35);
         z-index: 1040;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .asistente-historial {
-    max-height: 50vh;
-    overflow-y: auto;
-    padding: .25rem .25rem 0;
-    display: flex;
-    flex-direction: column;
-    gap: .35rem;
-}
 
-.asistente-mensaje {
-    padding: .55rem .85rem;
-    border-radius: 1rem;
-    max-width: 80%;
-    white-space: pre-wrap;
-    line-height: 1.35;
-    font-size: .925rem;
-    animation: asistente-aparecer .15s ease-out;
-}
+        .asistente-flotante:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(13, 110, 253, 0.45);
+        }
+
+    /* Historial con scrollbar afinada */
+    .asistente-historial {
+        max-height: 55vh;
+        overflow-y: auto;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+        .asistente-historial::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .asistente-historial::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .asistente-historial::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.15);
+            border-radius: 10px;
+        }
+
+    /* Burbujas de chat modernas */
+    .asistente-mensaje {
+        padding: 0.65rem 1rem;
+        border-radius: 1.25rem;
+        max-width: 85%;
+        white-space: pre-wrap;
+        line-height: 1.4;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+        animation: asistente-aparecer 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
 
     @@keyframes asistente-aparecer {
         from {
             opacity: 0;
-            transform: translateY(4px);
+            transform: translateY(8px) scale(0.97);
         }
 
         to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
     }
 
-.asistente-mensaje-bot {
-    background-color: var(--bs-secondary-bg, #f1f1f1);
-    margin-right: auto;
-    border-bottom-left-radius: .25rem;
-}
+    .asistente-mensaje-bot {
+        background-color: #f8f9fa;
+        color: #212529;
+        margin-right: auto;
+        border-bottom-left-radius: 0.3rem;
+        border: 1px solid #e9ecef;
+    }
 
-.asistente-mensaje-usuario {
-    background-color: var(--color-primary, #0d6efd);
-    color: #fff;
-    margin-left: auto;
-    text-align: right;
-    border-bottom-right-radius: .25rem;
-}
-   
+    .asistente-mensaje-usuario {
+        background: linear-gradient(135deg, var(--bs-primary), #0a58ca);
+        color: #fff;
+        margin-left: auto;
+        border-bottom-right-radius: 0.3rem;
+    }
+
+    /* Contenedor del Input tipo pastilla */
+    .chat-input-container {
+        background-color: #f8f9fa;
+        border-radius: 2rem;
+        padding: 0.35rem;
+        border: 1px solid #dee2e6;
+        align-items: center;
+    }
+
+    .chat-input {
+        border: none;
+        background: transparent;
+        box-shadow: none !important;
+        padding-left: 1rem;
+    }
+
+    .btn-chat-send {
+        border-radius: 50%;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
 </style>
 
 <script>
