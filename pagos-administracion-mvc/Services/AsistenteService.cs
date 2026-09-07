@@ -13,7 +13,9 @@ namespace pagos_administracion_mvc.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
-        private const string Modelo = "claude-sonnet-4-6";
+
+        // Modelo corregido al nombre real que exige la API de Anthropic
+        private const string Modelo = "claude-3-5-sonnet-20241022";
 
         public AsistenteService(IConfiguration config, IHttpClientFactory httpClientFactory)
         {
@@ -46,9 +48,12 @@ namespace pagos_administracion_mvc.Services
             request.Headers.Add("anthropic-version", "2023-06-01");
 
             var response = await _httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
 
+            // Leemos el contenido para ver el error real provisto por Anthropic en caso de fallar
             var contenido = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+                throw new HttpRequestException($"Anthropic API error {response.StatusCode}: {contenido}");
+
             return JsonDocument.Parse(contenido);
         }
     }
