@@ -37,6 +37,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddEntityFrameworkStores<AdministracionDbContext>();
 
 builder.Services.AddScoped<MercadoPagoService>();
+builder.Services.AddScoped<AsistenteService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, IdentityEmailSenderAdapter>();
