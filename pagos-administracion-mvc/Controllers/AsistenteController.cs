@@ -10,10 +10,6 @@ using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
-    // Único endpoint para Familia y Alumno. El rol logueado decide qué set de tools
-    // se le pasa al modelo, así la IA nunca "sabe" que existen las tools del otro rol.
-    // Cada tool revalida el dueño real de los datos contra FamiliaUserId/AlumnoUserId
-    // (nunca contra lo que el modelo pida) — mismo candado que MisCuotas/MisAsistencias.
     [Authorize(Roles = "Familia,Alumno")]
     public class AsistenteController : Controller
     {
@@ -42,49 +38,62 @@ namespace pagos_administracion_mvc.Controllers
             var userId = _userManager.GetUserId(User);
             var esFamilia = User.IsInRole("Familia");
 
-            var tools = esFamilia ? ToolsFamilia : ToolsAlumno;
+            // Gemini espera que las declaraciones de funciones estén dentro de un array de functionDeclarations
+            var tools = new object[]
+            {
+                new { functionDeclarations = esFamilia ? ToolsFamilia : ToolsAlumno }
+            };
+
             var systemPrompt = esFamilia
                 ? "Sos el asistente del portal familiar. Respondé en español rioplatense, tono cordial y breve. Solo podés hablar de las cuotas y pagos de los alumnos de esta familia."
                 : "Sos el asistente de asistencia del alumno. Respondé en español rioplatense, tono cordial y breve. Solo podés hablar de la asistencia del propio alumno logueado, nunca de compañeros.";
 
+            // Gemini estructura el historial con "parts"
             var mensajes = new List<object>
             {
-                new { role = "user", content = request.Mensaje }
+                new
+                {
+                    role = "user",
+                    parts = new[] { new { text = request.Mensaje } }
+                }
             };
 
             try
             {
-                // Primera llamada: el modelo decide si responde directo o pide ejecutar una tool.
+                // Primera llamada
                 using var respuesta = await _asistenteService.EnviarMensajeAsync(mensajes, tools, systemPrompt);
-                var content = respuesta.RootElement.GetProperty("content");
 
-                string? toolUseId = null;
+                var candidates = respuesta.RootElement.GetProperty("candidates");
+                if (candidates.GetArrayLength() == 0)
+                    throw new Exception("Respuesta vacía de Gemini");
+
+                var parts = candidates[0].GetProperty("content").GetProperty("parts");
+
                 string? toolName = null;
                 JsonElement toolInput = default;
                 var textoDirecto = "";
 
-                foreach (var bloque in content.EnumerateArray())
+                // Analizamos si la respuesta es texto directo o un pedido para usar una herramienta
+                foreach (var part in parts.EnumerateArray())
                 {
-                    var tipo = bloque.GetProperty("type").GetString();
-                    if (tipo == "text")
+                    if (part.TryGetProperty("text", out var textProp))
                     {
-                        textoDirecto += bloque.GetProperty("text").GetString();
+                        textoDirecto += textProp.GetString();
                     }
-                    else if (tipo == "tool_use")
+                    else if (part.TryGetProperty("functionCall", out var funcCall))
                     {
-                        toolUseId = bloque.GetProperty("id").GetString();
-                        toolName = bloque.GetProperty("name").GetString();
-                        toolInput = bloque.GetProperty("input");
+                        toolName = funcCall.GetProperty("name").GetString();
+                        toolInput = funcCall.GetProperty("args");
                     }
                 }
 
-                // El modelo respondió directo, sin necesitar datos: devolvemos ya.
+                // El modelo respondió directo
                 if (toolName == null)
                 {
                     return Json(new { respuesta = textoDirecto });
                 }
 
-                // Ejecutamos la tool pedida CONTRA LA BASE REAL, validando siempre el dueño.
+                // Ejecución local en base de datos
                 object resultadoTool;
                 try
                 {
@@ -97,43 +106,49 @@ namespace pagos_administracion_mvc.Controllers
                     return Json(new { respuesta = "No encontré ese dato asociado a tu cuenta." });
                 }
 
-                // Segunda llamada: le devolvemos el resultado real para que arme la respuesta final.
+                // Segunda llamada: reconstruimos la parte del asistente y agregamos el functionResponse
                 mensajes.Add(new
                 {
-                    role = "assistant",
-                    content = content.EnumerateArray().Select(b => (object)JsonSerializer.Deserialize<object>(b.GetRawText())!).ToList()
+                    role = "model",
+                    parts = parts.EnumerateArray().Select(p => (object)JsonSerializer.Deserialize<object>(p.GetRawText())!).ToList()
                 });
+
                 mensajes.Add(new
                 {
                     role = "user",
-                    content = new object[]
+                    parts = new[]
                     {
                         new
                         {
-                            type = "tool_result",
-                            tool_use_id = toolUseId,
-                            content = JsonSerializer.Serialize(resultadoTool)
+                            functionResponse = new
+                            {
+                                name = toolName,
+                                response = resultadoTool
+                            }
                         }
                     }
                 });
 
                 using var respuestaFinal = await _asistenteService.EnviarMensajeAsync(mensajes, tools, systemPrompt);
-                var textoFinal = respuestaFinal.RootElement.GetProperty("content")
-                    .EnumerateArray()
-                    .Where(b => b.GetProperty("type").GetString() == "text")
-                    .Select(b => b.GetProperty("text").GetString())
+                var finalCandidates = respuestaFinal.RootElement.GetProperty("candidates");
+                var finalParts = finalCandidates[0].GetProperty("content").GetProperty("parts");
+
+                var textoFinal = finalParts.EnumerateArray()
+                    .Where(p => p.TryGetProperty("text", out _))
+                    .Select(p => p.GetProperty("text").GetString())
                     .FirstOrDefault() ?? "";
 
                 return Json(new { respuesta = textoFinal });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Evita que la interfaz se quede en "Pensando..." si falla la API (caída, timeout, error 400/401/429)
-                return Json(new { respuesta = "No pude procesar tu consulta, probá de nuevo." });
+                // Temporal para debug: vemos el error real que escupe el Service
+                return Json(new { respuesta = $"Error técnico: {ex.Message}" });
             }
         }
 
         // ---------- Tools: rol Familia ----------
+        // Ajustado al formato OpenAPI que requiere Gemini (parameters, types en mayúscula)
 
         private static readonly object[] ToolsFamilia = new object[]
         {
@@ -141,10 +156,10 @@ namespace pagos_administracion_mvc.Controllers
             {
                 name = "ConsultarEstadoCuenta",
                 description = "Consulta las cuotas pendientes y vencidas de un alumno de la familia logueada",
-                input_schema = new
+                parameters = new
                 {
-                    type = "object",
-                    properties = new { alumnoId = new { type = "integer", description = "ID del alumno" } },
+                    type = "OBJECT",
+                    properties = new { alumnoId = new { type = "INTEGER", description = "ID del alumno" } },
                     required = new[] { "alumnoId" }
                 }
             },
@@ -152,10 +167,10 @@ namespace pagos_administracion_mvc.Controllers
             {
                 name = "GenerarLinkDePago",
                 description = "Devuelve el saldo pendiente de una cuota y la URL para confirmar el pago. NO ejecuta el pago: el usuario debe confirmar con un click.",
-                input_schema = new
+                parameters = new
                 {
-                    type = "object",
-                    properties = new { cuotaId = new { type = "integer", description = "ID de la cuota a pagar" } },
+                    type = "OBJECT",
+                    properties = new { cuotaId = new { type = "INTEGER", description = "ID de la cuota a pagar" } },
                     required = new[] { "cuotaId" }
                 }
             },
@@ -163,10 +178,10 @@ namespace pagos_administracion_mvc.Controllers
             {
                 name = "ConsultarHistorialPagos",
                 description = "Lista los pagos aprobados de un alumno, con fecha y monto",
-                input_schema = new
+                parameters = new
                 {
-                    type = "object",
-                    properties = new { alumnoId = new { type = "integer" } },
+                    type = "OBJECT",
+                    properties = new { alumnoId = new { type = "INTEGER" } },
                     required = new[] { "alumnoId" }
                 }
             }
@@ -178,7 +193,10 @@ namespace pagos_administracion_mvc.Controllers
             {
                 case "ConsultarEstadoCuenta":
                     {
-                        var alumnoId = input.GetProperty("alumnoId").GetInt32();
+                        // Gemini a veces manda los numéricos como double en el JSON, TryGetInt32 previene errores
+                        var alumnoIdProp = input.GetProperty("alumnoId");
+                        var alumnoId = alumnoIdProp.ValueKind == JsonValueKind.Number ? alumnoIdProp.GetInt32() : int.Parse(alumnoIdProp.GetString()!);
+
                         var alumno = await _context.Alumnos
                             .FirstOrDefaultAsync(a => a.Id == alumnoId && a.FamiliaUserId == userId);
                         if (alumno == null) throw new UnauthorizedAccessException();
@@ -196,7 +214,9 @@ namespace pagos_administracion_mvc.Controllers
 
                 case "GenerarLinkDePago":
                     {
-                        var cuotaId = input.GetProperty("cuotaId").GetInt32();
+                        var cuotaIdProp = input.GetProperty("cuotaId");
+                        var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
+
                         var cuota = await _context.Cuotas
                             .Include(c => c.Alumno)
                             .Include(c => c.Pagos)
@@ -213,7 +233,9 @@ namespace pagos_administracion_mvc.Controllers
 
                 case "ConsultarHistorialPagos":
                     {
-                        var alumnoId = input.GetProperty("alumnoId").GetInt32();
+                        var alumnoIdProp = input.GetProperty("alumnoId");
+                        var alumnoId = alumnoIdProp.ValueKind == JsonValueKind.Number ? alumnoIdProp.GetInt32() : int.Parse(alumnoIdProp.GetString()!);
+
                         var alumno = await _context.Alumnos
                             .FirstOrDefaultAsync(a => a.Id == alumnoId && a.FamiliaUserId == userId);
                         if (alumno == null) throw new UnauthorizedAccessException();
@@ -240,14 +262,14 @@ namespace pagos_administracion_mvc.Controllers
             {
                 name = "ConsultarMisFaltas",
                 description = "Consulta el total de faltas y % de presentismo del alumno logueado en sus cursos, en un período reciente",
-                input_schema = new
+                parameters = new
                 {
-                    type = "object",
+                    type = "OBJECT",
                     properties = new
                     {
                         periodo = new
                         {
-                            type = "string",
+                            type = "STRING",
                             @enum = new[] { "semana", "mes", "todo" },
                             description = "Rango a consultar: semana actual, mes actual, o todo el historial"
                         }
