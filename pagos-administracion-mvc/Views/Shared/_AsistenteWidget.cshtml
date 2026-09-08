@@ -167,49 +167,57 @@
 </style>
 
 <script>
-    document.getElementById('asistenteForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
+document.getElementById('asistenteForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
 
-        const input = document.getElementById('asistenteInput');
-        const historial = document.getElementById('asistenteHistorial');
-        const cargando = document.getElementById('asistenteCargando');
-        const mensaje = input.value.trim();
-        if (!mensaje) return;
+    const input = document.getElementById('asistenteInput');
+    const historial = document.getElementById('asistenteHistorial');
+    const cargando = document.getElementById('asistenteCargando');
+    const mensaje = input.value.trim();
+    if (!mensaje) return;
 
-        // Escapa texto antes de insertarlo como HTML, sin depender de jQuery.
-        function escapeHtml(texto) {
-            const div = document.createElement('div');
-            div.textContent = texto;
-            return div.innerHTML;
-        }
+    function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
+    }
 
+    historial.insertAdjacentHTML('beforeend',
+        `<div class="asistente-mensaje asistente-mensaje-usuario">${escapeHtml(mensaje)}</div>`);
+    input.value = '';
+    input.disabled = true;
+    
+    // Reiniciamos el texto base y mostramos el loader
+    cargando.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Pensando...';
+    cargando.classList.remove('d-none');
+    historial.scrollTop = historial.scrollHeight;
+
+    // Si la respuesta tarda más de 2 segundos, cambiamos el texto para calmar la ansiedad
+    const timeoutEspera = setTimeout(() => {
+        cargando.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Consultando registros...';
+    }, 2000);
+
+    try {
+        const resp = await fetch('@Url.Action("Consultar", "Asistente")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mensaje: mensaje })
+        });
+
+        if (!resp.ok) throw new Error('Error de red');
+
+        const data = await resp.json();
         historial.insertAdjacentHTML('beforeend',
-            `<div class="asistente-mensaje asistente-mensaje-usuario">${escapeHtml(mensaje)}</div>`);
-        input.value = '';
-        input.disabled = true;
-        cargando.classList.remove('d-none');
+            `<div class="asistente-mensaje asistente-mensaje-bot">${escapeHtml(data.respuesta)}</div>`);
+    } catch (err) {
+        historial.insertAdjacentHTML('beforeend',
+            `<div class="asistente-mensaje asistente-mensaje-bot">Uy, tuve un problema para responder. Probá de nuevo en un momento.</div>`);
+    } finally {
+        clearTimeout(timeoutEspera); // Cancelamos el timer sin importar si falló o tuvo éxito
+        cargando.classList.add('d-none');
+        input.disabled = false;
+        input.focus();
         historial.scrollTop = historial.scrollHeight;
-
-        try {
-            const resp = await fetch('@Url.Action("Consultar", "Asistente")', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mensaje: mensaje })
-            });
-
-            if (!resp.ok) throw new Error('Error de red');
-
-            const data = await resp.json();
-            historial.insertAdjacentHTML('beforeend',
-                `<div class="asistente-mensaje asistente-mensaje-bot">${escapeHtml(data.respuesta)}</div>`);
-        } catch (err) {
-            historial.insertAdjacentHTML('beforeend',
-                `<div class="asistente-mensaje asistente-mensaje-bot">Uy, tuve un problema para responder. Probá de nuevo en un momento.</div>`);
-        } finally {
-            cargando.classList.add('d-none');
-            input.disabled = false;
-            input.focus();
-            historial.scrollTop = historial.scrollHeight;
-        }
-    });
+    }
+});
 </script>

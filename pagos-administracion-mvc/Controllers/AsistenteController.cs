@@ -37,62 +37,45 @@ namespace pagos_administracion_mvc.Controllers
         {
             var userId = _userManager.GetUserId(User);
             var esFamilia = User.IsInRole("Familia");
-
-            // Gemini espera que las declaraciones de funciones estén dentro de un array de functionDeclarations
-            var tools = new object[]
-            {
-                new { functionDeclarations = esFamilia ? ToolsFamilia : ToolsAlumno }
-            };
+            var tools = esFamilia ? ToolsFamilia : ToolsAlumno;
 
             var systemPrompt = esFamilia
-    ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno. No pidas el ID numérico."
-    : "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Solo informá sobre tu asistencia. No ofrezcas ayuda extra.";
-            // Gemini estructura el historial con "parts"
+                ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno. No pidas el ID numérico."
+                : "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Solo informá sobre tu asistencia. No ofrezcas ayuda extra.";
+
+            // OpenAI/Groq inserta el system prompt como primer mensaje
             var mensajes = new List<object>
             {
-                new
-                {
-                    role = "user",
-                    parts = new[] { new { text = request.Mensaje } }
-                }
+                new { role = "system", content = systemPrompt },
+                new { role = "user", content = request.Mensaje }
             };
 
             try
             {
-                // Primera llamada
-                using var respuesta = await _asistenteService.EnviarMensajeAsync(mensajes, tools, systemPrompt);
+                using var respuesta = await _asistenteService.EnviarMensajeAsync(mensajes, tools);
+                var choice = respuesta.RootElement.GetProperty("choices")[0].GetProperty("message");
 
-                var candidates = respuesta.RootElement.GetProperty("candidates");
-                if (candidates.GetArrayLength() == 0)
-                    throw new Exception("Respuesta vacía de Gemini");
-
-                var parts = candidates[0].GetProperty("content").GetProperty("parts");
-
+                string? toolUseId = null;
                 string? toolName = null;
                 JsonElement toolInput = default;
-                var textoDirecto = "";
 
-                // Analizamos si la respuesta es texto directo o un pedido para usar una herramienta
-                foreach (var part in parts.EnumerateArray())
+                var textoDirecto = choice.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == JsonValueKind.String
+                    ? contentProp.GetString() : "";
+
+                // OpenAI envía los argumentos de la tool como un string JSON que hay que parsear
+                if (choice.TryGetProperty("tool_calls", out var toolCalls) && toolCalls.GetArrayLength() > 0)
                 {
-                    if (part.TryGetProperty("text", out var textProp))
-                    {
-                        textoDirecto += textProp.GetString();
-                    }
-                    else if (part.TryGetProperty("functionCall", out var funcCall))
-                    {
-                        toolName = funcCall.GetProperty("name").GetString();
-                        toolInput = funcCall.GetProperty("args");
-                    }
+                    var firstCall = toolCalls[0];
+                    toolUseId = firstCall.GetProperty("id").GetString();
+                    toolName = firstCall.GetProperty("function").GetProperty("name").GetString();
+                    toolInput = JsonDocument.Parse(firstCall.GetProperty("function").GetProperty("arguments").GetString()!).RootElement;
                 }
 
-                // El modelo respondió directo
                 if (toolName == null)
                 {
                     return Json(new { respuesta = textoDirecto });
                 }
 
-                // Ejecución local en base de datos
                 object resultadoTool;
                 try
                 {
@@ -105,85 +88,78 @@ namespace pagos_administracion_mvc.Controllers
                     return Json(new { respuesta = "No encontré ese dato asociado a tu cuenta." });
                 }
 
-                // Segunda llamada: reconstruimos la parte del asistente y agregamos el functionResponse
+                // Agregamos la respuesta del asistente (el llamado a la tool) y el resultado real
+                mensajes.Add(JsonSerializer.Deserialize<object>(choice.GetRawText())!);
                 mensajes.Add(new
                 {
-                    role = "model",
-                    parts = parts.EnumerateArray().Select(p => (object)JsonSerializer.Deserialize<object>(p.GetRawText())!).ToList()
+                    role = "tool",
+                    tool_call_id = toolUseId,
+                    content = JsonSerializer.Serialize(resultadoTool)
                 });
 
-                mensajes.Add(new
-                {
-                    role = "user",
-                    parts = new[]
-                    {
-                        new
-                        {
-                            functionResponse = new
-                            {
-                                name = toolName,
-                                response = resultadoTool
-                            }
-                        }
-                    }
-                });
-
-                using var respuestaFinal = await _asistenteService.EnviarMensajeAsync(mensajes, tools, systemPrompt);
-                var finalCandidates = respuestaFinal.RootElement.GetProperty("candidates");
-                var finalParts = finalCandidates[0].GetProperty("content").GetProperty("parts");
-
-                var textoFinal = finalParts.EnumerateArray()
-                    .Where(p => p.TryGetProperty("text", out _))
-                    .Select(p => p.GetProperty("text").GetString())
-                    .FirstOrDefault() ?? "";
+                using var respuestaFinal = await _asistenteService.EnviarMensajeAsync(mensajes, tools);
+                var textoFinal = respuestaFinal.RootElement.GetProperty("choices")[0]
+                    .GetProperty("message").GetProperty("content").GetString() ?? "";
 
                 return Json(new { respuesta = textoFinal });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return Json(new { respuesta = "El sistema está procesando muchas consultas en este momento. Por favor, intentá de nuevo en un minuto." });
+                // Dejo expuesto el error técnico para que veas si la clave de Groq agarra bien de entrada
+                return Json(new { respuesta = $"Error técnico para depurar: {ex.Message}" });
             }
         }
 
-        // ---------- Tools: rol Familia ----------
-        // Ajustado al formato OpenAPI que requiere Gemini (parameters, types en mayúscula)
+        // ---------- Tools: rol Familia (Formato OpenAI) ----------
 
         private static readonly object[] ToolsFamilia = new object[]
-{
-    new
-    {
-        name = "ConsultarEstadoCuenta",
-        description = "Consulta las cuotas pendientes y vencidas de un alumno. Requiere nombre o DNI.",
-        parameters = new
         {
-            type = "OBJECT",
-            properties = new { nombreODni = new { type = "STRING", description = "Nombre, apellido o DNI del alumno" } },
-            required = new[] { "nombreODni" }
-        }
-    },
-    new
-    {
-        name = "GenerarLinkDePago",
-        description = "Devuelve el saldo pendiente de una cuota y la URL para confirmar el pago. NO ejecuta el pago: el usuario debe confirmar con un click.",
-        parameters = new
-        {
-            type = "OBJECT",
-            properties = new { cuotaId = new { type = "INTEGER", description = "ID de la cuota a pagar" } },
-            required = new[] { "cuotaId" }
-        }
-    },
-    new
-    {
-        name = "ConsultarHistorialPagos",
-        description = "Lista los pagos aprobados de un alumno. Requiere nombre o DNI.",
-        parameters = new
-        {
-            type = "OBJECT",
-            properties = new { nombreODni = new { type = "STRING" } },
-            required = new[] { "nombreODni" }
-        }
-    }
-};
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "ConsultarEstadoCuenta",
+                    description = "Consulta las cuotas pendientes y vencidas de un alumno. Requiere nombre o DNI.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { nombreODni = new { type = "string", description = "Nombre, apellido o DNI del alumno" } },
+                        required = new[] { "nombreODni" }
+                    }
+                }
+            },
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "GenerarLinkDePago",
+                    description = "Devuelve el saldo pendiente de una cuota y la URL para confirmar el pago. NO ejecuta el pago: el usuario debe confirmar con un click.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { cuotaId = new { type = "integer", description = "ID de la cuota a pagar" } },
+                        required = new[] { "cuotaId" }
+                    }
+                }
+            },
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "ConsultarHistorialPagos",
+                    description = "Lista los pagos aprobados de un alumno. Requiere nombre o DNI.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { nombreODni = new { type = "string" } },
+                        required = new[] { "nombreODni" }
+                    }
+                }
+            }
+        };
 
         private async Task<object> EjecutarToolFamilia(string toolName, JsonElement input, string userId)
         {
@@ -191,12 +167,18 @@ namespace pagos_administracion_mvc.Controllers
             {
                 case "ConsultarEstadoCuenta":
                     {
-                        var nombreODni = input.GetProperty("nombreODni").GetString()?.Trim().ToLower() ?? "";
+                        if (!input.TryGetProperty("nombreODni", out var propODni))
+                            throw new UnauthorizedAccessException();
 
-                        // El filtro a.FamiliaUserId == userId es el candado absoluto de seguridad.
+                        var nombreODni = propODni.GetString()?.Trim().ToLower() ?? "";
+
                         var alumno = await _context.Alumnos
                             .FirstOrDefaultAsync(a => a.FamiliaUserId == userId &&
-                                (a.Dni == nombreODni || a.Nombre.ToLower().Contains(nombreODni) || a.Apellido.ToLower().Contains(nombreODni)));
+                                (a.Dni == nombreODni ||
+                                 a.Nombre.ToLower().Contains(nombreODni) ||
+                                 a.Apellido.ToLower().Contains(nombreODni) ||
+                                 (a.Nombre.ToLower() + " " + a.Apellido.ToLower()).Contains(nombreODni) ||
+                                 (a.Apellido.ToLower() + ", " + a.Nombre.ToLower()).Contains(nombreODni)));
 
                         if (alumno == null) throw new UnauthorizedAccessException();
 
@@ -213,10 +195,11 @@ namespace pagos_administracion_mvc.Controllers
 
                 case "GenerarLinkDePago":
                     {
-                        var cuotaIdProp = input.GetProperty("cuotaId");
+                        if (!input.TryGetProperty("cuotaId", out var cuotaIdProp))
+                            throw new UnauthorizedAccessException();
+
                         var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
 
-                        // El candado acá se mantiene verificando que la cuota pertenezca a un alumno de este userId
                         var cuota = await _context.Cuotas
                             .Include(c => c.Alumno)
                             .Include(c => c.Pagos)
@@ -234,11 +217,18 @@ namespace pagos_administracion_mvc.Controllers
 
                 case "ConsultarHistorialPagos":
                     {
-                        var nombreODni = input.GetProperty("nombreODni").GetString()?.Trim().ToLower() ?? "";
+                        if (!input.TryGetProperty("nombreODni", out var propODni))
+                            throw new UnauthorizedAccessException();
+
+                        var nombreODni = propODni.GetString()?.Trim().ToLower() ?? "";
 
                         var alumno = await _context.Alumnos
                             .FirstOrDefaultAsync(a => a.FamiliaUserId == userId &&
-                                (a.Dni == nombreODni || a.Nombre.ToLower().Contains(nombreODni) || a.Apellido.ToLower().Contains(nombreODni)));
+                                (a.Dni == nombreODni ||
+                                 a.Nombre.ToLower().Contains(nombreODni) ||
+                                 a.Apellido.ToLower().Contains(nombreODni) ||
+                                 (a.Nombre.ToLower() + " " + a.Apellido.ToLower()).Contains(nombreODni) ||
+                                 (a.Apellido.ToLower() + ", " + a.Nombre.ToLower()).Contains(nombreODni)));
 
                         if (alumno == null) throw new UnauthorizedAccessException();
 
@@ -256,27 +246,31 @@ namespace pagos_administracion_mvc.Controllers
             }
         }
 
-        // ---------- Tools: rol Alumno ----------
+        // ---------- Tools: rol Alumno (Formato OpenAI) ----------
 
         private static readonly object[] ToolsAlumno = new object[]
         {
             new
             {
-                name = "ConsultarMisFaltas",
-                description = "Consulta el total de faltas y % de presentismo del alumno logueado en sus cursos, en un período reciente",
-                parameters = new
+                type = "function",
+                function = new
                 {
-                    type = "OBJECT",
-                    properties = new
+                    name = "ConsultarMisFaltas",
+                    description = "Consulta el total de faltas y % de presentismo del alumno logueado en sus cursos, en un período reciente",
+                    parameters = new
                     {
-                        periodo = new
+                        type = "object",
+                        properties = new
                         {
-                            type = "STRING",
-                            @enum = new[] { "semana", "mes", "todo" },
-                            description = "Rango a consultar: semana actual, mes actual, o todo el historial"
-                        }
-                    },
-                    required = new[] { "periodo" }
+                            periodo = new
+                            {
+                                type = "string",
+                                @enum = new[] { "semana", "mes", "todo" },
+                                description = "Rango a consultar: semana actual, mes actual, o todo el historial"
+                            }
+                        },
+                        required = new[] { "periodo" }
+                    }
                 }
             }
         };
@@ -287,7 +281,7 @@ namespace pagos_administracion_mvc.Controllers
             {
                 case "ConsultarMisFaltas":
                     {
-                        var periodo = input.GetProperty("periodo").GetString() ?? "semana";
+                        var periodo = input.TryGetProperty("periodo", out var prop) ? prop.GetString() ?? "semana" : "semana";
                         var hoy = DateTime.Today;
 
                         DateTime? inicio = periodo switch
