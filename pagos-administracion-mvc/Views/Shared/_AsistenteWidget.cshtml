@@ -29,7 +29,7 @@
                 <div id="asistenteHistorial" class="asistente-historial">
                     <div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar hoy?</div>
                 </div>
-                <div id="asistenteCargando" class="text-center text-muted small mt-2 mb-3 d-none">
+                <div id="asistenteCargando" class="text-center text-primary fw-bold small mt-2 mb-3 d-none">
                     <span class="spinner-border spinner-border-sm me-1"></span> Pensando...
                 </div>
             </div>
@@ -53,6 +53,15 @@
         border: none;
         box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
+
+    #modalAsistente .btn-close {
+        filter: invert(0) !important;
+        opacity: 0.5;
+    }
+
+        #modalAsistente .btn-close:hover {
+            opacity: 1;
+        }
 
     .asistente-flotante {
         position: fixed;
@@ -176,7 +185,6 @@
                 '<div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar hoy?</div>';
         });
     }
-
     document.getElementById('asistenteForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -186,24 +194,29 @@
         const mensaje = input.value.trim();
         if (!mensaje) return;
 
-        function formatearMensaje(texto) {
-            let escape = document.createElement('div');
-            escape.textContent = texto;
-            let sanitizado = escape.innerHTML;
+        // 1. Definimos las funciones de escape y linkificación
+        function escapeHtml(texto) {
+            const div = document.createElement('div');
+            div.textContent = texto;
+            return div.innerHTML;
+        }
 
-            // Si el texto contiene una URL de pago, la transforma en un botón verde
-            const urlRegex = /(\/Pagos\/Pagar\?cuotaId=\d+)/gi;
-            return sanitizado.replace(urlRegex, function(url) {
-                return `<br><br><a href="${url}" class="btn btn-sm btn-success text-white fw-bold d-inline-block"><i class="bi bi-credit-card-fill"></i> Pagar Cuota</a>`;
+        function linkificar(textoEscapado) {
+            const regexUrl = /(https?:\/\/[^\s<]+)|(\/[A-Z][A-Za-z]*\/[A-Za-z]+(?:\?[^\s<]*)?)/g;
+            return textoEscapado.replace(regexUrl, (match) => {
+                const limpio = match.replace(/[.,;:)]+$/, '');
+                const sobra = match.slice(limpio.length);
+                // Le agregué target="_blank" para que no cierre el chat al hacer clic
+                return `<a href="${limpio}" target="_blank" class="text-decoration-underline fw-bold">${limpio}</a>${sobra}`;
             });
         }
 
+        // Imprimimos el mensaje del usuario (escapado por seguridad)
         historial.insertAdjacentHTML('beforeend',
-            `<div class="asistente-mensaje asistente-mensaje-usuario">${formatearMensaje(mensaje)}</div>`);
+            `<div class="asistente-mensaje asistente-mensaje-usuario">${escapeHtml(mensaje)}</div>`);
+
         input.value = '';
         input.disabled = true;
-
-        cargando.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Pensando...';
         cargando.classList.remove('d-none');
         historial.scrollTop = historial.scrollHeight;
 
@@ -211,14 +224,17 @@
             const resp = await fetch('@Url.Action("Consultar", "Asistente")', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mensaje: mensaje }) // Solo se envía el último msj
+                body: JSON.stringify({ mensaje: mensaje })
             });
 
             if (!resp.ok) throw new Error('Error de red');
 
             const data = await resp.json();
+
+            // 2. Aplicamos la cadena de funciones al mensaje del bot: primero escapa, luego linkifica
             historial.insertAdjacentHTML('beforeend',
-                `<div class="asistente-mensaje asistente-mensaje-bot">${formatearMensaje(data.respuesta)}</div>`);
+                `<div class="asistente-mensaje asistente-mensaje-bot">${linkificar(escapeHtml(data.respuesta))}</div>`);
+
         } catch (err) {
             historial.insertAdjacentHTML('beforeend',
                 `<div class="asistente-mensaje asistente-mensaje-bot text-danger">Uy, tuve un problema de conexión. Probá de nuevo.</div>`);
@@ -230,3 +246,5 @@
         }
     });
 </script>
+
+    
