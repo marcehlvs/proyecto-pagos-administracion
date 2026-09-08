@@ -43,9 +43,8 @@ namespace pagos_administracion_mvc.Controllers
             var tools = esFamilia ? ToolsFamilia : ToolsAlumno;
 
             var systemPrompt = esFamilia
-    ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno. No pidas el ID numérico. También podés informar avisos, fechas importantes del colegio y el valor vigente (o cambios) de los aranceles cuando te lo pidan."
+    ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno. No pidas el ID numérico. Cuando generes un link de pago, escribilo SIEMPRE en su propia línea, solo, sin texto pegado adelante ni atrás. Ejemplo: 'Encontré tu cuota pendiente.\n/Pagos/Confirmar?cuotaId=5\nSaldo: $187000'. También podés informar avisos, fechas importantes del colegio y el valor vigente (o cambios) de los aranceles cuando te lo pidan."
     : "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Podés informar sobre tu asistencia y sobre avisos o fechas importantes del colegio. No ofrezcas ayuda extra fuera de esos temas.";
-
             var mensajeUsuario = new { role = "user", content = request.Mensaje };
             var mensajes = new List<object> { new { role = "system", content = systemPrompt } };
 
