@@ -275,7 +275,7 @@ namespace pagos_administracion_mvc.Controllers
                         return new
                         {
                             saldoPendiente = cuota.SaldoPendiente,
-                            urlPago = Url.Action("Pagar", "Pagos", new { cuotaId = cuota.Id })
+                            urlConfirmacion = Url.Action("Confirmar", "Pagos", new { cuotaId = cuota.Id })
                         };
                     }
                 case "ConsultarAvisos":
