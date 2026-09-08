@@ -167,57 +167,66 @@
 </style>
 
 <script>
-document.getElementById('asistenteForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-
-    const input = document.getElementById('asistenteInput');
-    const historial = document.getElementById('asistenteHistorial');
-    const cargando = document.getElementById('asistenteCargando');
-    const mensaje = input.value.trim();
-    if (!mensaje) return;
-
-    function escapeHtml(texto) {
-        const div = document.createElement('div');
-        div.textContent = texto;
-        return div.innerHTML;
-    }
-
-    historial.insertAdjacentHTML('beforeend',
-        `<div class="asistente-mensaje asistente-mensaje-usuario">${escapeHtml(mensaje)}</div>`);
-    input.value = '';
-    input.disabled = true;
-    
-    // Reiniciamos el texto base y mostramos el loader
-    cargando.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Pensando...';
-    cargando.classList.remove('d-none');
-    historial.scrollTop = historial.scrollHeight;
-
-    // Si la respuesta tarda más de 2 segundos, cambiamos el texto para calmar la ansiedad
-    const timeoutEspera = setTimeout(() => {
-        cargando.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Consultando registros...';
-    }, 2000);
-
-    try {
-        const resp = await fetch('@Url.Action("Consultar", "Asistente")', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mensaje: mensaje })
+    // Limpiamos el historial en el servidor al abrir el modal para empezar de cero
+    const modalAsistente = document.getElementById('modalAsistente');
+    if (modalAsistente) {
+        modalAsistente.addEventListener('show.bs.modal', function() {
+            fetch('@Url.Action("Reiniciar", "Asistente")', { method: 'POST' });
+            document.getElementById('asistenteHistorial').innerHTML =
+                '<div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar hoy?</div>';
         });
-
-        if (!resp.ok) throw new Error('Error de red');
-
-        const data = await resp.json();
-        historial.insertAdjacentHTML('beforeend',
-            `<div class="asistente-mensaje asistente-mensaje-bot">${escapeHtml(data.respuesta)}</div>`);
-    } catch (err) {
-        historial.insertAdjacentHTML('beforeend',
-            `<div class="asistente-mensaje asistente-mensaje-bot">Uy, tuve un problema para responder. Probá de nuevo en un momento.</div>`);
-    } finally {
-        clearTimeout(timeoutEspera); // Cancelamos el timer sin importar si falló o tuvo éxito
-        cargando.classList.add('d-none');
-        input.disabled = false;
-        input.focus();
-        historial.scrollTop = historial.scrollHeight;
     }
-});
+
+    document.getElementById('asistenteForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const input = document.getElementById('asistenteInput');
+        const historial = document.getElementById('asistenteHistorial');
+        const cargando = document.getElementById('asistenteCargando');
+        const mensaje = input.value.trim();
+        if (!mensaje) return;
+
+        function formatearMensaje(texto) {
+            let escape = document.createElement('div');
+            escape.textContent = texto;
+            let sanitizado = escape.innerHTML;
+
+            // Si el texto contiene una URL de pago, la transforma en un botón verde
+            const urlRegex = /(\/Pagos\/Pagar\?cuotaId=\d+)/gi;
+            return sanitizado.replace(urlRegex, function(url) {
+                return `<br><br><a href="${url}" class="btn btn-sm btn-success text-white fw-bold d-inline-block"><i class="bi bi-credit-card-fill"></i> Pagar Cuota</a>`;
+            });
+        }
+
+        historial.insertAdjacentHTML('beforeend',
+            `<div class="asistente-mensaje asistente-mensaje-usuario">${formatearMensaje(mensaje)}</div>`);
+        input.value = '';
+        input.disabled = true;
+
+        cargando.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Pensando...';
+        cargando.classList.remove('d-none');
+        historial.scrollTop = historial.scrollHeight;
+
+        try {
+            const resp = await fetch('@Url.Action("Consultar", "Asistente")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensaje: mensaje }) // Solo se envía el último msj
+            });
+
+            if (!resp.ok) throw new Error('Error de red');
+
+            const data = await resp.json();
+            historial.insertAdjacentHTML('beforeend',
+                `<div class="asistente-mensaje asistente-mensaje-bot">${formatearMensaje(data.respuesta)}</div>`);
+        } catch (err) {
+            historial.insertAdjacentHTML('beforeend',
+                `<div class="asistente-mensaje asistente-mensaje-bot text-danger">Uy, tuve un problema de conexión. Probá de nuevo.</div>`);
+        } finally {
+            cargando.classList.add('d-none');
+            input.disabled = false;
+            input.focus();
+            historial.scrollTop = historial.scrollHeight;
+        }
+    });
 </script>
