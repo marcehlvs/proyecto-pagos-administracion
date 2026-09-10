@@ -18,6 +18,8 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Asistencia> Asistencias { get; set; }
         public DbSet<ArancelNivel> ArancelesNivel { get; set; }
         public DbSet<ConfiguracionSitio> ConfiguracionSitio { get; set; }
+        public DbSet<Asignatura> Asignaturas { get; set; }
+        public DbSet<Periodo> Periodos { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -117,6 +119,18 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Curso>().HasQueryFilter(c => c.Activo);
             modelBuilder.Entity<Inscripcion>().HasQueryFilter(i => i.Activo && i.Alumno.Activo && i.Curso.Activo);
             modelBuilder.Entity<Asistencia>().HasQueryFilter(a => a.Activo && a.Inscripcion.Activo && a.Inscripcion.Alumno.Activo && a.Inscripcion.Curso.Activo);
+
+            // Periodo es autorreferenciado (PeriodoPadreId -> Periodo). Restrict, no Cascade/SetNull:
+            // con self-reference, SQL Server no acepta cascada (mismo motivo que Alumno.AlumnoUserId
+            // más arriba) y un padre borrado no puede dejar huérfanos sus hijos en silencio.
+            modelBuilder.Entity<Periodo>()
+                .HasOne(p => p.PeriodoPadre)
+                .WithMany(p => p.Subperiodos)
+                .HasForeignKey(p => p.PeriodoPadreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Asignatura>().HasQueryFilter(a => a.Activo);
+            modelBuilder.Entity<Periodo>().HasQueryFilter(p => p.Activo);
 
             modelBuilder.Entity<ArancelNivel>().HasQueryFilter(a => a.Activo);
             modelBuilder.Entity<ArancelNivel>().Property(a => a.Curricular).HasPrecision(18, 2);

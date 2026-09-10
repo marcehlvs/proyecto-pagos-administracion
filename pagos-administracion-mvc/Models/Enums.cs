@@ -55,5 +55,18 @@
             Viernes = 16,
             Sabado = 32
         }
+
+        // Nivel de la jerarquía de un Periodo de evaluación. Parcial = una nota suelta dentro de
+        // un trimestre. Trimestral/Cuatrimestral/Anual son "periodos contenedores": su nota puede
+        // salir de promediar los periodos que tienen como padre a este, o puede ser cargada a mano
+        // por el Docente (ver Nota.EsPromedioAutomatico), que es lo que pidió el usuario para
+        // cuando "no se coloca la real sino que se tiene en cuenta todo el cuatrimestre".
+        public enum TipoPeriodo
+        {
+            Parcial,
+            Trimestral,
+            Cuatrimestral,
+            Anual
+        }
     }
 }
