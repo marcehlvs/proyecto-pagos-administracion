@@ -22,7 +22,7 @@ namespace pagos_administracion_mvc.Controllers
         private readonly ILogger<PagosController> _logger; // Inyección de ILogger
         private readonly IConfiguration _config;
         private readonly EmailService _emailService;
-
+        private readonly PagoIniciadorService _pagoIniciador;
 
         // Constructor actualizado
         public PagosController(
@@ -31,7 +31,8 @@ namespace pagos_administracion_mvc.Controllers
             UserManager<ApplicationUser> userManager,
             ILogger<PagosController> logger, 
             IConfiguration config,
-            EmailService emailService)
+            EmailService emailService,
+            PagoIniciadorService pagoIniciador)
             
 
         {
@@ -41,6 +42,7 @@ namespace pagos_administracion_mvc.Controllers
             _logger = logger;
             _config = config;
             _emailService = emailService;
+            _pagoIniciador = pagoIniciador;
         }
         [Authorize(Roles = "Admin")]
         // GET: PAGOS
@@ -400,6 +402,26 @@ namespace pagos_administracion_mvc.Controllers
                 .Include(c => c.Pagos)
                 .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
 
+            if (cuota == null) return NotFound();
+
+            var urlCheckout = await _pagoIniciador.IniciarPagoMercadoPagoAsync(cuota, userId!, User.Identity?.Name);
+
+            return Redirect(urlCheckout);
+        }
+
+
+        /*[Authorize(Roles = "Familia")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Pagar(int cuotaId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var cuota = await _context.Cuotas
+                .Include(c => c.Alumno)
+                .Include(c => c.Pagos)
+                .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
+
             if (cuota == null) return NotFound(); // no es su cuota, o no existe
 
             var pago = new Pago
@@ -422,6 +444,9 @@ namespace pagos_administracion_mvc.Controllers
 
             return Redirect(preferencia.InitPoint);
         }
+        Otra versión de pagar
+        */
+
 
         // Mercado Pago Webhook Endpoint (Con Idempotencia, Logging y validación de firma)
         [AllowAnonymous]
