@@ -185,6 +185,7 @@
                 '<div class="asistente-mensaje asistente-mensaje-bot">¡Hola! ¿En qué te puedo ayudar hoy?</div>';
         });
     }
+
     document.getElementById('asistenteForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -194,7 +195,6 @@
         const mensaje = input.value.trim();
         if (!mensaje) return;
 
-        // 1. Definimos las funciones de escape y linkificación
         function escapeHtml(texto) {
             const div = document.createElement('div');
             div.textContent = texto;
@@ -206,12 +206,10 @@
             return textoEscapado.replace(regexUrl, (match) => {
                 const limpio = match.replace(/[.,;:)]+$/, '');
                 const sobra = match.slice(limpio.length);
-                // Le agregué target="_blank" para que no cierre el chat al hacer clic
                 return `<a href="${limpio}" target="_blank" class="text-decoration-underline fw-bold">${limpio}</a>${sobra}`;
             });
         }
 
-        // Imprimimos el mensaje del usuario (escapado por seguridad)
         historial.insertAdjacentHTML('beforeend',
             `<div class="asistente-mensaje asistente-mensaje-usuario">${escapeHtml(mensaje)}</div>`);
 
@@ -231,9 +229,17 @@
 
             const data = await resp.json();
 
-            // 2. Aplicamos la cadena de funciones al mensaje del bot: primero escapa, luego linkifica
             historial.insertAdjacentHTML('beforeend',
                 `<div class="asistente-mensaje asistente-mensaje-bot">${linkificar(escapeHtml(data.respuesta))}</div>`);
+
+            if (data.redireccion) {
+                historial.insertAdjacentHTML('beforeend',
+                    `<div class="asistente-mensaje asistente-mensaje-bot text-muted small mt-2">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Redirigiendo a Mercado Pago...
+                         </div>`);
+                historial.scrollTop = historial.scrollHeight;
+                setTimeout(() => { window.location.href = data.redireccion; }, 1200);
+            }
 
         } catch (err) {
             historial.insertAdjacentHTML('beforeend',

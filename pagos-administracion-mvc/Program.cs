@@ -37,6 +37,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddEntityFrameworkStores<AdministracionDbContext>();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ConversacionAsistenteStore>();
+builder.Services.AddScoped<PagoIniciadorService>();
 builder.Services.AddScoped<MercadoPagoService>();
 builder.Services.AddScoped<AsistenteService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();

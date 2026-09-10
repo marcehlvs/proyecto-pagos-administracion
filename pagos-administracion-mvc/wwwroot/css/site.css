@@ -131,6 +131,18 @@ h1 {
 .navbar {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
+.datos-transferencia {
+    background-color: var(--color-bg);
+    border-color: var(--color-border) !important;
+}
+
+    .datos-transferencia span {
+        color: var(--color-text-muted);
+    }
+
+    .datos-transferencia strong {
+        color: var(--color-text);
+    }
 
 /*WhatsApp*/
 .whatsapp-flotante {

@@ -17,17 +17,24 @@ namespace pagos_administracion_mvc.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly AsistenteService _asistenteService;
         private readonly ConversacionAsistenteStore _historialStore;
+        private readonly PagoIniciadorService _pagoIniciador;
+        private readonly IConfiguration _config;
+        private string? _urlRedireccionPendiente;
 
         public AsistenteController(
             AdministracionDbContext context,
             UserManager<ApplicationUser> userManager,
             AsistenteService asistenteService,
-            ConversacionAsistenteStore historialStore)
+            ConversacionAsistenteStore historialStore,
+            PagoIniciadorService pagoIniciador,
+            IConfiguration config)
         {
             _context = context;
             _userManager = userManager;
             _asistenteService = asistenteService;
             _historialStore = historialStore;
+            _pagoIniciador = pagoIniciador;
+            _config = config;
         }
 
         public class ConsultaRequest
@@ -43,8 +50,13 @@ namespace pagos_administracion_mvc.Controllers
             var tools = esFamilia ? ToolsFamilia : ToolsAlumno;
 
             var systemPrompt = esFamilia
-    ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno. No pidas el ID numérico. Cuando generes un link de pago, escribilo SIEMPRE en su propia línea, solo, sin texto pegado adelante ni atrás. Ejemplo: 'Encontré tu cuota pendiente.\n/Pagos/Confirmar?cuotaId=5\nSaldo: $187000'. También podés informar avisos, fechas importantes del colegio y el valor vigente (o cambios) de los aranceles cuando te lo pidan."
-    : "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Podés informar sobre tu asistencia y sobre avisos o fechas importantes del colegio. No ofrezcas ayuda extra fuera de esos temas.";
+                ? "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. " +
+                  "Si te piden ver cuotas o pagos, preguntá el nombre o DNI del alumno (no pidas el ID numérico). " +
+                  "Antes de generar cualquier pago, preguntá SIEMPRE si prefieren pagar con Mercado Pago o por transferencia bancaria, y esperá la respuesta antes de llamar a IniciarPagoMercadoPago u ObtenerDatosTransferencia. " +
+                  "Si eligen transferencia, después de mostrar los datos recordales que tienen que subir el comprobante para que se confirme el pago. " +
+                  "También podés informar avisos, fechas importantes y aranceles vigentes del colegio."
+                : "Sos el asistente del portal escolar. Respondé en español rioplatense, máximo 1 o 2 oraciones. Podés informar sobre tu asistencia y sobre avisos o fechas importantes del colegio. No ofrezcas ayuda extra fuera de esos temas.";
+
             var mensajeUsuario = new { role = "user", content = request.Mensaje };
             var mensajes = new List<object> { new { role = "system", content = systemPrompt } };
 
@@ -92,7 +104,7 @@ namespace pagos_administracion_mvc.Controllers
                         JsonSerializer.Serialize(new { role = "assistant", content = textoDirecto })
                     });
 
-                    return Json(new { respuesta = textoDirecto });
+                    return Json(new { respuesta = textoDirecto, redireccion = (string?)null });
                 }
 
                 object resultadoTool;
@@ -110,7 +122,7 @@ namespace pagos_administracion_mvc.Controllers
                         JsonSerializer.Serialize(mensajeUsuario),
                         JsonSerializer.Serialize(new { role = "assistant", content = msgError })
                     });
-                    return Json(new { respuesta = msgError });
+                    return Json(new { respuesta = msgError, redireccion = (string?)null });
                 }
 
                 var mensajeAssistantConTool = JsonSerializer.Deserialize<object>(choice.GetRawText())!;
@@ -137,11 +149,11 @@ namespace pagos_administracion_mvc.Controllers
                     JsonSerializer.Serialize(new { role = "assistant", content = textoFinal })
                 });
 
-                return Json(new { respuesta = textoFinal });
+                return Json(new { respuesta = textoFinal, redireccion = _urlRedireccionPendiente });
             }
             catch (Exception ex)
             {
-                return Json(new { respuesta = $"Ocurrió un problema de conexión temporal. Intentá nuevamente en unos segundos. ({ex.Message})" });
+                return Json(new { respuesta = $"Ocurrió un problema de conexión temporal. Intentá nuevamente en unos segundos. ({ex.Message})", redireccion = (string?)null });
             }
         }
 
@@ -177,64 +189,77 @@ namespace pagos_administracion_mvc.Controllers
                 type = "function",
                 function = new
                 {
-                    name = "GenerarLinkDePago",
-                    description = "Devuelve la URL de pago. Requiere el ID numérico de la cuota.",
+                    name = "IniciarPagoMercadoPago",
+                    description = "Crea el pago pendiente y devuelve el link de checkout de Mercado Pago para una cuota. Usala SOLO después de que la familia haya elegido explícitamente pagar con Mercado Pago. No la uses si todavía no preguntaste el método de pago.",
                     parameters = new
                     {
                         type = "object",
-                        properties = new { cuotaId = new { type = "integer", description = "ID numérico de la cuota" } },
+                        properties = new { cuotaId = new { type = "integer", description = "ID de la cuota a pagar" } },
                         required = new[] { "cuotaId" }
                     }
                 }
             },
             new
-{
-            type = "function",
-            function = new
             {
-                name = "ConsultarAvisos",
-                description = "Devuelve los últimos avisos, novedades y fechas importantes publicados por el colegio (actos, suspensión de clases, reuniones, cambios de horario, etc). Usala cuando pregunten por novedades, avisos, o próximos eventos del colegio.",
-                parameters = new
-            {
-                type = "object",
-            properties = new
-            {
-                tipo = new
+                type = "function",
+                function = new
                 {
-                    type = "string",
-                    @enum = new[] { "Importante", "Calendario", "Aviso", "Todos" },
-                    description = "Filtrar por tipo: Importante (urgente), Calendario (fechas/eventos), Aviso (general). Usar 'Todos' si no se especifica nada."
-                }
-            },
-            required = new string[] { }
+                    name = "ObtenerDatosTransferencia",
+                    description = "Devuelve alias, CBU, titular y el link para subir el comprobante de una cuota. Usala SOLO después de que la familia haya elegido explícitamente pagar por transferencia bancaria. No la uses si todavía no preguntaste el método de pago.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { cuotaId = new { type = "integer", description = "ID de la cuota a pagar" } },
+                        required = new[] { "cuotaId" }
                     }
                 }
-    
             },
             new
-{
-    type = "function",
-    function = new
-    {
-        name = "ConsultarAranceles",
-        description = "Consulta el valor vigente del arancel (cuota) por nivel educativo, con el desglose de conceptos, y si hubo un cambio respecto al arancel anterior. Usala cuando pregunten cuánto sale la cuota o si hubo un aumento.",
-        parameters = new
-        {
-            type = "object",
-            properties = new
             {
-                nivel = new
+                type = "function",
+                function = new
                 {
-                    type = "string",
-                    @enum = new[] { "Primaria", "Secundaria" },
-                    description = "Nivel educativo a consultar. Si no se especifica, se devuelven todos los niveles de los alumnos de la familia."
+                    name = "ConsultarAvisos",
+                    description = "Devuelve los últimos avisos, novedades y fechas importantes publicados por el colegio (actos, suspensión de clases, reuniones, cambios de horario, etc). Usala cuando pregunten por novedades, avisos, o próximos eventos del colegio.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            tipo = new
+                            {
+                                type = "string",
+                                @enum = new[] { "Importante", "Calendario", "Aviso", "Todos" },
+                                description = "Filtrar por tipo: Importante (urgente), Calendario (fechas/eventos), Aviso (general). Usar 'Todos' si no se especifica nada."
+                            }
+                        },
+                        required = new string[] { }
+                    }
                 }
             },
-            required = new string[] { }
-        }
-    }
-}
-
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "ConsultarAranceles",
+                    description = "Consulta el valor vigente del arancel (cuota) por nivel educativo, con el desglose de conceptos, y si hubo un cambio respecto al arancel anterior. Usala cuando pregunten cuánto sale la cuota o si hubo un aumento.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            nivel = new
+                            {
+                                type = "string",
+                                @enum = new[] { "Primaria", "Secundaria" },
+                                description = "Nivel educativo a consultar. Si no se especifica, se devuelven todos los niveles de los alumnos de la familia."
+                            }
+                        },
+                        required = new string[] { }
+                    }
+                }
+            }
         };
 
         private async Task<object> EjecutarToolFamilia(string toolName, JsonElement input, string userId)
@@ -261,20 +286,38 @@ namespace pagos_administracion_mvc.Controllers
 
                         return new { alumno = $"{alumno.Nombre} {alumno.Apellido}", cuotas };
                     }
-                case "GenerarLinkDePago":
+                case "IniciarPagoMercadoPago":
                     {
-                        if (!input.TryGetProperty("cuotaId", out var cuotaIdProp)) throw new UnauthorizedAccessException();
+                        if (!input.TryGetProperty("cuotaId", out var cuotaIdProp))
+                            throw new UnauthorizedAccessException();
                         var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
-
-                        var cuota = await _context.Cuotas.Include(c => c.Alumno)
+                        var cuota = await _context.Cuotas
+                            .Include(c => c.Alumno)
+                            .Include(c => c.Pagos)
                             .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
+                        if (cuota == null) throw new UnauthorizedAccessException();
 
+                        var urlCheckout = await _pagoIniciador.IniciarPagoMercadoPagoAsync(cuota, userId, User.Identity?.Name);
+                        _urlRedireccionPendiente = urlCheckout;
+                        return new { urlCheckout };
+                    }
+                case "ObtenerDatosTransferencia":
+                    {
+                        if (!input.TryGetProperty("cuotaId", out var cuotaIdProp))
+                            throw new UnauthorizedAccessException();
+                        var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
+                        var cuota = await _context.Cuotas
+                            .Include(c => c.Alumno)
+                            .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
                         if (cuota == null) throw new UnauthorizedAccessException();
 
                         return new
                         {
                             saldoPendiente = cuota.SaldoPendiente,
-                            urlConfirmacion = Url.Action("Confirmar", "Pagos", new { cuotaId = cuota.Id })
+                            alias = _config["DatosBancarios:Alias"] ?? "No configurado",
+                            cbu = _config["DatosBancarios:Cbu"] ?? "No configurado",
+                            titular = _config["DatosBancarios:Titular"] ?? "No configurado",
+                            urlSubirComprobante = Url.Action("Confirmar", "Pagos", new { cuotaId = cuota.Id, metodo = "transferencia" })
                         };
                     }
                 case "ConsultarAvisos":
@@ -337,6 +380,7 @@ namespace pagos_administracion_mvc.Controllers
         }
 
         // ---------- Tools: rol Alumno ----------
+
         private static readonly object[] ToolsAlumno = new object[]
         {
             new
@@ -355,41 +399,41 @@ namespace pagos_administracion_mvc.Controllers
                 }
             },
             new
-{
-    type = "function",
-    function = new
-    {
-        name = "ConsultarAvisos",
-        description = "Devuelve los últimos avisos, novedades y fechas importantes publicados por el colegio (actos, suspensión de clases, reuniones, cambios de horario, etc). Usala cuando pregunten por novedades, avisos, o próximos eventos del colegio.",
-        parameters = new
-        {
-            type = "object",
-            properties = new
             {
-                tipo = new
+                type = "function",
+                function = new
                 {
-                    type = "string",
-                    @enum = new[] { "Importante", "Calendario", "Aviso", "Todos" },
-                    description = "Filtrar por tipo: Importante (urgente), Calendario (fechas/eventos), Aviso (general). Usar 'Todos' si no se especifica nada."
+                    name = "ConsultarAvisos",
+                    description = "Devuelve los últimos avisos, novedades y fechas importantes publicados por el colegio (actos, suspensión de clases, reuniones, cambios de horario, etc). Usala cuando pregunten por novedades, avisos, o próximos eventos del colegio.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            tipo = new
+                            {
+                                type = "string",
+                                @enum = new[] { "Importante", "Calendario", "Aviso", "Todos" },
+                                description = "Filtrar por tipo: Importante (urgente), Calendario (fechas/eventos), Aviso (general). Usar 'Todos' si no se especifica nada."
+                            }
+                        },
+                        required = new string[] { }
+                    }
                 }
-            },
-            required = new string[] { }
-        }
-    }
-}
+            }
         };
 
         private async Task<object> EjecutarToolAlumno(string toolName, JsonElement input, string userId)
         {
             switch (toolName)
             {
+                case "ConsultarMisFaltas":
+                    return new { mensaje = "Consulta de faltas ejecutada." };
                 case "ConsultarAvisos":
                     return await EjecutarConsultarAvisos(input);
                 default:
                     throw new InvalidOperationException($"Tool desconocida: {toolName}");
             }
-            // Implementación simplificada para mantener la compilación
-            return new { mensaje = "Consulta de faltas ejecutada." };
         }
 
         private async Task<object> EjecutarConsultarAvisos(JsonElement input)

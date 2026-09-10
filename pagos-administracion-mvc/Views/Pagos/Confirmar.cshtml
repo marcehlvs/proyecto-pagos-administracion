@@ -69,7 +69,7 @@
             <div class="tab-pane fade" id="tab-transferencia">
                 <p class="text-muted small">Transferí el monto exacto y subí el comprobante para confirmación manual.</p>
 
-                <div class="bg-light rounded p-3 mb-3 border">
+                <div class="datos-transferencia rounded p-3 mb-3 border">
                     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted small">Alias</span><strong>@ViewBag.Alias</strong></div>
                     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted small">CBU</span><strong>@ViewBag.Cbu</strong></div>
                     <div class="d-flex justify-content-between py-1"><span class="text-muted small">Titular</span><strong>@ViewBag.Titular</strong></div>
@@ -90,3 +90,14 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("metodo") === "transferencia") {
+            const tabTransferencia = document.querySelector('[data-bs-target="#transferencia"], [href="#transferencia"]');
+            if (tabTransferencia) {
+                bootstrap.Tab.getOrCreateInstance(tabTransferencia).show();
+            }
+        }
+    });
+</script>
