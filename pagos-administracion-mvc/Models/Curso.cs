@@ -48,6 +48,8 @@ namespace pagos_administracion_mvc.Models
         public bool Activo { get; set; } = true;
 
         public ICollection<Inscripcion> Inscripciones { get; set; } = new List<Inscripcion>();
+        // Materias que se dictan en este curso, cada una con su propio Docente (ver CursoAsignatura).
+        public ICollection<CursoAsignatura> CursosAsignaturas { get; set; } = new List<CursoAsignatura>();
 
         // Para mostrar en listados/títulos donde antes se usaba Nombre a secas. Si el admin
         // puso un nombre propio lo respeta; si no, arma uno a partir de Nivel+GradoAnio+Turno

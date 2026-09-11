@@ -20,6 +20,8 @@ namespace pagos_administracion_mvc.Data
         public DbSet<ConfiguracionSitio> ConfiguracionSitio { get; set; }
         public DbSet<Asignatura> Asignaturas { get; set; }
         public DbSet<Periodo> Periodos { get; set; }
+        public DbSet<CursoAsignatura> CursosAsignaturas { get; set; }
+        public DbSet<Nota> Notas { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -131,6 +133,65 @@ namespace pagos_administracion_mvc.Data
 
             modelBuilder.Entity<Asignatura>().HasQueryFilter(a => a.Activo);
             modelBuilder.Entity<Periodo>().HasQueryFilter(p => p.Activo);
+            modelBuilder.Entity<CursoAsignatura>()
+                .HasOne(ca => ca.Curso)
+                .WithMany(c => c.CursosAsignaturas)
+                .HasForeignKey(ca => ca.CursoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CursoAsignatura>()
+                .HasOne(ca => ca.Asignatura)
+                .WithMany()
+                .HasForeignKey(ca => ca.AsignaturaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // El Docente es opcional (ver CursoAsignatura.DocenteUserId), así que si el usuario
+            // Docente se borra, la materia del curso queda sin asignar en vez de romperse.
+            modelBuilder.Entity<CursoAsignatura>()
+                .HasOne(ca => ca.DocenteUser)
+                .WithMany()
+                .HasForeignKey(ca => ca.DocenteUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Una misma Asignatura no puede cargarse dos veces para el mismo Curso (si mañana un
+            // Curso necesita dos Docentes para la misma materia -ej. divididos por comisión-, hay
+            // que resolverlo con una Asignatura propia por comisión, no duplicando esta fila).
+            modelBuilder.Entity<CursoAsignatura>()
+                .HasIndex(ca => new { ca.CursoId, ca.AsignaturaId })
+                .IsUnique();
+
+            modelBuilder.Entity<CursoAsignatura>()
+                .HasQueryFilter(ca => ca.Activo && ca.Curso.Activo && ca.Asignatura.Activo);
+
+            modelBuilder.Entity<Nota>()
+                .HasOne(n => n.Inscripcion)
+                .WithMany()
+                .HasForeignKey(n => n.InscripcionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Nota>()
+                .HasOne(n => n.CursoAsignatura)
+                .WithMany(ca => ca.Notas)
+                .HasForeignKey(n => n.CursoAsignaturaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Nota>()
+                .HasOne(n => n.Periodo)
+                .WithMany()
+                .HasForeignKey(n => n.PeriodoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Nota>().Property(n => n.Valor).HasPrecision(4, 2);
+
+            // Una sola Nota por Alumno+Materia+Periodo (evita cargar "7" y después "8" para el
+            // mismo 1er Parcial sin dar de baja la anterior).
+            modelBuilder.Entity<Nota>()
+                .HasIndex(n => new { n.InscripcionId, n.CursoAsignaturaId, n.PeriodoId })
+                .IsUnique();
+
+            modelBuilder.Entity<Nota>().HasQueryFilter(n =>
+                n.Activo && n.Inscripcion.Activo && n.Inscripcion.Alumno.Activo &&
+                n.CursoAsignatura.Activo && n.Periodo.Activo);
 
             modelBuilder.Entity<ArancelNivel>().HasQueryFilter(a => a.Activo);
             modelBuilder.Entity<ArancelNivel>().Property(a => a.Curricular).HasPrecision(18, 2);
