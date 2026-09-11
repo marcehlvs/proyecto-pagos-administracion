@@ -24,36 +24,36 @@
     <div class="col-md-7">
         <h5>Alumnos inscriptos (@Model.Inscripciones.Count)</h5>
         <div class="table-responsive">
-<table class="table table-striped table-sm">
-            <thead>
-                <tr>
-                    <th>Alumno</th>
-                    <th>DNI</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var i in Model.Inscripciones.OrderBy(i => i.Alumno.Apellido))
-                {
+            <table class="table table-striped table-sm">
+                <thead>
                     <tr>
-                        <td class="align-middle">@i.Alumno.Apellido, @i.Alumno.Nombre</td>
-                        <td class="align-middle">@i.Alumno.Dni</td>
-                        <td class="align-middle text-end">
-                            <form asp-action="Desmatricular" method="post" onsubmit="return confirm('¿Quitar a este alumno del curso?');">
-                                <input type="hidden" name="inscripcionId" value="@i.Id" />
-                                <input type="hidden" name="cursoId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>
-                            </form>
-                        </td>
+                        <th>Alumno</th>
+                        <th>DNI</th>
+                        <th></th>
                     </tr>
-                }
-                @if (!Model.Inscripciones.Any())
-                {
-                    <tr><td colspan="3" class="text-muted">Todavía no hay alumnos inscriptos.</td></tr>
-                }
-            </tbody>
-        </table>
-</div>
+                </thead>
+                <tbody>
+                    @foreach (var i in Model.Inscripciones.OrderBy(i => i.Alumno.Apellido))
+                    {
+                        <tr>
+                            <td class="align-middle">@i.Alumno.Apellido, @i.Alumno.Nombre</td>
+                            <td class="align-middle">@i.Alumno.Dni</td>
+                            <td class="align-middle text-end">
+                                <form asp-action="Desmatricular" method="post" onsubmit="return confirm('¿Quitar a este alumno del curso?');">
+                                    <input type="hidden" name="inscripcionId" value="@i.Id" />
+                                    <input type="hidden" name="cursoId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Inscripciones.Any())
+                    {
+                        <tr><td colspan="3" class="text-muted">Todavía no hay alumnos inscriptos.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="col-md-5">
@@ -81,55 +81,55 @@
     <div class="col-md-7">
         <h5>Materias (@Model.CursosAsignaturas.Count)</h5>
         <div class="table-responsive">
-<table class="table table-striped table-sm">
-            <thead>
-                <tr>
-                    <th>Materia</th>
-                    <th>Docente</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var ca in Model.CursosAsignaturas.OrderBy(ca => ca.Asignatura.Nombre))
-                {
+            <table class="table table-striped table-sm">
+                <thead>
                     <tr>
-                        <td class="align-middle">
-                            @ca.Asignatura.Nombre
-                            @if (ca.TurnoOverride != null)
-                            {
-                                <span class="badge bg-secondary">Turno @ca.TurnoOverride</span>
-                            }
-                        </td>
-                        <td class="align-middle" style="min-width: 260px;">
-                            <form asp-action="AsignarDocente" method="post" class="d-flex gap-1">
-                                <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
-                                <input type="hidden" name="cursoId" value="@Model.Id" />
-                                <select name="docenteUserId" class="form-select form-select-sm">
-                                    <option value="">Sin asignar</option>
-                                    @foreach (SelectListItem d in (SelectList)ViewBag.Docentes)
-                                    {
-                                        <option value="@d.Value" selected="@(ca.DocenteUserId == d.Value)">@d.Text</option>
-                                    }
-                                </select>
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Guardar</button>
-                            </form>
-                        </td>
-                        <td class="align-middle text-end">
-                            <form asp-action="QuitarAsignatura" method="post" onsubmit="return confirm('¿Quitar esta materia del curso?');">
-                                <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
-                                <input type="hidden" name="cursoId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>
-                            </form>
-                        </td>
+                        <th>Materia</th>
+                        <th>Docente</th>
+                        <th></th>
                     </tr>
-                }
-                @if (!Model.CursosAsignaturas.Any())
-                {
-                    <tr><td colspan="3" class="text-muted">Todavía no hay materias asignadas a este curso.</td></tr>
-                }
-            </tbody>
-        </table>
-</div>
+                </thead>
+                <tbody>
+                    @foreach (var ca in Model.CursosAsignaturas.OrderBy(ca => ca.Asignatura.Nombre))
+                    {
+                        <tr>
+                            <td class="align-middle">
+                                @ca.Asignatura.Nombre
+                                @if (ca.TurnoOverride != null)
+                                {
+                                    <span class="badge bg-secondary">Turno @ca.TurnoOverride</span>
+                                }
+                            </td>
+                            <td class="align-middle" style="min-width: 260px;">
+                                <form asp-action="AsignarDocente" method="post" class="d-flex gap-1">
+                                    <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
+                                    <input type="hidden" name="cursoId" value="@Model.Id" />
+                                    <select name="docenteUserId" class="form-select form-select-sm">
+                                        <option value="">Sin asignar</option>
+                                        @foreach (SelectListItem d in (SelectList)ViewBag.Docentes)
+                                        {
+                                            <option value="@d.Value" selected="@(ca.DocenteUserId == d.Value)">@d.Text</option>
+                                        }
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Guardar</button>
+                                </form>
+                            </td>
+                            <td class="align-middle text-end">
+                                <form asp-action="QuitarAsignatura" method="post" onsubmit="return confirm('¿Quitar esta materia del curso?');">
+                                    <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
+                                    <input type="hidden" name="cursoId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.CursosAsignaturas.Any())
+                    {
+                        <tr><td colspan="3" class="text-muted">Todavía no hay materias asignadas a este curso.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="col-md-5">

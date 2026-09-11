@@ -41,6 +41,7 @@ namespace pagos_administracion_mvc.Controllers
             var cursos = await _context.Cursos
                 .Include(c => c.Inscripciones)
                 .Include(c => c.ProfesorUser)
+                .Include(c => c.CursosAsignaturas)
                 .OrderBy(c => c.Nivel).ThenBy(c => c.GradoAnio).ThenBy(c => c.Turno)
                 .ToListAsync();
 
@@ -249,8 +250,6 @@ namespace pagos_administracion_mvc.Controllers
             var alumno = await _context.Alumnos.FindAsync(alumnoId);
             if (curso == null || alumno == null) return NotFound();
 
-            // Defensa de fondo: el combo de Details ya solo lista alumnos que coinciden, pero
-            // esto valida igual del lado del servidor (por si alguien arma el POST a mano).
             if (alumno.Nivel != curso.Nivel || alumno.GradoAnio != curso.GradoAnio || alumno.Turno != curso.Turno)
             {
                 TempData["Error"] = $"{alumno.Apellido}, {alumno.Nombre} es de {alumno.Nivel} {alumno.GradoAnio}° ({alumno.Turno}) y no coincide con este curso ({curso.Nivel} {curso.GradoAnio}°, {curso.Turno}). No se matriculó.";
