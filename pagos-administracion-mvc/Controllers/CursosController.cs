@@ -60,10 +60,13 @@ namespace pagos_administracion_mvc.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (curso == null) return NotFound();
 
-            // Alumnos activos que todavía no están inscriptos en este curso, para el formulario de matriculación.
+            // Alumnos activos que coinciden en Nivel + Grado/Año + Turno y todavía no están
+            // inscriptos en este curso. Mismo criterio que "Buscar coincidencias" en Create — un
+            // alumno de 5to año de Secundaria no puede aparecer acá para un curso de 2do Primaria.
             var idsInscriptos = curso.Inscripciones.Select(i => i.AlumnoId).ToHashSet();
             ViewBag.AlumnosDisponibles = await _context.Alumnos
-                .Where(a => !idsInscriptos.Contains(a.Id))
+                .Where(a => !idsInscriptos.Contains(a.Id)
+                    && a.Nivel == curso.Nivel && a.GradoAnio == curso.GradoAnio && a.Turno == curso.Turno)
                 .OrderBy(a => a.Apellido)
                 .ToListAsync();
 
@@ -242,6 +245,18 @@ namespace pagos_administracion_mvc.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Matricular(int cursoId, int alumnoId)
         {
+            var curso = await _context.Cursos.FindAsync(cursoId);
+            var alumno = await _context.Alumnos.FindAsync(alumnoId);
+            if (curso == null || alumno == null) return NotFound();
+
+            // Defensa de fondo: el combo de Details ya solo lista alumnos que coinciden, pero
+            // esto valida igual del lado del servidor (por si alguien arma el POST a mano).
+            if (alumno.Nivel != curso.Nivel || alumno.GradoAnio != curso.GradoAnio || alumno.Turno != curso.Turno)
+            {
+                TempData["Error"] = $"{alumno.Apellido}, {alumno.Nombre} es de {alumno.Nivel} {alumno.GradoAnio}° ({alumno.Turno}) y no coincide con este curso ({curso.Nivel} {curso.GradoAnio}°, {curso.Turno}). No se matriculó.";
+                return RedirectToAction(nameof(Details), new { id = cursoId });
+            }
+
             var yaInscripto = await _context.Inscripciones
                 .AnyAsync(i => i.CursoId == cursoId && i.AlumnoId == alumnoId);
 
@@ -249,6 +264,7 @@ namespace pagos_administracion_mvc.Controllers
             {
                 _context.Inscripciones.Add(new Inscripcion { CursoId = cursoId, AlumnoId = alumnoId });
                 await _context.SaveChangesAsync();
+                TempData["Mensaje"] = $"{alumno.Apellido}, {alumno.Nombre} quedó matriculado en el curso.";
             }
 
             return RedirectToAction(nameof(Details), new { id = cursoId });
@@ -309,12 +325,26 @@ namespace pagos_administracion_mvc.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AsignarDocente(int cursoAsignaturaId, int cursoId, string? docenteUserId)
         {
-            var cursoAsignatura = await _context.CursosAsignaturas.FindAsync(cursoAsignaturaId);
-            if (cursoAsignatura != null)
+            var cursoAsignatura = await _context.CursosAsignaturas
+                .Include(ca => ca.Asignatura)
+                .FirstOrDefaultAsync(ca => ca.Id == cursoAsignaturaId);
+
+            if (cursoAsignatura == null)
             {
-                // "" desde el <select> significa "Sin asignar": se guarda como null, no como cadena vacía.
-                cursoAsignatura.DocenteUserId = string.IsNullOrEmpty(docenteUserId) ? null : docenteUserId;
-                await _context.SaveChangesAsync();
+                TempData["Error"] = "No se encontró esa materia del curso (puede que se haya quitado). Recargá la página.";
+                return RedirectToAction(nameof(Details), new { id = cursoId });
+            }
+
+            // "" desde el <select> significa "Sin asignar": se guarda como null, no como cadena vacía.
+            cursoAsignatura.DocenteUserId = string.IsNullOrEmpty(docenteUserId) ? null : docenteUserId;
+            await _context.SaveChangesAsync();
+
+            if (cursoAsignatura.DocenteUserId == null)
+                TempData["Mensaje"] = $"Se quitó el Docente de {cursoAsignatura.Asignatura.Nombre}.";
+            else
+            {
+                var docente = await _userManager.FindByIdAsync(cursoAsignatura.DocenteUserId);
+                TempData["Mensaje"] = $"{docente?.Email ?? "Docente"} quedó asignado a {cursoAsignatura.Asignatura.Nombre}.";
             }
 
             return RedirectToAction(nameof(Details), new { id = cursoId });

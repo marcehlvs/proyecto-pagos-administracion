@@ -52,7 +52,9 @@
                     @{
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
-                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos", "Cursos", "Asistencias", "Docentes", "Asignaturas", "Periodos", "Notas", "Boletines" }
+                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos" }
+                            .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Asignaturas", "Periodos", "Notas", "Boletines" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
                     <ul class="navbar-nav flex-grow-1">
@@ -76,6 +78,18 @@
                                     <li><a class="dropdown-item" asp-controller="Alumnos" asp-action="Index"><i class="bi bi-people"></i> Alumnos</a></li>
                                     <li><a class="dropdown-item" asp-controller="Familias" asp-action="Index"><i class="bi bi-house-heart"></i> Familias</a></li>
                                     <li><a class="dropdown-item" asp-controller="Cuotas" asp-action="Index"><i class="bi bi-receipt"></i> Cuotas</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Avisos" asp-action="Index"><i class="bi bi-megaphone"></i> Avisos</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Aranceles" asp-action="Index"><i class="bi bi-cash-stack"></i> Aranceles</a></li>
+                                    <li><a class="dropdown-item" asp-controller="ConfiguracionSitio" asp-action="Edit"><i class="bi bi-palette"></i> Estilo del sitio</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(enAcademico ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Académico
+                                </a>
+                                <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" asp-controller="Cursos" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Cursos</a></li>
                                     <li><a class="dropdown-item" asp-controller="Asistencias" asp-action="Resumen"><i class="bi bi-clipboard-data"></i> Asistencias</a></li>
                                     <li><a class="dropdown-item" asp-controller="Docentes" asp-action="Index"><i class="bi bi-person-workspace"></i> Docentes</a></li>
@@ -83,11 +97,6 @@
                                     <li><a class="dropdown-item" asp-controller="Periodos" asp-action="Index"><i class="bi bi-calendar3-range"></i> Períodos</a></li>
                                     <li><a class="dropdown-item" asp-controller="Notas" asp-action="Index"><i class="bi bi-journal-check"></i> Notas</a></li>
                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Index"><i class="bi bi-file-earmark-text"></i> Boletines</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Avisos" asp-action="Index"><i class="bi bi-megaphone"></i> Avisos</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Aranceles" asp-action="Index"><i class="bi bi-cash-stack"></i> Aranceles</a></li>
-                                    <li><a class="dropdown-item" asp-controller="ConfiguracionSitio" asp-action="Edit"><i class="bi bi-palette"></i> Estilo del sitio</a></li>
                                 </ul>
                             </li>
                         }
