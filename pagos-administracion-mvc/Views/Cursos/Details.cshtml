@@ -11,6 +11,15 @@
     <p class="text-muted">@Model.Nivel — @Model.GradoAnio° grado/año — Turno @Model.Turno</p>
 }
 
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success">@TempData["Mensaje"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
 <div class="row">
     <div class="col-md-7">
         <h5>Alumnos inscriptos (@Model.Inscripciones.Count)</h5>
@@ -60,6 +69,7 @@
                             <option value="@a.Id">@a.Apellido, @a.Nombre — DNI @a.Dni</option>
                         }
                     </select>
+                    <div class="form-text">Solo se listan alumnos de @Model.Nivel, @Model.GradoAnio° y turno @Model.Turno (la misma combinación de este curso).</div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">+ Agregar al curso</button>
             </form>
@@ -90,17 +100,18 @@
                                 <span class="badge bg-secondary">Turno @ca.TurnoOverride</span>
                             }
                         </td>
-                        <td class="align-middle" style="min-width: 220px;">
+                        <td class="align-middle" style="min-width: 260px;">
                             <form asp-action="AsignarDocente" method="post" class="d-flex gap-1">
                                 <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
                                 <input type="hidden" name="cursoId" value="@Model.Id" />
-                                <select name="docenteUserId" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="docenteUserId" class="form-select form-select-sm">
                                     <option value="">Sin asignar</option>
                                     @foreach (SelectListItem d in (SelectList)ViewBag.Docentes)
                                     {
                                         <option value="@d.Value" selected="@(ca.DocenteUserId == d.Value)">@d.Text</option>
                                     }
                                 </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Guardar</button>
                             </form>
                         </td>
                         <td class="align-middle text-end">
