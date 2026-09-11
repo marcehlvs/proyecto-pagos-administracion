@@ -183,10 +183,10 @@ namespace pagos_administracion_mvc.Data
 
             modelBuilder.Entity<Nota>().Property(n => n.Valor).HasPrecision(4, 2);
 
-            // Una sola Nota por Alumno+Materia+Periodo (evita cargar "7" y después "8" para el
-            // mismo 1er Parcial sin dar de baja la anterior).
+            // Una sola Nota por Alumno+Materia+Periodo+Orden (Orden distingue cada nota suelta
+            // dentro del Periodo; Orden=0 es la fila "consolidada" del Periodo para el boletín).
             modelBuilder.Entity<Nota>()
-                .HasIndex(n => new { n.InscripcionId, n.CursoAsignaturaId, n.PeriodoId })
+                .HasIndex(n => new { n.InscripcionId, n.CursoAsignaturaId, n.PeriodoId, n.Orden })
                 .IsUnique();
 
             modelBuilder.Entity<Nota>().HasQueryFilter(n =>

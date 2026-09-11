@@ -21,6 +21,17 @@ namespace pagos_administracion_mvc.Models
         [ValidateNever]
         public Periodo Periodo { get; set; } = null!;
 
+        // 0 = el valor "consolidado" de este Periodo para el boletín: si el Periodo tiene
+        // Subperiodos, sale de promediarlos; si no (un Trimestre/Cuatrimestre sin Subperiodos
+        // creados), sale de promediar las notas sueltas (Orden 1, 2, 3...) que el Docente fue
+        // cargando ahí mismo. En cualquier caso, si el Docente carga esta fila (Orden 0) a mano,
+        // ese valor gana siempre (ver EsPromedioAutomatico).
+        //
+        // 1, 2, 3... = una nota suelta dentro del Periodo (ej. el "3er parcial de Matemática del
+        // 1er Trimestre"). El Docente puede cargar tantas como quiera: no hace falta que el Admin
+        // cree un Periodo por cada una.
+        public int Orden { get; set; } = 0;
+
         [Range(0, 10, ErrorMessage = "La nota debe estar entre 0 y 10.")]
         public decimal Valor { get; set; }
 

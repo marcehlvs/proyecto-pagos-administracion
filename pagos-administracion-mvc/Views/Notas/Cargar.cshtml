@@ -1,11 +1,16 @@
-﻿@model pagos_administracion_mvc.Models.CargarNotasViewModel
+@model pagos_administracion_mvc.Models.CargarNotasViewModel
 @{
     ViewData["Title"] = "Cargar notas";
     var ca = Model.CursoAsignatura;
 }
 
-<h1>Cargar notas</h1>
+<h1>@(Model.SoloLectura ? "Notas (solo lectura)" : "Cargar notas")</h1>
 <p class="text-muted">@ca.Curso.Etiqueta — @ca.Asignatura.Nombre</p>
+
+@if (Model.SoloLectura)
+{
+    <div class="alert alert-secondary">Estás viendo esta materia como Admin: podés ver las notas, pero solo el Docente asignado puede cargarlas o modificarlas.</div>
+}
 
 @if (TempData["Mensaje"] != null)
 {
@@ -31,7 +36,13 @@
     @if (Model.EsPeriodoContenedor)
     {
         <div class="alert alert-info">
-            Este período se calcula solo, promediando sus períodos hijos. Si cargás un valor a mano, ese valor gana y deja de recalcularse — usá "Volver a automático" para deshacerlo.
+            "@Model.PeriodoSeleccionado.Nombre" agrupa otros períodos (@string.Join(", ", Model.PeriodoSeleccionado.Subperiodos.Select(s => s.Nombre))): su nota sale de promediarlos. Si cargás un valor a mano, ese valor gana y deja de recalcularse — usá "Volver a automático" para deshacerlo.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Cargá tantas notas sueltas quieras para "@Model.PeriodoSeleccionado.Nombre" (mínimo 4, sumá más columnas si necesitás). El promedio se calcula solo — si querés forzar la nota final en vez de promediar, usá la columna "Forzar nota final".
         </div>
     }
 
@@ -44,23 +55,56 @@
             <thead>
                 <tr>
                     <th>Alumno</th>
-                    <th style="width: 140px;">Nota</th>
+                    @if (!Model.EsPeriodoContenedor)
+                    {
+                        @for (var i = 1; i <= Model.Columnas; i++)
+                        {
+                            <th style="width: 90px;">Nota @i</th>
+                        }
+                    }
+                    <th style="width: 110px;">Promedio</th>
+                    <th style="width: 140px;">Forzar nota final</th>
                     <th>Origen</th>
                 </tr>
             </thead>
             <tbody>
+                @{ var idxSuelta = 0; var idxManual = 0; }
                 @foreach (var fila in Model.Filas)
                 {
                     <tr>
                         <td>@fila.AlumnoNombre</td>
-                        <td>
-                            <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm"
-                                   name="valores[@fila.InscripcionId]" value="@fila.Valor" />
-                        </td>
-                        <td>
-                            @if (fila.Valor == null)
+
+                        @if (!Model.EsPeriodoContenedor)
+                        {
+                            @for (var i = 1; i <= Model.Columnas; i++)
                             {
-                                <span class="text-muted small">Sin nota</span>
+                                <td>
+                                    <input type="hidden" name="notasSueltas[@idxSuelta].InscripcionId" value="@fila.InscripcionId" />
+                                    <input type="hidden" name="notasSueltas[@idxSuelta].Orden" value="@i" />
+                                    <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm"
+                                           name="notasSueltas[@idxSuelta].Valor"
+                                           value="@fila.ValoresPorOrden.GetValueOrDefault(i)"
+                                           disabled="@Model.SoloLectura" />
+                                </td>
+                                idxSuelta++;
+                            }
+                        }
+
+                        <td class="fw-bold">@(fila.Promedio?.ToString("0.##") ?? "-")</td>
+
+                        <td>
+                            <input type="hidden" name="notaManual[@idxManual].InscripcionId" value="@fila.InscripcionId" />
+                            <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm"
+                                   name="notaManual[@idxManual].Valor" placeholder="Opcional"
+                                   value="@(fila.EsPromedioAutomatico ? null : fila.Promedio)"
+                                   disabled="@Model.SoloLectura" />
+                        </td>
+                        @{ idxManual++; }
+
+                        <td>
+                            @if (fila.Promedio == null)
+                            {
+                                <span class="text-muted small">Sin notas</span>
                             }
                             else if (fila.EsPromedioAutomatico)
                             {
@@ -69,7 +113,7 @@
                             else
                             {
                                 <span class="badge bg-warning text-dark me-1">Manual</span>
-                                @if (Model.EsPeriodoContenedor)
+                                @if (!Model.SoloLectura)
                                 {
                                     <button type="submit" formaction="@Url.Action("Recalcular")" formnovalidate
                                             name="inscripcionId" value="@fila.InscripcionId"
@@ -81,13 +125,22 @@
                 }
                 @if (!Model.Filas.Any())
                 {
-                    <tr><td colspan="3" class="text-muted">Este curso todavía no tiene alumnos inscriptos.</td></tr>
+                    <tr><td colspan="10" class="text-muted">Este curso todavía no tiene alumnos inscriptos.</td></tr>
                 }
             </tbody>
         </table>
 </div>
 
-        <button type="submit" class="btn btn-primary">Guardar notas</button>
+        @if (!Model.SoloLectura)
+        {
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Guardar notas</button>
+                @if (!Model.EsPeriodoContenedor)
+                {
+                    <a asp-action="Cargar" asp-route-cursoAsignaturaId="@ca.Id" asp-route-periodoId="@Model.PeriodoSeleccionado.Id" asp-route-columnas="@(Model.Columnas + 2)" class="btn btn-outline-secondary">+ Agregar más columnas de nota</a>
+                }
+            </div>
+        }
     </form>
 }
 
