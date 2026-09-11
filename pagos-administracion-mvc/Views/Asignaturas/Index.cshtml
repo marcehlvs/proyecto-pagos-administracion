@@ -1,0 +1,35 @@
+﻿@model IEnumerable<pagos_administracion_mvc.Models.Asignatura>
+
+@{
+    ViewData["Title"] = "Materias";
+}
+
+<h1>Materias</h1>
+<p><a asp-action="Create" class="btn btn-primary btn-sm">+ Nueva materia</a></p>
+
+<div class="table-responsive">
+<table class="table table-striped">
+    <thead>
+        <tr><th>Nombre</th><th>Nivel</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Nombre</td>
+                <td>@item.Nivel</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="3" class="text-muted">Todavía no hay materias cargadas.</td></tr>
+        }
+    </tbody>
+</table>
+</div>

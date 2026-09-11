@@ -1,0 +1,33 @@
+﻿@model pagos_administracion_mvc.Models.Asignatura
+@using static pagos_administracion_mvc.Models.Enums
+
+@{
+    ViewData["Title"] = "Editar materia";
+}
+
+<h1>Editar materia</h1>
+
+<div class="card p-4" style="max-width: 500px;">
+    <form asp-action="Edit">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="mb-3">
+            <label asp-for="Nombre" class="form-label"></label>
+            <input asp-for="Nombre" class="form-control" />
+            <span asp-validation-for="Nombre" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Nivel" class="form-label"></label>
+            <select asp-for="Nivel" class="form-select" asp-items="Html.GetEnumSelectList<NivelEducativo>()"></select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

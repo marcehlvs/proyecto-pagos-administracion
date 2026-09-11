@@ -1,0 +1,46 @@
+﻿@model pagos_administracion_mvc.Models.Periodo
+@using static pagos_administracion_mvc.Models.Enums
+
+@{
+    ViewData["Title"] = "Nuevo período";
+}
+
+<h1>Nuevo período</h1>
+
+<div class="card p-4" style="max-width: 500px;">
+    <form asp-action="Create">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Nombre" class="form-label"></label>
+            <input asp-for="Nombre" class="form-control" placeholder="Ej. 1er Parcial, 1er Trimestre..." />
+            <span asp-validation-for="Nombre" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Tipo" class="form-label"></label>
+            <select asp-for="Tipo" class="form-select" asp-items="Html.GetEnumSelectList<TipoPeriodo>()"></select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="AnioLectivo" class="form-label"></label>
+            <input asp-for="AnioLectivo" class="form-control" />
+            <span asp-validation-for="AnioLectivo" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PeriodoPadreId" class="form-label">Pertenece a</label>
+            <select asp-for="PeriodoPadreId" class="form-select" asp-items="ViewBag.PeriodoPadreId">
+                <option value="">Ninguno (es el nivel más alto)</option>
+            </select>
+            <div class="form-text">Ej. este "1er Parcial" pertenece al "1er Trimestre".</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a asp-action="Index" asp-route-anioLectivo="@Model.AnioLectivo" class="btn btn-link">Cancelar</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
