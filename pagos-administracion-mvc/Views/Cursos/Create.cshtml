@@ -103,6 +103,7 @@
 
             var materiasDelNivel = (List<pagos_administracion_mvc.Models.Asignatura>)ViewBag.MateriasDelNivel;
             var materiasSeleccionadas = (List<int>)ViewBag.MateriasSeleccionadas;
+            var nivel = Model?.Nivel;
 
             <div class="mb-3">
                 <label class="control-label fw-bold">Materias de @nivel (@materiasDelNivel.Count)</label>
