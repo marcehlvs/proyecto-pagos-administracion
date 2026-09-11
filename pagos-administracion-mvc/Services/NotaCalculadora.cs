@@ -1,21 +1,22 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 
 namespace pagos_administracion_mvc.Services
 {
-    // Calcula el valor de una Nota para un Periodo "contenedor" (Trimestral/Cuatrimestral/Anual),
-    // subiendo recursivamente por Periodo.Subperiodos. Reglas (confirmadas con el usuario):
+    // Calcula el valor "consolidado" (Orden = 0) de un Periodo para el boletín. Reglas:
     //
-    // - Si ya hay una Nota cargada para ese Periodo con EsPromedioAutomatico = false, esa gana
-    //   siempre (el Docente la cargó a mano: "a veces no se coloca la real sino que se tiene
-    //   en cuenta todo el cuatrimestre").
-    // - Si no, se promedian los Subperiodos (recursivo, así que un Cuatrimestral promedia sus
-    //   Trimestrales, que a su vez promedian sus Parciales).
-    // - Un Periodo sin Subperiodos (un Parcial) no se calcula: solo vale lo que el Docente cargó
-    //   a mano para ese Parcial (no hay de dónde promediar).
-    // - El resultado se persiste como Nota con EsPromedioAutomatico = true, a modo de caché, para
-    //   no recalcular todo de nuevo cada vez que se arma un boletín.
+    // - Si ya hay una Nota con Orden = 0 y EsPromedioAutomatico = false, esa gana siempre (el
+    //   Docente la cargó a mano por encima del cálculo — "a veces no se coloca la real sino que
+    //   se tiene en cuenta todo el cuatrimestre").
+    // - Si el Periodo tiene Subperiodos (ej. un Cuatrimestre hecho de Trimestres), se promedian
+    //   recursivamente sus valores consolidados.
+    // - Si NO tiene Subperiodos (ej. un Trimestre sin Sub-Periodos creados), se promedian las
+    //   notas sueltas que el Docente fue cargando ahí mismo (Orden 1, 2, 3... — tantas como haya
+    //   cargado, sin mínimo ni máximo fijo). No hace falta que el Admin cree un Periodo por cada
+    //   parcial: el Docente carga columnas de nota directamente dentro del Trimestre.
+    // - El resultado se persiste como Nota (Orden = 0, EsPromedioAutomatico = true), a modo de
+    //   caché, para no recalcular todo de nuevo cada vez que se arma el boletín.
     public class NotaCalculadora
     {
         private readonly AdministracionDbContext _context;
@@ -28,39 +29,48 @@ namespace pagos_administracion_mvc.Services
                 .FirstOrDefaultAsync(p => p.Id == periodoId);
             if (periodo == null) return null;
 
-            var notaExistente = await _context.Notas.FirstOrDefaultAsync(n =>
-                n.InscripcionId == inscripcionId &&
-                n.CursoAsignaturaId == cursoAsignaturaId &&
-                n.PeriodoId == periodoId);
+            var consolidada = await _context.Notas.FirstOrDefaultAsync(n =>
+                n.InscripcionId == inscripcionId && n.CursoAsignaturaId == cursoAsignaturaId &&
+                n.PeriodoId == periodoId && n.Orden == 0);
 
-            if (notaExistente != null && !notaExistente.EsPromedioAutomatico)
-                return notaExistente.Valor;
+            if (consolidada != null && !consolidada.EsPromedioAutomatico)
+                return consolidada.Valor;
 
-            if (!periodo.Subperiodos.Any())
-                return notaExistente?.Valor; // Parcial: no hay de dónde promediar, solo lo cargado a mano.
+            List<decimal> valores;
 
-            var valores = new List<decimal>();
-            foreach (var sub in periodo.Subperiodos)
+            if (periodo.Subperiodos.Any())
             {
-                var valor = await CalcularAsync(inscripcionId, cursoAsignaturaId, sub.Id);
-                if (valor.HasValue) valores.Add(valor.Value);
+                valores = new List<decimal>();
+                foreach (var sub in periodo.Subperiodos)
+                {
+                    var valor = await CalcularAsync(inscripcionId, cursoAsignaturaId, sub.Id);
+                    if (valor.HasValue) valores.Add(valor.Value);
+                }
+            }
+            else
+            {
+                valores = await _context.Notas
+                    .Where(n => n.InscripcionId == inscripcionId && n.CursoAsignaturaId == cursoAsignaturaId &&
+                        n.PeriodoId == periodoId && n.Orden > 0)
+                    .Select(n => n.Valor)
+                    .ToListAsync();
             }
 
-            if (!valores.Any()) return null; // Ningún subperiodo tiene nota cargada todavía.
+            if (!valores.Any()) return null; // Todavía no hay nada cargado de dónde promediar.
 
             var promedio = Math.Round(valores.Average(), 2);
-            await GuardarComoAutomaticaAsync(notaExistente, inscripcionId, cursoAsignaturaId, periodoId, promedio);
+            await GuardarComoAutomaticaAsync(consolidada, inscripcionId, cursoAsignaturaId, periodoId, promedio);
 
             return promedio;
         }
 
-        private async Task GuardarComoAutomaticaAsync(Nota? notaExistente, int inscripcionId, int cursoAsignaturaId, int periodoId, decimal valor)
+        private async Task GuardarComoAutomaticaAsync(Nota? consolidada, int inscripcionId, int cursoAsignaturaId, int periodoId, decimal valor)
         {
-            if (notaExistente != null)
+            if (consolidada != null)
             {
-                notaExistente.Valor = valor;
-                notaExistente.EsPromedioAutomatico = true;
-                notaExistente.FechaModificacion = DateTime.Now;
+                consolidada.Valor = valor;
+                consolidada.EsPromedioAutomatico = true;
+                consolidada.FechaModificacion = DateTime.Now;
             }
             else
             {
@@ -69,6 +79,7 @@ namespace pagos_administracion_mvc.Services
                     InscripcionId = inscripcionId,
                     CursoAsignaturaId = cursoAsignaturaId,
                     PeriodoId = periodoId,
+                    Orden = 0,
                     Valor = valor,
                     EsPromedioAutomatico = true
                 });
@@ -76,18 +87,19 @@ namespace pagos_administracion_mvc.Services
             await _context.SaveChangesAsync();
         }
 
-        // Recalcula todos los Periodos "contenedores" de una Asignatura para un Alumno, de abajo
-        // hacia arriba. Se usa después de guardar Notas de Parciales, para que el boletín no
-        // muestre un Trimestral desactualizado. Los Periodos con carga manual (override) no se
-        // tocan: CalcularAsync ya los respeta.
-        public async Task RecalcularJerarquiaAsync(int inscripcionId, int cursoAsignaturaId, int anioLectivo)
+        // Después de guardar notas sueltas (Orden > 0) en un Periodo, ese Periodo y todos sus
+        // ancestros (vía PeriodoPadre) quedan con la nota consolidada desactualizada. Se sube por
+        // la cadena recalculando cada nivel — mucho más preciso que recorrer todos los Periodos
+        // del año, y funciona igual de bien para un Trimestre "hoja" que para un contenedor.
+        public async Task RecalcularHaciaArribaAsync(int inscripcionId, int cursoAsignaturaId, int periodoId)
         {
-            var periodosContenedores = await _context.Periodos
-                .Where(p => p.AnioLectivo == anioLectivo && p.Subperiodos.Any())
-                .ToListAsync();
-
-            foreach (var periodo in periodosContenedores)
-                await CalcularAsync(inscripcionId, cursoAsignaturaId, periodo.Id);
+            int? actualId = periodoId;
+            while (actualId.HasValue)
+            {
+                await CalcularAsync(inscripcionId, cursoAsignaturaId, actualId.Value);
+                var periodo = await _context.Periodos.FindAsync(actualId.Value);
+                actualId = periodo?.PeriodoPadreId;
+            }
         }
     }
 }

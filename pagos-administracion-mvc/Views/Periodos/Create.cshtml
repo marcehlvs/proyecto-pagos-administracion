@@ -13,7 +13,7 @@
 
         <div class="mb-3">
             <label asp-for="Nombre" class="form-label"></label>
-            <input asp-for="Nombre" class="form-control" placeholder="Ej. 1er Parcial, 1er Trimestre..." />
+            <input asp-for="Nombre" class="form-control" placeholder="Ej. 1er Trimestre, 1er Cuatrimestre..." />
             <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
 
@@ -33,7 +33,7 @@
             <select asp-for="PeriodoPadreId" class="form-select" asp-items="ViewBag.PeriodoPadreId">
                 <option value="">Ninguno (es el nivel más alto)</option>
             </select>
-            <div class="form-text">Ej. este "1er Parcial" pertenece al "1er Trimestre".</div>
+            <div class="form-text">Ej. este "1er Trimestre" pertenece al "1er Cuatrimestre" (dejalo en blanco si no agrupás en cuatrimestres).</div>
         </div>
 
         <button type="submit" class="btn btn-primary">Guardar</button>
