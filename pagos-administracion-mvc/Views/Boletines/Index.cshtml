@@ -1,0 +1,42 @@
+﻿@{
+    ViewData["Title"] = "Boletín";
+    var alumnos = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.Alumnos;
+    int? alumnoIdSeleccionado = ViewBag.AlumnoIdSeleccionado;
+    var anio = (int)ViewBag.AnioLectivo;
+}
+
+<h1>Boletín</h1>
+
+<div class="card p-4" style="max-width: 500px;">
+    <form asp-action="Pdf" method="get" target="_blank">
+        @if (User.IsInRole("Admin") || alumnos.Count > 1)
+        {
+            <div class="mb-3">
+                <label class="form-label">Alumno</label>
+                <select name="alumnoId" class="form-select" required>
+                    <option value="">Seleccioná un alumno...</option>
+                    @foreach (var a in alumnos)
+                    {
+                        <option value="@a.Id" selected="@(alumnoIdSeleccionado == a.Id)">@a.Apellido, @a.Nombre</option>
+                    }
+                </select>
+            </div>
+        }
+        else if (alumnos.Count == 1)
+        {
+            <input type="hidden" name="alumnoId" value="@alumnos[0].Id" />
+            <p>Alumno: <strong>@alumnos[0].Apellido, @alumnos[0].Nombre</strong></p>
+        }
+        else
+        {
+            <p class="text-muted">No hay ningún alumno vinculado a este usuario.</p>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">Año lectivo</label>
+            <input type="number" name="anioLectivo" class="form-control" value="@anio" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" @(alumnos.Any() ? "" : "disabled")>Descargar PDF</button>
+    </form>
+</div>

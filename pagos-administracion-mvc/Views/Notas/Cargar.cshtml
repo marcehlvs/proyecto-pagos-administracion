@@ -1,0 +1,96 @@
+﻿@model pagos_administracion_mvc.Models.CargarNotasViewModel
+@{
+    ViewData["Title"] = "Cargar notas";
+    var ca = Model.CursoAsignatura;
+}
+
+<h1>Cargar notas</h1>
+<p class="text-muted">@ca.Curso.Etiqueta — @ca.Asignatura.Nombre</p>
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success">@TempData["Mensaje"]</div>
+}
+
+<form method="get" asp-action="Cargar" class="row g-2 mb-3 align-items-end">
+    <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
+    <div class="col-auto">
+        <label class="form-label small">Período</label>
+        <select name="periodoId" class="form-select" onchange="this.form.submit()">
+            <option value="">Seleccioná un período...</option>
+            @foreach (var p in Model.PeriodosDisponibles)
+            {
+                <option value="@p.Id" selected="@(Model.PeriodoSeleccionado?.Id == p.Id)">@p.Nombre (@p.Tipo)</option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (Model.PeriodoSeleccionado != null)
+{
+    @if (Model.EsPeriodoContenedor)
+    {
+        <div class="alert alert-info">
+            Este período se calcula solo, promediando sus períodos hijos. Si cargás un valor a mano, ese valor gana y deja de recalcularse — usá "Volver a automático" para deshacerlo.
+        </div>
+    }
+
+    <form asp-action="Guardar" method="post">
+        <input type="hidden" name="cursoAsignaturaId" value="@ca.Id" />
+        <input type="hidden" name="periodoId" value="@Model.PeriodoSeleccionado.Id" />
+
+        <div class="table-responsive">
+<table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th style="width: 140px;">Nota</th>
+                    <th>Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var fila in Model.Filas)
+                {
+                    <tr>
+                        <td>@fila.AlumnoNombre</td>
+                        <td>
+                            <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm"
+                                   name="valores[@fila.InscripcionId]" value="@fila.Valor" />
+                        </td>
+                        <td>
+                            @if (fila.Valor == null)
+                            {
+                                <span class="text-muted small">Sin nota</span>
+                            }
+                            else if (fila.EsPromedioAutomatico)
+                            {
+                                <span class="badge bg-secondary">Automático</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark me-1">Manual</span>
+                                @if (Model.EsPeriodoContenedor)
+                                {
+                                    <button type="submit" formaction="@Url.Action("Recalcular")" formnovalidate
+                                            name="inscripcionId" value="@fila.InscripcionId"
+                                            class="btn btn-link btn-sm p-0 align-baseline">Volver a automático</button>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Filas.Any())
+                {
+                    <tr><td colspan="3" class="text-muted">Este curso todavía no tiene alumnos inscriptos.</td></tr>
+                }
+            </tbody>
+        </table>
+</div>
+
+        <button type="submit" class="btn btn-primary">Guardar notas</button>
+    </form>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-link">Volver a mis materias</a>
+</div>

@@ -1,0 +1,50 @@
+﻿@model IEnumerable<pagos_administracion_mvc.Models.Periodo>
+@{
+    ViewData["Title"] = "Períodos";
+    var anio = (int)ViewBag.AnioLectivo;
+}
+
+<h1>Períodos</h1>
+<p class="text-muted">La jerarquía que usa el sistema para calcular notas: un Parcial pertenece a un Trimestre, que pertenece a un Cuatrimestre, etc. — armala una vez por año lectivo.</p>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form method="get" asp-action="Index" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label small">Año lectivo</label>
+        <input type="number" name="anioLectivo" class="form-control" value="@anio" onchange="this.form.submit()" />
+    </div>
+</form>
+
+<p><a asp-action="Create" asp-route-anioLectivo="@anio" class="btn btn-primary btn-sm">+ Nuevo período</a></p>
+
+<div class="table-responsive">
+<table class="table table-striped">
+    <thead>
+        <tr><th>Nombre</th><th>Tipo</th><th>Período padre</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Nombre</td>
+                <td>@item.Tipo</td>
+                <td>@(item.PeriodoPadre?.Nombre ?? "—")</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="4" class="text-muted">Todavía no hay períodos cargados para @anio.</td></tr>
+        }
+    </tbody>
+</table>
+</div>

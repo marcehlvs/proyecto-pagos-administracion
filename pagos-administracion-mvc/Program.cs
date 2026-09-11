@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Services;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Registro de Servicios
 builder.Services.AddControllersWithViews();
@@ -39,6 +41,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ConversacionAsistenteStore>();
 builder.Services.AddScoped<PagoIniciadorService>();
 builder.Services.AddScoped<MercadoPagoService>();
+builder.Services.AddScoped<NotaCalculadora>();
+builder.Services.AddScoped<BoletinService>();
 builder.Services.AddScoped<AsistenteService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();
 builder.Services.AddScoped<EmailService>();

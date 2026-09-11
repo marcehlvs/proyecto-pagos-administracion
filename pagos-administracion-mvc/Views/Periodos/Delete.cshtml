@@ -1,0 +1,19 @@
+﻿@model pagos_administracion_mvc.Models.Periodo
+@{
+    ViewData["Title"] = "Eliminar período";
+}
+
+<h1>Eliminar período</h1>
+<div class="alert alert-danger">
+    ¿Confirmás que querés eliminar "@Model.Nombre" (@Model.Tipo, @Model.AnioLectivo)?
+    @if (Model.PeriodoPadre != null)
+    {
+        <br /><span class="small">Pertenece a: @Model.PeriodoPadre.Nombre</span>
+    }
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" asp-route-anioLectivo="@Model.AnioLectivo" class="btn btn-link">Cancelar</a>
+</form>

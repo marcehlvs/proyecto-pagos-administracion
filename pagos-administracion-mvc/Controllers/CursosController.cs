@@ -27,6 +27,14 @@ namespace pagos_administracion_mvc.Controllers
             return new SelectList(docentes.OrderBy(d => d.Email), "Id", "Email", seleccionado);
         }
 
+        private async Task<List<Asignatura>> ObtenerMateriasDelNivelAsync(NivelEducativo nivel, HashSet<int>? excluirIds = null)
+        {
+            var query = _context.Asignaturas.Where(a => a.Nivel == nivel);
+            if (excluirIds != null && excluirIds.Count > 0)
+                query = query.Where(a => !excluirIds.Contains(a.Id));
+            return await query.OrderBy(a => a.Nombre).ToListAsync();
+        }
+
         // GET: Cursos
         public async Task<IActionResult> Index()
         {
@@ -47,6 +55,8 @@ namespace pagos_administracion_mvc.Controllers
             var curso = await _context.Cursos
                 .Include(c => c.Inscripciones).ThenInclude(i => i.Alumno)
                 .Include(c => c.ProfesorUser)
+                .Include(c => c.CursosAsignaturas).ThenInclude(ca => ca.Asignatura)
+                .Include(c => c.CursosAsignaturas).ThenInclude(ca => ca.DocenteUser)
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (curso == null) return NotFound();
 
@@ -57,6 +67,11 @@ namespace pagos_administracion_mvc.Controllers
                 .OrderBy(a => a.Apellido)
                 .ToListAsync();
 
+            // Materias del mismo Nivel que este curso, que todavía no se le asignaron.
+            var idsAsignaturasEnCurso = curso.CursosAsignaturas.Select(ca => ca.AsignaturaId).ToHashSet();
+            ViewBag.AsignaturasDisponibles = await ObtenerMateriasDelNivelAsync(curso.Nivel, idsAsignaturasEnCurso);
+            ViewBag.Docentes = await ObtenerDocentesSelectListAsync();
+
             return View(curso);
         }
 
@@ -64,7 +79,7 @@ namespace pagos_administracion_mvc.Controllers
         // Si vienen nivel/gradoAnio/turno por querystring (desde el botón "Buscar coincidencias"
         // del propio formulario), calcula qué alumnos ya cargados matchean esa combinación,
         // para poder matricularlos de una sin tener que hacerlo a mano desde Details.
-        public async Task<IActionResult> Create(NivelEducativo? nivel, int? gradoAnio, Turno? turno, string? nombre, string? profesorUserId, List<int>? diasEF, List<int>? alumnosAMatricular)
+        public async Task<IActionResult> Create(NivelEducativo? nivel, int? gradoAnio, Turno? turno, string? nombre, string? profesorUserId, List<int>? diasEF, List<int>? alumnosAMatricular, List<int>? materiasAAsignar)
         {
             var curso = new Curso
             {
@@ -91,6 +106,13 @@ namespace pagos_administracion_mvc.Controllers
                 // Primera búsqueda: todos tildados por default. Si el admin ya destildó alguno
                 // y volvió a buscar (o falló la validación), se respeta lo que venía marcado.
                 ViewBag.AlumnosSeleccionados = alumnosAMatricular ?? coincidentes.Select(a => a.Id).ToList();
+
+                // Mismo criterio para materias: se listan las del Nivel elegido, tildadas por
+                // default (el admin destilda las que no correspondan; el resto se puede sumar
+                // después desde el detalle del curso, junto con el Docente de cada una).
+                var materiasDelNivel = await ObtenerMateriasDelNivelAsync(nivel!.Value);
+                ViewBag.MateriasDelNivel = materiasDelNivel;
+                ViewBag.MateriasSeleccionadas = materiasAAsignar ?? materiasDelNivel.Select(m => m.Id).ToList();
             }
 
             return View(curso);
@@ -99,7 +121,7 @@ namespace pagos_administracion_mvc.Controllers
         // POST: Cursos/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId,MetaPresentismo")] Curso curso, List<int>? diasEF, List<int>? alumnosAMatricular)
+        public async Task<IActionResult> Create([Bind("Id,Nombre,Nivel,GradoAnio,Turno,ProfesorUserId,MetaPresentismo")] Curso curso, List<int>? diasEF, List<int>? alumnosAMatricular, List<int>? materiasAAsignar)
         {
             curso.DiasEducacionFisica = CombinarDias(diasEF);
             curso.Nombre ??= string.Empty;
@@ -117,6 +139,16 @@ namespace pagos_administracion_mvc.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                if (materiasAAsignar != null && materiasAAsignar.Any())
+                {
+                    // Sin Docente todavía: se asigna después desde Details, materia por materia
+                    // (ahí es más claro elegir "quién dicta qué" que en este mismo formulario).
+                    foreach (var asignaturaId in materiasAAsignar)
+                        _context.CursosAsignaturas.Add(new CursoAsignatura { CursoId = curso.Id, AsignaturaId = asignaturaId });
+
+                    await _context.SaveChangesAsync();
+                }
+
                 return RedirectToAction(nameof(Index));
             }
 
@@ -128,6 +160,8 @@ namespace pagos_administracion_mvc.Controllers
                 .OrderBy(a => a.Apellido)
                 .ToListAsync();
             ViewBag.AlumnosSeleccionados = alumnosAMatricular ?? new List<int>();
+            ViewBag.MateriasDelNivel = await ObtenerMateriasDelNivelAsync(curso.Nivel);
+            ViewBag.MateriasSeleccionadas = materiasAAsignar ?? new List<int>();
 
             return View(curso);
         }
@@ -230,6 +264,56 @@ namespace pagos_administracion_mvc.Controllers
             {
                 // Soft delete: mismo criterio que el resto del proyecto.
                 inscripcion.Activo = false;
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = cursoId });
+        }
+
+        // POST: Cursos/AgregarAsignatura (suma una materia del catálogo a este curso, sin Docente todavía)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AgregarAsignatura(int cursoId, int asignaturaId)
+        {
+            var yaAsignada = await _context.CursosAsignaturas
+                .AnyAsync(ca => ca.CursoId == cursoId && ca.AsignaturaId == asignaturaId);
+
+            if (!yaAsignada)
+            {
+                _context.CursosAsignaturas.Add(new CursoAsignatura { CursoId = cursoId, AsignaturaId = asignaturaId });
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = cursoId });
+        }
+
+        // POST: Cursos/QuitarAsignatura (baja lógica de un CursoAsignatura, desde Details)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuitarAsignatura(int cursoAsignaturaId, int cursoId)
+        {
+            var cursoAsignatura = await _context.CursosAsignaturas.FindAsync(cursoAsignaturaId);
+            if (cursoAsignatura != null)
+            {
+                // Soft delete: mismo criterio que el resto del proyecto. Si ya tiene Notas
+                // cargadas, no se pierde ese historial (Nota -> CursoAsignatura es Restrict).
+                cursoAsignatura.Activo = false;
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = cursoId });
+        }
+
+        // POST: Cursos/AsignarDocente (asigna/cambia el Docente de una materia dentro del curso)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AsignarDocente(int cursoAsignaturaId, int cursoId, string? docenteUserId)
+        {
+            var cursoAsignatura = await _context.CursosAsignaturas.FindAsync(cursoAsignaturaId);
+            if (cursoAsignatura != null)
+            {
+                // "" desde el <select> significa "Sin asignar": se guarda como null, no como cadena vacía.
+                cursoAsignatura.DocenteUserId = string.IsNullOrEmpty(docenteUserId) ? null : docenteUserId;
                 await _context.SaveChangesAsync();
             }
 
