@@ -1,8 +1,16 @@
 diff --git a/pagos-administracion-mvc/Controllers/CursosController.cs b/pagos-administracion-mvc/Controllers/CursosController.cs
-index 3c74880..ffb1d4a 100644
+index 3c74880..adfa0f5 100644
 --- a/pagos-administracion-mvc/Controllers/CursosController.cs
 +++ b/pagos-administracion-mvc/Controllers/CursosController.cs
-@@ -60,10 +60,13 @@ namespace pagos_administracion_mvc.Controllers
+@@ -41,6 +41,7 @@ namespace pagos_administracion_mvc.Controllers
+             var cursos = await _context.Cursos
+                 .Include(c => c.Inscripciones)
+                 .Include(c => c.ProfesorUser)
++                .Include(c => c.CursosAsignaturas)
+                 .OrderBy(c => c.Nivel).ThenBy(c => c.GradoAnio).ThenBy(c => c.Turno)
+                 .ToListAsync();
+ 
+@@ -60,10 +61,13 @@ namespace pagos_administracion_mvc.Controllers
                  .FirstOrDefaultAsync(c => c.Id == id);
              if (curso == null) return NotFound();
  
@@ -18,7 +26,7 @@ index 3c74880..ffb1d4a 100644
                  .OrderBy(a => a.Apellido)
                  .ToListAsync();
  
-@@ -242,6 +245,18 @@ namespace pagos_administracion_mvc.Controllers
+@@ -242,6 +246,18 @@ namespace pagos_administracion_mvc.Controllers
          [ValidateAntiForgeryToken]
          public async Task<IActionResult> Matricular(int cursoId, int alumnoId)
          {
@@ -37,7 +45,7 @@ index 3c74880..ffb1d4a 100644
              var yaInscripto = await _context.Inscripciones
                  .AnyAsync(i => i.CursoId == cursoId && i.AlumnoId == alumnoId);
  
-@@ -249,6 +264,7 @@ namespace pagos_administracion_mvc.Controllers
+@@ -249,6 +265,7 @@ namespace pagos_administracion_mvc.Controllers
              {
                  _context.Inscripciones.Add(new Inscripcion { CursoId = cursoId, AlumnoId = alumnoId });
                  await _context.SaveChangesAsync();
@@ -45,7 +53,7 @@ index 3c74880..ffb1d4a 100644
              }
  
              return RedirectToAction(nameof(Details), new { id = cursoId });
-@@ -309,12 +325,26 @@ namespace pagos_administracion_mvc.Controllers
+@@ -309,12 +326,26 @@ namespace pagos_administracion_mvc.Controllers
          [ValidateAntiForgeryToken]
          public async Task<IActionResult> AsignarDocente(int cursoAsignaturaId, int cursoId, string? docenteUserId)
          {
@@ -77,6 +85,32 @@ index 3c74880..ffb1d4a 100644
              }
  
              return RedirectToAction(nameof(Details), new { id = cursoId });
+diff --git a/pagos-administracion-mvc/Views/Alumnos/Index.cshtml b/pagos-administracion-mvc/Views/Alumnos/Index.cshtml
+index 0464ff9..4b014d5 100644
+--- a/pagos-administracion-mvc/Views/Alumnos/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Alumnos/Index.cshtml
+@@ -72,7 +72,7 @@
+                 </td>
+                 <td class="align-middle text-end">
+                     <div class="dropdown">
+-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
++                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
+                             Acciones
+                         </button>
+                         <ul class="dropdown-menu dropdown-menu-end">
+diff --git a/pagos-administracion-mvc/Views/Cuotas/Index.cshtml b/pagos-administracion-mvc/Views/Cuotas/Index.cshtml
+index c5f082a..b52c82c 100644
+--- a/pagos-administracion-mvc/Views/Cuotas/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Cuotas/Index.cshtml
+@@ -102,7 +102,7 @@
+                 </td>
+                 <td class="align-middle text-end">
+                     <div class="dropdown">
+-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
++                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
+                             Acciones
+                         </button>
+                         <ul class="dropdown-menu dropdown-menu-end">
 diff --git a/pagos-administracion-mvc/Views/Cursos/Details.cshtml b/pagos-administracion-mvc/Views/Cursos/Details.cshtml
 index 7be0f73..33a4620 100644
 --- a/pagos-administracion-mvc/Views/Cursos/Details.cshtml
@@ -126,6 +160,72 @@ index 7be0f73..33a4620 100644
                              </form>
                          </td>
                          <td class="align-middle text-end">
+diff --git a/pagos-administracion-mvc/Views/Cursos/Index.cshtml b/pagos-administracion-mvc/Views/Cursos/Index.cshtml
+index f1789fb..6bafb78 100644
+--- a/pagos-administracion-mvc/Views/Cursos/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Cursos/Index.cshtml
+@@ -22,6 +22,7 @@
+             <th>Docente</th>
+             <th>Meta</th>
+             <th>Alumnos</th>
++            <th>Materias</th>
+             <th></th>
+         </tr>
+     </thead>
+@@ -52,15 +53,25 @@
+                 <td class="align-middle">
+                     <span class="badge bg-secondary">@item.Inscripciones.Count</span>
+                 </td>
++                <td class="align-middle">
++                    @if (item.CursosAsignaturas.Any())
++                    {
++                        <span class="badge bg-secondary">@item.CursosAsignaturas.Count</span>
++                    }
++                    else
++                    {
++                        <a asp-action="Details" asp-route-id="@item.Id" class="badge bg-warning text-dark text-decoration-none">Sin materias — agregar</a>
++                    }
++                </td>
+                 <td class="align-middle text-end">
+                     <div class="dropdown">
+-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
++                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
+                             Acciones
+                         </button>
+                         <ul class="dropdown-menu dropdown-menu-end">
+                             <li>
+                                 <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
+-                                    <i class="bi bi-people"></i> Alumnos / Matrícula
++                                    <i class="bi bi-people"></i> Ver curso (alumnos, materias, docentes)
+                                 </a>
+                             </li>
+                             <li>
+diff --git a/pagos-administracion-mvc/Views/Familias/Index.cshtml b/pagos-administracion-mvc/Views/Familias/Index.cshtml
+index 154a6e6..6138ff3 100644
+--- a/pagos-administracion-mvc/Views/Familias/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Familias/Index.cshtml
+@@ -43,7 +43,7 @@
+                 </td>
+                 <td class="align-middle text-end">
+                     <div class="dropdown">
+-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
++                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
+                             Acciones
+                         </button>
+                         <ul class="dropdown-menu dropdown-menu-end">
+diff --git a/pagos-administracion-mvc/Views/Pagos/Index.cshtml b/pagos-administracion-mvc/Views/Pagos/Index.cshtml
+index e285e76..bc1e446 100644
+--- a/pagos-administracion-mvc/Views/Pagos/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Pagos/Index.cshtml
+@@ -114,7 +114,7 @@
+                 </td>
+                 <td class="align-middle text-end">
+                     <div class="dropdown">
+-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
++                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
+                             Acciones
+                         </button>
+                         <ul class="dropdown-menu dropdown-menu-end">
 diff --git a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
 index b5a086d..928a52a 100644
 --- a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml

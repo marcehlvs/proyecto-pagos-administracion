@@ -53,7 +53,7 @@
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
                         var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos" }
-                            .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+    .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                         var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Asignaturas", "Periodos", "Notas", "Boletines" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
