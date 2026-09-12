@@ -103,14 +103,14 @@ namespace pagos_administracion_mvc.Controllers
             var datos = await _boletinService.ObtenerDatosAsync(alumnoId, anioLectivo);
             if (datos == null) return NotFound();
 
+            var configuracionSitio = await _context.ConfiguracionSitio.FirstOrDefaultAsync(c => c.Id == 1);
             byte[] pdf;
             if (plantilla == "rite")
             {
-                pdf = _plantillaRite.Generar(datos, null);
+                pdf = _plantillaRite.Generar(datos, configuracionSitio);
             }
             else
             {
-                var configuracionSitio = await _context.ConfiguracionSitio.FirstOrDefaultAsync(c => c.Id == 1);
                 pdf = _plantillaPredeterminada.Generar(datos, configuracionSitio);
             }
 

@@ -63,79 +63,79 @@
 </form>
 
 <div class="table-responsive" style="min-height: 300px;">
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Alumno</th>
-            <th>Mes/Año</th>
-            <th>Monto</th>
-            <th>Vencimiento</th>
-            <th>Estado</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
+    <table class="table table-striped">
+        <thead>
             <tr>
-                <td class="align-middle">@item.Alumno.Apellido, @item.Alumno.Nombre</td>
-                <td class="align-middle">@item.Mes/@item.Anio</td>
-                <td class="align-middle">@item.Monto.ToString("C")</td>
-                <td class="align-middle">@item.FechaVencimiento.ToString("dd/MM/yyyy")</td>
-                <td class="align-middle">
-                    @if (item.Estado == EstadoCuota.Pagada)
-                    {
-                        <span class="badge bg-success">Pagada</span>
-                    }
-                    else if (item.Estado == EstadoCuota.Vencida)
-                    {
-                        <span class="badge bg-danger">Vencida</span>
-                    }
-                    else if (item.Estado == EstadoCuota.Parcial)
-                    {
-                        <span class="badge bg-primary">Parcial</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">@item.Estado</span>
-                    }
-                </td>
-                <td class="align-middle text-end">
-                    <div class="dropdown">
+                <th>Alumno</th>
+                <th>Mes/Año</th>
+                <th>Monto</th>
+                <th>Vencimiento</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td class="align-middle">@item.Alumno.Apellido, @item.Alumno.Nombre</td>
+                    <td class="align-middle">@item.Mes/@item.Anio</td>
+                    <td class="align-middle">@item.Monto.ToString("C")</td>
+                    <td class="align-middle">@item.FechaVencimiento.ToString("dd/MM/yyyy")</td>
+                    <td class="align-middle">
+                        @if (item.Estado == EstadoCuota.Pagada)
+                        {
+                            <span class="badge bg-success">Pagada</span>
+                        }
+                        else if (item.Estado == EstadoCuota.Vencida)
+                        {
+                            <span class="badge bg-danger">Vencida</span>
+                        }
+                        else if (item.Estado == EstadoCuota.Parcial)
+                        {
+                            <span class="badge bg-primary">Parcial</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">@item.Estado</span>
+                        }
+                    </td>
+                    <td class="align-middle text-end">
+                        <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
-                            Acciones
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            @if (item.Estado == EstadoCuota.Pendiente || item.Estado == EstadoCuota.Vencida || item.Estado == EstadoCuota.Parcial)
-                            {
+                                Acciones
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                @if (item.Estado == EstadoCuota.Pendiente || item.Estado == EstadoCuota.Vencida || item.Estado == EstadoCuota.Parcial)
+                                {
+                                    <li>
+                                        <a class="dropdown-item text-success fw-bold" asp-controller="Pagos" asp-action="RegistrarManual" asp-route-cuotaId="@item.Id">
+                                            <i class="bi bi-cash-coin"></i> Registrar pago manual
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                }
                                 <li>
-                                    <a class="dropdown-item text-success fw-bold" asp-controller="Pagos" asp-action="RegistrarManual" asp-route-cuotaId="@item.Id">
-                                        <i class="bi bi-cash-coin"></i> Registrar pago manual
+                                    <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
+                                        <i class="bi bi-eye"></i> Ver detalle
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id">
+                                        <i class="bi bi-pencil"></i> Editar
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
-                            }
-                            <li>
-                                <a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id">
-                                    <i class="bi bi-eye"></i> Ver detalle
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id">
-                                    <i class="bi bi-pencil"></i> Editar
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                                <li>
+                                    <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>

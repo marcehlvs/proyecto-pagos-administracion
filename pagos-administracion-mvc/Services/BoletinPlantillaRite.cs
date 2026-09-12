@@ -7,14 +7,16 @@ using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Services
 {
-    // Fase 1 de la plantilla "RITE" (Registro Institucional de Trayectorias Educativas, el
-    // formulario oficial de la DGCyE de la Pcia. de Buenos Aires para Nivel Secundario): imita el
-    // layout y los rótulos del formulario oficial, pero solo completa lo que el sistema hoy sabe
-    // calcular (Materia, Calificación de 1º/2º Cuatrimestre, Calificación Final). Los campos que
-    // el RITE pide y todavía no tenemos modelados (Valoración Preliminar TEA/TEP/TED, Tipo C/R,
-    // Intensificación, inasistencias cruzadas, materias pendientes de años anteriores) se
-    // imprimen en blanco, igual que en el papel, para completarlos a mano — quedan para una
-    // Fase 2 que agregue esos campos al modelo y a la carga de datos.
+    // Plantilla "RITE" (Registro Institucional de Trayectorias Educativas, el formulario oficial
+    // de la DGCyE de la Pcia. de Buenos Aires para Nivel Secundario). Fase 1 imitaba el layout
+    // con lo que ya se calculaba (Materia, Calificación 1º/2º Cuatrimestre, Calificación Final).
+    // Fase 2 sumó: TIPO (C/R, desde Alumno.EsRecursante), AÑO (Alumno.GradoAnio), Valoración
+    // Preliminar TEA/TEP/TED (Nota.ValoracionPreliminar, cargada por el Docente por cuatrimestre),
+    // Distrito y Sección (ConfiguracionSitio.Distrito / Curso.Nombre), y Días hábiles/Inasistencias
+    // cruzando Asistencia con el rango FechaInicio/FechaFin de cada Periodo Cuatrimestral.
+    // Todavía en blanco (quedan para una Fase 3): Intensificación (diciembre/febrero) y la tabla
+    // de "Materias pendientes de aprobación" (arrastre de años anteriores) — ninguna de las dos
+    // tiene todavía un lugar donde cargarse en el sistema.
     //
     // Se registra en Program.cs junto a IBoletinPlantilla, bajo su propio tipo concreto
     // (BoletinPlantillaRite), no como el default: BoletinesController inyecta ambas
@@ -64,14 +66,14 @@ namespace pagos_administracion_mvc.Services
                         col.Item().PaddingTop(4).Row(row =>
                         {
                             row.RelativeItem(2).Text(t => { t.Span("ESCUELA: ").Bold(); t.Span(nombreEscuela); });
-                            row.RelativeItem(1).Text(t => { t.Span("DISTRITO: ").Bold(); });
+                            row.RelativeItem(1).Text(t => { t.Span("DISTRITO: ").Bold(); t.Span(configuracionSitio?.Distrito ?? ""); });
                         });
                         col.Item().PaddingTop(4).Row(row =>
                         {
                             row.RelativeItem(1).Text(t => { t.Span("CICLO LECTIVO: ").Bold(); t.Span(datos.AnioLectivo.ToString()); });
                             row.RelativeItem(1).Text(t => { t.Span("AÑO: ").Bold(); t.Span($"{datos.Alumno.GradoAnio}° {datos.Alumno.Nivel}"); });
                         });
-                        col.Item().PaddingTop(4).Text(t => { t.Span("SECCIÓN: ").Bold(); });
+                        col.Item().PaddingTop(4).Text(t => { t.Span("SECCIÓN: ").Bold(); t.Span(datos.Seccion ?? ""); });
                         col.Item().PaddingTop(4).Row(row =>
                         {
                             row.RelativeItem(2).Text(t => { t.Span("ESTUDIANTE: ").Bold(); t.Span($"{datos.Alumno.Apellido}, {datos.Alumno.Nombre}"); });
@@ -127,6 +129,7 @@ namespace pagos_administracion_mvc.Services
                             });
 
                             var filaImpar = false;
+                            var tipoAlumno = datos.Alumno.EsRecursante ? "R" : "C";
                             foreach (var grupoCurso in filasPorCurso)
                             {
                                 foreach (var fila in grupoCurso)
@@ -137,13 +140,15 @@ namespace pagos_administracion_mvc.Services
                                     var calif1 = primerCuatrimestre != null ? fila.ValoresPorPeriodoId.GetValueOrDefault(primerCuatrimestre.Id) : null;
                                     var calif2 = segundoCuatrimestre != null ? fila.ValoresPorPeriodoId.GetValueOrDefault(segundoCuatrimestre.Id) : null;
                                     var califFinal = columnaFinal != null ? fila.ValoresPorPeriodoId.GetValueOrDefault(columnaFinal.Id) : null;
+                                    var valoracion1 = primerCuatrimestre != null ? fila.ValoracionesPorPeriodoId.GetValueOrDefault(primerCuatrimestre.Id) : null;
+                                    var valoracion2 = segundoCuatrimestre != null ? fila.ValoracionesPorPeriodoId.GetValueOrDefault(segundoCuatrimestre.Id) : null;
 
-                                    table.Cell().Element(c => Celda(c, fondo)); // TIPO: sin dato todavía, en blanco.
+                                    table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(tipoAlumno);
                                     table.Cell().Element(c => Celda(c, fondo)).Text(fila.AsignaturaNombre);
-                                    table.Cell().Element(c => Celda(c, fondo)); // AÑO por materia: sin dato todavía, en blanco.
-                                    table.Cell().Element(c => Celda(c, fondo)); // 1º Valoración preliminar: sin dato todavía.
+                                    table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(datos.Alumno.GradoAnio.ToString());
+                                    table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(valoracion1?.ToString() ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(calif1?.ToString("0.##") ?? "");
-                                    table.Cell().Element(c => Celda(c, fondo)); // 2º Valoración preliminar: sin dato todavía.
+                                    table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(valoracion2?.ToString() ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(calif2?.ToString("0.##") ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)); // Intensificación diciembre: sin dato todavía.
                                     table.Cell().Element(c => Celda(c, fondo)); // Intensificación febrero: sin dato todavía.
@@ -158,8 +163,16 @@ namespace pagos_administracion_mvc.Services
                             "3) CALIFICACIÓN FINAL: promedio de ambos cuatrimestres cuando los dos son de 7 a 10.")
                             .FontSize(6).Italic().FontColor(Colors.Grey.Darken1);
 
-                        // Asistencias e Intensificación de años anteriores quedan para la Fase 2
-                        // (necesitan cruzar con Asistencias y agregar campos nuevos al modelo).
+                        // Los totales de días hábiles/inasistencias solo se completan cuando el
+                        // Cuatrimestre correspondiente tiene FechaInicio/FechaFin cargadas (ver
+                        // BoletinService) — si al Admin no le interesa este cruce automático,
+                        // el campo queda en blanco en vez de mostrar un 0 que no dice nada.
+                        var resumen1 = primerCuatrimestre != null ? datos.AsistenciasPorPeriodoId.GetValueOrDefault(primerCuatrimestre.Id) : null;
+                        var resumen2 = segundoCuatrimestre != null ? datos.AsistenciasPorPeriodoId.GetValueOrDefault(segundoCuatrimestre.Id) : null;
+                        var totalDiasHabiles = (resumen1?.DiasHabiles ?? 0) + (resumen2?.DiasHabiles ?? 0);
+                        var totalInasistencias = (resumen1?.Inasistencias ?? 0) + (resumen2?.Inasistencias ?? 0);
+                        var hayAlgunResumen = resumen1 != null || resumen2 != null;
+
                         col.Item().PaddingTop(14).Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -176,14 +189,14 @@ namespace pagos_administracion_mvc.Services
                             table.Cell().Element(CeldaEncabezado).AlignCenter().Text("TOTAL");
 
                             table.Cell().Element(c => Celda(c, Colors.White)).Text("DÍAS HÁBILES").Bold();
-                            table.Cell().Element(c => Celda(c, Colors.White));
-                            table.Cell().Element(c => Celda(c, Colors.White));
-                            table.Cell().Element(c => Celda(c, Colors.White));
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen1?.DiasHabiles.ToString() ?? "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen2?.DiasHabiles.ToString() ?? "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(hayAlgunResumen ? totalDiasHabiles.ToString() : "");
 
                             table.Cell().Element(c => Celda(c, Colors.White)).Text("INASISTENCIAS").Bold();
-                            table.Cell().Element(c => Celda(c, Colors.White));
-                            table.Cell().Element(c => Celda(c, Colors.White));
-                            table.Cell().Element(c => Celda(c, Colors.White));
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen1?.Inasistencias.ToString() ?? "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen2?.Inasistencias.ToString() ?? "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(hayAlgunResumen ? totalInasistencias.ToString() : "");
                         });
 
                         col.Item().PaddingTop(20).Row(row =>

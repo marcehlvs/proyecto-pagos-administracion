@@ -44,12 +44,20 @@
     {
         <div class="alert alert-info">
             "@Model.PeriodoSeleccionado.Nombre" agrupa otros períodos (@string.Join(", ", Model.PeriodoSeleccionado.Subperiodos.Select(s => s.Nombre))): su nota sale de promediarlos. Si cargás un valor a mano, ese valor gana y deja de recalcularse — usá "Volver a automático" para deshacerlo.
+            @if (Model.MostrarValoracionPreliminar)
+            {
+                <text> Además, como es un Cuatrimestre, podés cargar la Valoración Preliminar (TEA/TEP/TED) para el boletín RITE.</text>
+            }
         </div>
     }
     else
     {
         <div class="alert alert-info">
             Cargá tantas notas sueltas quieras para "@Model.PeriodoSeleccionado.Nombre" (mínimo 4, sumá más columnas si necesitás). El promedio se calcula solo — si querés forzar la nota final en vez de promediar, usá la columna "Forzar nota final".
+            @if (Model.MostrarValoracionPreliminar)
+            {
+                <text> Además, como es un Cuatrimestre, podés cargar la Valoración Preliminar (TEA/TEP/TED) para el boletín RITE.</text>
+            }
         </div>
     }
 
@@ -74,6 +82,10 @@
                         <th style="width: 110px;">Promedio</th>
                         <!-- Se incrementa el ancho de Forzar nota -->
                         <th style="width: 150px;">Forzar nota final</th>
+                        @if (Model.MostrarValoracionPreliminar)
+                        {
+                            <th style="width: 130px;">Valoración preliminar</th>
+                        }
                         <th>Origen</th>
                     </tr>
                 </thead>
@@ -112,11 +124,13 @@
 
                             @{
                                 var valorManualActual = fila.EsPromedioAutomatico ? null : fila.Promedio;
+                                var indiceManual = idxManual;
+                                idxManual++;
                             }
                             <td>
-                                <input type="hidden" name="notaManual[@idxManual].InscripcionId" value="@fila.InscripcionId" />
+                                <input type="hidden" name="notaManual[@indiceManual].InscripcionId" value="@fila.InscripcionId" />
                                 <select class="form-select form-select-sm text-center"
-                                        name="notaManual[@idxManual].Valor"
+                                        name="notaManual[@indiceManual].Valor"
                                         disabled="@Model.SoloLectura">
                                     <option value="">Opcional</option>
                                     @foreach (var v in pasosDeNota)
@@ -125,8 +139,20 @@
                                     }
                                 </select>
                             </td>
-                            @{
-                                idxManual++;
+
+                            @if (Model.MostrarValoracionPreliminar)
+                            {
+                                <td>
+                                    <select class="form-select form-select-sm text-center"
+                                            name="notaManual[@indiceManual].ValoracionPreliminar"
+                                            disabled="@Model.SoloLectura">
+                                        <option value="" selected="@(fila.ValoracionPreliminar == null)">—</option>
+                                        @foreach (var vp in Enum.GetValues<pagos_administracion_mvc.Models.Enums.ValoracionPreliminar>())
+                                        {
+                                            <option value="@vp" selected="@(fila.ValoracionPreliminar == vp)">@vp</option>
+                                        }
+                                    </select>
+                                </td>
                             }
 
                             <td>

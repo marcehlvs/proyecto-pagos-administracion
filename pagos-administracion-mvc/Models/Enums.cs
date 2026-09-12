@@ -68,5 +68,16 @@
             Cuatrimestral,
             Anual
         }
+
+        // Valoración preliminar del RITE (DGCyE): la carga el Docente de la materia, una vez por
+        // Cuatrimestre, independiente de la calificación numérica (un alumno puede tener 7 y estar
+        // en TEP si viene de una recuperación difícil). TEA = Trayectoria Educativa Avanzada,
+        // TEP = en Proceso, TED = Discontinua.
+        public enum ValoracionPreliminar
+        {
+            TEA,
+            TEP,
+            TED
+        }
     }
 }
