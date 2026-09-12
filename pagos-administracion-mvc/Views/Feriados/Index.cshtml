@@ -1,0 +1,51 @@
+﻿@model IEnumerable<pagos_administracion_mvc.Models.Feriado>
+@{
+    ViewData["Title"] = "Feriados";
+    var anio = (int)ViewBag.Anio;
+}
+
+<h1>Feriados</h1>
+<p class="text-muted">
+    Cargá acá los feriados, días no laborables y feriados puente del calendario oficial
+    (<a href="https://www.argentina.gob.ar/feriados" target="_blank" rel="noopener">argentina.gob.ar/feriados</a>).
+    El boletín RITE los descuenta al calcular "Días hábiles" de cada Cuatrimestre, además de los
+    sábados y domingos. Los feriados puente recién se decretan a fines del año anterior, así que
+    hay que revisarlos y cargarlos a mano cada año.
+</p>
+
+<form method="get" asp-action="Index" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label small">Año</label>
+        <input type="number" name="anio" class="form-control" value="@anio" onchange="this.form.submit()" />
+    </div>
+</form>
+
+<p><a asp-action="Create" asp-route-anio="@anio" class="btn btn-primary btn-sm">+ Nuevo feriado</a></p>
+
+<div class="table-responsive">
+<table class="table table-striped">
+    <thead>
+        <tr><th>Fecha</th><th>Día</th><th>Descripción</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Fecha.ToString("dd/MM/yyyy")</td>
+                <td class="text-capitalize">@item.Fecha.ToString("dddd", new System.Globalization.CultureInfo("es-AR"))</td>
+                <td>@item.Descripcion</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary">Editar</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="4" class="text-muted">Todavía no hay feriados cargados para @anio.</td></tr>
+        }
+    </tbody>
+</table>
+</div>

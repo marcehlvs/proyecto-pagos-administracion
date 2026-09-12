@@ -48,6 +48,10 @@
             {
                 <text> Además, como es un Cuatrimestre, podés cargar la Valoración Preliminar (TEA/TEP/TED) para el boletín RITE.</text>
             }
+            @if (Model.MostrarIntensificacion)
+            {
+                <text> Además, como es el período Anual, podés cargar Intensificación de diciembre y febrero para el boletín RITE.</text>
+            }
         </div>
     }
     else
@@ -57,6 +61,10 @@
             @if (Model.MostrarValoracionPreliminar)
             {
                 <text> Además, como es un Cuatrimestre, podés cargar la Valoración Preliminar (TEA/TEP/TED) para el boletín RITE.</text>
+            }
+            @if (Model.MostrarIntensificacion)
+            {
+                <text> Además, como es el período Anual, podés cargar Intensificación de diciembre y febrero para el boletín RITE.</text>
             }
         </div>
     }
@@ -85,6 +93,11 @@
                         @if (Model.MostrarValoracionPreliminar)
                         {
                             <th style="width: 130px;">Valoración preliminar</th>
+                        }
+                        @if (Model.MostrarIntensificacion)
+                        {
+                            <th style="width: 120px;">Intensif. diciembre</th>
+                            <th style="width: 120px;">Intensif. febrero</th>
                         }
                         <th>Origen</th>
                     </tr>
@@ -150,6 +163,32 @@
                                         @foreach (var vp in Enum.GetValues<pagos_administracion_mvc.Models.Enums.ValoracionPreliminar>())
                                         {
                                             <option value="@vp" selected="@(fila.ValoracionPreliminar == vp)">@vp</option>
+                                        }
+                                    </select>
+                                </td>
+                            }
+
+                            @if (Model.MostrarIntensificacion)
+                            {
+                                <td>
+                                    <select class="form-select form-select-sm text-center"
+                                            name="notaManual[@indiceManual].IntensificacionDiciembre"
+                                            disabled="@Model.SoloLectura">
+                                        <option value="">—</option>
+                                        @foreach (var v in pasosDeNota)
+                                        {
+                                            <option value="@v.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(fila.IntensificacionDiciembre == v)">@v.ToString("0.0")</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm text-center"
+                                            name="notaManual[@indiceManual].IntensificacionFebrero"
+                                            disabled="@Model.SoloLectura">
+                                        <option value="">—</option>
+                                        @foreach (var v in pasosDeNota)
+                                        {
+                                            <option value="@v.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(fila.IntensificacionFebrero == v)">@v.ToString("0.0")</option>
                                         }
                                     </select>
                                 </td>

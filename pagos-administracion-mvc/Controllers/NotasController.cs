@@ -138,6 +138,8 @@ namespace pagos_administracion_mvc.Controllers
                     var consolidada = notasDeEstePeriodo.FirstOrDefault(n => n.Orden == 0);
                     fila.EsPromedioAutomatico = consolidada?.EsPromedioAutomatico ?? true;
                     fila.ValoracionPreliminar = consolidada?.ValoracionPreliminar;
+                    fila.IntensificacionDiciembre = consolidada?.IntensificacionDiciembre;
+                    fila.IntensificacionFebrero = consolidada?.IntensificacionFebrero;
 
                     modelo.Filas.Add(fila);
                 }
@@ -177,8 +179,10 @@ namespace pagos_administracion_mvc.Controllers
                 var valor = ParsearValor(entrada.Valor);
                 if (valor.HasValue && (valor < 0 || valor > 10)) continue;
                 var valoracion = ParsearValoracion(entrada.ValoracionPreliminar);
+                var intensifDic = ParsearValorEnRango(entrada.IntensificacionDiciembre);
+                var intensifFeb = ParsearValorEnRango(entrada.IntensificacionFebrero);
 
-                var seGuardoAlgo = await GuardarConsolidadaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, valor, valoracion, nombreDocente);
+                var seGuardoAlgo = await GuardarConsolidadaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, valor, valoracion, intensifDic, intensifFeb, nombreDocente);
                 if (seGuardoAlgo) inscripcionesTocadas.Add(entrada.InscripcionId);
             }
 
@@ -205,6 +209,15 @@ namespace pagos_administracion_mvc.Controllers
             if (string.IsNullOrWhiteSpace(texto)) return null;
             texto = texto.Trim().Replace(',', '.');
             return decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out var valor) ? valor : null;
+        }
+
+        // Igual que ParsearValor, pero para un campo opcional e independiente del resto de la
+        // entrada (Intensificación diciembre/febrero): un valor fuera de rango se descarta como
+        // si no se hubiera cargado, en vez de invalidar toda la fila del alumno.
+        private static decimal? ParsearValorEnRango(string? texto)
+        {
+            var valor = ParsearValor(texto);
+            return valor.HasValue && valor >= 0 && valor <= 10 ? valor : null;
         }
 
         private static ValoracionPreliminar? ParsearValoracion(string? texto)
@@ -250,7 +263,7 @@ namespace pagos_administracion_mvc.Controllers
         // antes había una cargada (el Docente la vació a propósito). Devuelve false si no había
         // nada para guardar (fila sin tocar, no hace falta recalcular nada para ese alumno).
         private async Task<bool> GuardarConsolidadaAsync(int inscripcionId, int cursoAsignaturaId, int periodoId,
-            decimal? valorManual, ValoracionPreliminar? valoracion, string nombreDocente)
+            decimal? valorManual, ValoracionPreliminar? valoracion, decimal? intensifDic, decimal? intensifFeb, string nombreDocente)
         {
             var nota = await _context.Notas.FirstOrDefaultAsync(n =>
                 n.InscripcionId == inscripcionId && n.CursoAsignaturaId == cursoAsignaturaId &&
@@ -258,7 +271,8 @@ namespace pagos_administracion_mvc.Controllers
 
             if (nota == null)
             {
-                if (!valorManual.HasValue && valoracion == null) return false; // nada para crear.
+                if (!valorManual.HasValue && valoracion == null && !intensifDic.HasValue && !intensifFeb.HasValue)
+                    return false; // nada para crear.
                 _context.Notas.Add(new Nota
                 {
                     InscripcionId = inscripcionId,
@@ -272,6 +286,8 @@ namespace pagos_administracion_mvc.Controllers
                     Valor = valorManual ?? 0,
                     EsPromedioAutomatico = !valorManual.HasValue,
                     ValoracionPreliminar = valoracion,
+                    IntensificacionDiciembre = intensifDic,
+                    IntensificacionFebrero = intensifFeb,
                     CargadaPorNombre = nombreDocente
                 });
             }
@@ -283,6 +299,8 @@ namespace pagos_administracion_mvc.Controllers
                     nota.EsPromedioAutomatico = false;
                 }
                 nota.ValoracionPreliminar = valoracion; // se pisa siempre: vacío = "la borré".
+                nota.IntensificacionDiciembre = intensifDic; // idem: vacío = "la borré".
+                nota.IntensificacionFebrero = intensifFeb;
                 nota.ModificadaPorNombre = nombreDocente;
                 nota.FechaModificacion = DateTime.Now;
             }

@@ -1,0 +1,23 @@
+diff a/pagos-administracion-mvc/Data/AdministracionDbContext.cs b/pagos-administracion-mvc/Data/AdministracionDbContext.cs	(rejected hunks)
+@@ -22,6 +22,7 @@ namespace pagos_administracion_mvc.Data
+         public DbSet<Periodo> Periodos { get; set; }
+         public DbSet<CursoAsignatura> CursosAsignaturas { get; set; }
+         public DbSet<Nota> Notas { get; set; }
++        public DbSet<Feriado> Feriados { get; set; }
+         protected override void OnModelCreating(ModelBuilder modelBuilder)
+         {
+             base.OnModelCreating(modelBuilder);
+@@ -133,6 +134,13 @@ namespace pagos_administracion_mvc.Data
+ 
+             modelBuilder.Entity<Asignatura>().HasQueryFilter(a => a.Activo);
+             modelBuilder.Entity<Periodo>().HasQueryFilter(p => p.Activo);
++
++            // Un feriado no puede cargarse dos veces para la misma fecha.
++            modelBuilder.Entity<Feriado>()
++                .HasIndex(f => f.Fecha)
++                .IsUnique();
++
++            modelBuilder.Entity<Feriado>().HasQueryFilter(f => f.Activo);
+             modelBuilder.Entity<CursoAsignatura>()
+                 .HasOne(ca => ca.Curso)
+                 .WithMany(c => c.CursosAsignaturas)

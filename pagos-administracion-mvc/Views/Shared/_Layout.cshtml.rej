@@ -1,0 +1,18 @@
+diff a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml	(rejected hunks)
+@@ -54,7 +54,7 @@
+                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
+                         var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos" }
+     .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+-                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Notas", "Boletines" }
++                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Feriados", "Notas", "Boletines" }
+                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+                     }
+                     <ul class="navbar-nav flex-grow-1">
+@@ -96,6 +96,7 @@
+                                     <li><a class="dropdown-item" asp-controller="Preceptores" asp-action="Index"><i class="bi bi-person-badge"></i> Preceptores</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Asignaturas" asp-action="Index"><i class="bi bi-book"></i> Materias</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Periodos" asp-action="Index"><i class="bi bi-calendar3-range"></i> Períodos</a></li>
++                                    <li><a class="dropdown-item" asp-controller="Feriados" asp-action="Index"><i class="bi bi-calendar-x"></i> Feriados</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Notas" asp-action="Index"><i class="bi bi-journal-check"></i> Notas</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Index"><i class="bi bi-file-earmark-text"></i> Boletines</a></li>
+                                 </ul>

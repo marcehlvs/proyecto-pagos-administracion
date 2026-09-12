@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using pagos_administracion_mvc.Data;
 
@@ -11,9 +12,11 @@ using pagos_administracion_mvc.Data;
 namespace pagos_administracion_mvc.Migrations
 {
     [DbContext(typeof(AdministracionDbContext))]
-    partial class AdministracionDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260912150000_AgregarFeriados")]
+    partial class AgregarFeriados
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -724,56 +727,6 @@ namespace pagos_administracion_mvc.Migrations
                     b.ToTable("Inscripciones");
                 });
 
-            modelBuilder.Entity("pagos_administracion_mvc.Models.MateriaPendiente", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("AlumnoId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("Aprobada")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("AsignaturaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CargadaPorNombre")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("FechaAprobacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("GradoAnio")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ModificadaPorNombre")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Observacion")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AlumnoId");
-
-                    b.HasIndex("AsignaturaId");
-
-                    b.ToTable("MateriasPendientes");
-                });
-
             modelBuilder.Entity("pagos_administracion_mvc.Models.Nota", b =>
                 {
                     b.Property<int>("Id")
@@ -802,14 +755,6 @@ namespace pagos_administracion_mvc.Migrations
 
                     b.Property<int>("InscripcionId")
                         .HasColumnType("int");
-
-                    b.Property<decimal?>("IntensificacionDiciembre")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("decimal(4,2)");
-
-                    b.Property<decimal?>("IntensificacionFebrero")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("decimal(4,2)");
 
                     b.Property<string>("ModificadaPorNombre")
                         .HasColumnType("nvarchar(max)");
@@ -1091,25 +1036,6 @@ namespace pagos_administracion_mvc.Migrations
                     b.Navigation("Alumno");
 
                     b.Navigation("Curso");
-                });
-
-            modelBuilder.Entity("pagos_administracion_mvc.Models.MateriaPendiente", b =>
-                {
-                    b.HasOne("pagos_administracion_mvc.Models.Alumno", "Alumno")
-                        .WithMany()
-                        .HasForeignKey("AlumnoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("pagos_administracion_mvc.Models.Asignatura", "Asignatura")
-                        .WithMany()
-                        .HasForeignKey("AsignaturaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Alumno");
-
-                    b.Navigation("Asignatura");
                 });
 
             modelBuilder.Entity("pagos_administracion_mvc.Models.Nota", b =>

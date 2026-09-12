@@ -19,6 +19,11 @@ namespace pagos_administracion_mvc.Models
         // Solo se completa (y solo importa) cuando el Periodo es Cuatrimestral: valoración TEA/
         // TEP/TED que carga el Docente para el RITE, independiente de la calificación numérica.
         public Enums.ValoracionPreliminar? ValoracionPreliminar { get; set; }
+
+        // Intensificación diciembre/febrero (RITE, Fase 3): solo se completan (y solo importan)
+        // cuando el Periodo es Anual — mismo criterio que ValoracionPreliminar para Cuatrimestral.
+        public decimal? IntensificacionDiciembre { get; set; }
+        public decimal? IntensificacionFebrero { get; set; }
     }
 
     // Una nota suelta (Orden 1..N) enviada desde el formulario. Valor es TEXTO, no decimal: los
@@ -47,6 +52,11 @@ namespace pagos_administracion_mvc.Models
         // que el resto: más fácil de parsear a mano (y de dejar en blanco) que bindear el enum
         // directamente. Solo se usa cuando el Periodo es Cuatrimestral (ver Cargar.cshtml).
         public string? ValoracionPreliminar { get; set; }
+
+        // Intensificación diciembre/febrero: mismo motivo que Valor, texto parseado a mano con
+        // cultura invariante. Solo se usan cuando el Periodo es Anual (ver Cargar.cshtml).
+        public string? IntensificacionDiciembre { get; set; }
+        public string? IntensificacionFebrero { get; set; }
     }
 
     // Modelo completo de la pantalla NotasController/Cargar.
@@ -68,6 +78,11 @@ namespace pagos_administracion_mvc.Models
         // Periodo Cuatrimestral, sea o no contenedor (aplica igual si el colegio arma el
         // cuatrimestre a partir de Trimestres o si el Docente carga notas sueltas directamente).
         public bool MostrarValoracionPreliminar => PeriodoSeleccionado?.Tipo == Enums.TipoPeriodo.Cuatrimestral;
+
+        // Columnas "Intensificación diciembre/febrero" (RITE): solo tienen sentido para el
+        // Periodo Anual — es el examen de recuperación de fin de ciclo, no aplica por
+        // Cuatrimestre (mismo criterio que MostrarValoracionPreliminar, pero para el otro tipo).
+        public bool MostrarIntensificacion => PeriodoSeleccionado?.Tipo == Enums.TipoPeriodo.Anual;
 
         // Cantidad de columnas de nota suelta a mostrar (mínimo 4, se ajusta sola si ya hay
         // cargadas más, y el Docente puede pedir más desde la vista).

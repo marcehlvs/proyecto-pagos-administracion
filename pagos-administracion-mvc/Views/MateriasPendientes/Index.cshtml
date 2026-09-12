@@ -1,0 +1,105 @@
+@model pagos_administracion_mvc.Controllers.MateriasPendientesViewModel
+@{
+    ViewData["Title"] = "Materias pendientes";
+}
+
+<h1>Materias pendientes</h1>
+<p class="text-muted">Materias de años anteriores que el alumno todavía no aprobó (RITE).</p>
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success">@TempData["Mensaje"]</div>
+}
+
+<form method="get" asp-action="Index" class="row g-2 mb-4 align-items-end" style="max-width: 500px;">
+    <div class="col-auto flex-grow-1">
+        <label class="form-label small">Alumno</label>
+        <select name="alumnoId" class="form-select" onchange="this.form.submit()">
+            <option value="">Seleccioná un alumno...</option>
+            @foreach (var a in Model.AlumnosDisponibles)
+            {
+                <option value="@a.Id" selected="@(Model.AlumnoSeleccionado?.Id == a.Id)">@a.Apellido, @a.Nombre</option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (Model.AlumnoSeleccionado != null)
+{
+    <h5>@Model.AlumnoSeleccionado.Apellido, @Model.AlumnoSeleccionado.Nombre</h5>
+
+    <div class="table-responsive mb-4">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Materia</th>
+                    <th>Estado</th>
+                    <th style="width: 220px;">Fecha de aprobación</th>
+                    <th>Observación</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pendiente in Model.Pendientes)
+                {
+                    <tr>
+                        <td>@pendiente.Etiqueta</td>
+                        <td>
+                            @if (pendiente.Aprobada)
+                            {
+                                <span class="badge bg-success">Aprobada</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                            }
+                        </td>
+                        <td>
+                            <form asp-action="MarcarAprobada" method="post" class="d-flex gap-2">
+                                <input type="hidden" name="id" value="@pendiente.Id" />
+                                <input type="date" name="fechaAprobacion" class="form-control form-control-sm"
+                                       value="@pendiente.FechaAprobacion?.ToString("yyyy-MM-dd")" />
+                                <button type="submit" class="btn btn-outline-success btn-sm text-nowrap">Guardar</button>
+                            </form>
+                        </td>
+                        <td>@pendiente.Observacion</td>
+                        <td class="text-end">
+                            <form asp-action="Eliminar" method="post" onsubmit="return confirm('¿Eliminar esta materia pendiente?');">
+                                <input type="hidden" name="id" value="@pendiente.Id" />
+                                <button type="submit" class="btn btn-link btn-sm text-danger p-0">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Pendientes.Any())
+                {
+                    <tr><td colspan="5" class="text-muted">Este alumno no tiene materias pendientes cargadas.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card p-3" style="max-width: 500px;">
+        <h6>Agregar materia pendiente</h6>
+        <form asp-action="Create" method="post" class="row g-2">
+            <input type="hidden" name="alumnoId" value="@Model.AlumnoSeleccionado.Id" />
+            <div class="col-8">
+                <label class="form-label small">Materia</label>
+                <select name="asignaturaId" class="form-select" asp-items="Model.Asignaturas" required>
+                    <option value="">Seleccioná...</option>
+                </select>
+            </div>
+            <div class="col-4">
+                <label class="form-label small">Año que adeuda</label>
+                <input type="number" name="gradoAnio" class="form-control" min="1" max="7" required />
+            </div>
+            <div class="col-12">
+                <label class="form-label small">Observación (opcional)</label>
+                <input type="text" name="observacion" class="form-control" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Agregar</button>
+            </div>
+        </form>
+    </div>
+}
