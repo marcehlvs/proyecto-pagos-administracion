@@ -6,6 +6,7 @@ using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
 using System.Globalization;
+using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -136,6 +137,7 @@ namespace pagos_administracion_mvc.Controllers
                     fila.Promedio = await _calculadora.CalcularAsync(inscripcion.Id, cursoAsignaturaId, periodoId.Value);
                     var consolidada = notasDeEstePeriodo.FirstOrDefault(n => n.Orden == 0);
                     fila.EsPromedioAutomatico = consolidada?.EsPromedioAutomatico ?? true;
+                    fila.ValoracionPreliminar = consolidada?.ValoracionPreliminar;
 
                     modelo.Filas.Add(fila);
                 }
@@ -173,9 +175,11 @@ namespace pagos_administracion_mvc.Controllers
             foreach (var entrada in notaManual ?? new List<NotaManualInput>())
             {
                 var valor = ParsearValor(entrada.Valor);
-                if (!valor.HasValue || valor < 0 || valor > 10) continue;
-                await GuardarUnaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, 0, valor.Value, nombreDocente, manual: true);
-                inscripcionesTocadas.Add(entrada.InscripcionId);
+                if (valor.HasValue && (valor < 0 || valor > 10)) continue;
+                var valoracion = ParsearValoracion(entrada.ValoracionPreliminar);
+
+                var seGuardoAlgo = await GuardarConsolidadaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, valor, valoracion, nombreDocente);
+                if (seGuardoAlgo) inscripcionesTocadas.Add(entrada.InscripcionId);
             }
 
             // Sube por la cadena de Periodo (este -> su padre -> el padre del padre...)
@@ -201,6 +205,12 @@ namespace pagos_administracion_mvc.Controllers
             if (string.IsNullOrWhiteSpace(texto)) return null;
             texto = texto.Trim().Replace(',', '.');
             return decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out var valor) ? valor : null;
+        }
+
+        private static ValoracionPreliminar? ParsearValoracion(string? texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return null;
+            return Enum.TryParse<ValoracionPreliminar>(texto, out var valoracion) ? valoracion : null;
         }
 
         private async Task GuardarUnaAsync(int inscripcionId, int cursoAsignaturaId, int periodoId, int orden, decimal valor, string nombreDocente, bool manual)
@@ -230,6 +240,55 @@ namespace pagos_administracion_mvc.Controllers
                 });
             }
             await _context.SaveChangesAsync();
+        }
+
+        // Guarda la fila Orden = 0 (consolidada) de un alumno: el override numérico ("Forzar
+        // nota final") y/o la Valoración Preliminar son independientes entre sí, así que un
+        // Docente puede cargar solo una de las dos sin tocar la otra. valorManual == null
+        // significa "no tocar el número" (sigue saliendo del promedio automático si ya lo
+        // estaba); valoracion == null significa "sin Valoración Preliminar" y SÍ la borra si
+        // antes había una cargada (el Docente la vació a propósito). Devuelve false si no había
+        // nada para guardar (fila sin tocar, no hace falta recalcular nada para ese alumno).
+        private async Task<bool> GuardarConsolidadaAsync(int inscripcionId, int cursoAsignaturaId, int periodoId,
+            decimal? valorManual, ValoracionPreliminar? valoracion, string nombreDocente)
+        {
+            var nota = await _context.Notas.FirstOrDefaultAsync(n =>
+                n.InscripcionId == inscripcionId && n.CursoAsignaturaId == cursoAsignaturaId &&
+                n.PeriodoId == periodoId && n.Orden == 0);
+
+            if (nota == null)
+            {
+                if (!valorManual.HasValue && valoracion == null) return false; // nada para crear.
+                _context.Notas.Add(new Nota
+                {
+                    InscripcionId = inscripcionId,
+                    CursoAsignaturaId = cursoAsignaturaId,
+                    PeriodoId = periodoId,
+                    Orden = 0,
+                    // Placeholder si solo se cargó Valoración Preliminar sin forzar un número:
+                    // NotaCalculadora la recalcula sola (EsPromedioAutomatico = true) apenas haya
+                    // Subperiodos o notas sueltas de dónde promediar, y hasta entonces el 0 nunca
+                    // se muestra (CalcularAsync devuelve null si no hay nada para promediar).
+                    Valor = valorManual ?? 0,
+                    EsPromedioAutomatico = !valorManual.HasValue,
+                    ValoracionPreliminar = valoracion,
+                    CargadaPorNombre = nombreDocente
+                });
+            }
+            else
+            {
+                if (valorManual.HasValue)
+                {
+                    nota.Valor = valorManual.Value;
+                    nota.EsPromedioAutomatico = false;
+                }
+                nota.ValoracionPreliminar = valoracion; // se pisa siempre: vacío = "la borré".
+                nota.ModificadaPorNombre = nombreDocente;
+                nota.FechaModificacion = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         // POST: Notas/Recalcular — descarta la nota consolidada manual y vuelve a dejar que el

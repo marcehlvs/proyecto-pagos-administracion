@@ -78,7 +78,7 @@ public class AlumnosController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     // IMPORTANTE: Asegúrate de agregar FamiliaUserId al [Bind]
-    public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,FamiliaUserId")] Alumno alumno)
+    public async Task<IActionResult> Create([Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,EsRecursante,FamiliaUserId")] Alumno alumno)
     {
         if (ModelState.IsValid)
         {
@@ -117,7 +117,7 @@ public class AlumnosController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     // IMPORTANTE: Asegúrate de agregar FamiliaUserId al [Bind]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,FamiliaUserId")] Alumno alumno)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,EsRecursante,FamiliaUserId")] Alumno alumno)
     {
         if (id != alumno.Id)
         {

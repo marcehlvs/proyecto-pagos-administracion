@@ -44,6 +44,12 @@
             <span asp-validation-for="Turno" class="text-danger"></span>
         </div>
 
+        <div class="form-check form-switch mb-3">
+            <input asp-for="EsRecursante" class="form-check-input" role="switch" />
+            <label asp-for="EsRecursante" class="form-check-label"></label>
+            <div class="form-text">Marcalo si el alumno recursa el año (para el boletín RITE: TIPO "R" en vez de "C").</div>
+        </div>
+
         <!-- REEMPLAZO DEL SELECT POR RADIOS CON BUSCADOR -->
         <div class="form-group mb-3">
             <label class="control-label fw-bold">Familia asignada</label>

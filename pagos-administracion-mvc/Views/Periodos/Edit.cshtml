@@ -36,6 +36,18 @@
             </select>
         </div>
 
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <label asp-for="FechaInicio" class="form-label"></label>
+                <input asp-for="FechaInicio" class="form-control" value="@Model.FechaInicio?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-6">
+                <label asp-for="FechaFin" class="form-label"></label>
+                <input asp-for="FechaFin" class="form-control" value="@Model.FechaFin?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="form-text">Opcional. Si las completás en un Cuatrimestre, el boletín RITE calcula solo "Días hábiles"/"Inasistencias" cruzando con las asistencias tomadas en ese rango.</div>
+        </div>
+
         <button type="submit" class="btn btn-primary">Guardar</button>
         <a asp-action="Index" asp-route-anioLectivo="@Model.AnioLectivo" class="btn btn-link">Cancelar</a>
     </form>

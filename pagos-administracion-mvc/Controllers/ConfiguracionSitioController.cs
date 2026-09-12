@@ -34,7 +34,7 @@ namespace pagos_administracion_mvc.Controllers
         // POST: ConfiguracionSitio/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit([Bind("ColorPrimario,ColorPrimarioOscuro,ColorExito,ColorAdvertencia,NombrePreset")] ConfiguracionSitio form)
+        public async Task<IActionResult> Edit([Bind("ColorPrimario,ColorPrimarioOscuro,ColorExito,ColorAdvertencia,NombrePreset,Distrito")] ConfiguracionSitio form)
         {
             if (!ModelState.IsValid)
             {
@@ -50,6 +50,7 @@ namespace pagos_administracion_mvc.Controllers
             config.ColorExito = form.ColorExito;
             config.ColorAdvertencia = form.ColorAdvertencia;
             config.NombrePreset = form.NombrePreset;
+            config.Distrito = form.Distrito;
             config.ModificadaPorNombre = User.Identity?.Name;
             config.FechaModificacion = DateTime.Now;
 

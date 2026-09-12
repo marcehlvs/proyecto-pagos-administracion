@@ -45,6 +45,13 @@ namespace pagos_administracion_mvc.Models
         [Display(Name = "Observación")]
         public string? Observacion { get; set; }
 
+        // Valoración preliminar del RITE (TEA/TEP/TED), solo tiene sentido en la fila Orden = 0
+        // de un Periodo Tipo = Cuatrimestral: es una apreciación aparte de la calificación
+        // numérica, la carga el Docente una vez por cuatrimestre (ver NotasController.Cargar,
+        // columna "Valoración preliminar" solo visible para Periodos Cuatrimestrales).
+        [Display(Name = "Valoración preliminar")]
+        public Enums.ValoracionPreliminar? ValoracionPreliminar { get; set; }
+
         // Soft delete: mismo criterio que el resto del proyecto.
         public bool Activo { get; set; } = true;
 
