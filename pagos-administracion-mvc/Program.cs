@@ -44,6 +44,10 @@ builder.Services.AddScoped<MercadoPagoService>();
 builder.Services.AddScoped<NotaCalculadora>();
 builder.Services.AddScoped<BoletinService>();
 builder.Services.AddScoped<IBoletinPlantilla, BoletinPlantillaPredeterminada>();
+// Plantilla RITE (Fase 1, ver Services/BoletinPlantillaRite.cs): se registra por su tipo
+// concreto además de la interfaz de arriba, para poder tener las dos disponibles a la vez y que
+// BoletinesController elija cuál generar.
+builder.Services.AddScoped<BoletinPlantillaRite>();
 builder.Services.AddScoped<AsistenteService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();
 builder.Services.AddScoped<EmailService>();

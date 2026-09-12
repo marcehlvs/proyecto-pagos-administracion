@@ -37,6 +37,15 @@
             <input type="number" name="anioLectivo" class="form-control" value="@anio" />
         </div>
 
+        <div class="mb-3">
+            <label class="form-label">Formato</label>
+            <select name="plantilla" class="form-select">
+                <option value="">Boletín institucional</option>
+                <option value="rite">RITE (formulario oficial DGCyE)</option>
+            </select>
+            <div class="form-text">El RITE todavía no completa Valoración Preliminar, Intensificación ni inasistencias — esos campos quedan en blanco para cargar a mano.</div>
+        </div>
+
         <button type="submit" class="btn btn-primary" @(alumnos.Any() ? "" : "disabled")>Descargar PDF</button>
     </form>
 </div>

@@ -19,15 +19,17 @@ namespace pagos_administracion_mvc.Controllers
         private readonly AdministracionDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly BoletinService _boletinService;
-        private readonly IBoletinPlantilla _plantilla;
+        private readonly IBoletinPlantilla _plantillaPredeterminada;
+        private readonly BoletinPlantillaRite _plantillaRite;
 
         public BoletinesController(AdministracionDbContext context, UserManager<ApplicationUser> userManager,
-            BoletinService boletinService, IBoletinPlantilla plantilla)
+            BoletinService boletinService, IBoletinPlantilla plantillaPredeterminada, BoletinPlantillaRite plantillaRite)
         {
             _context = context;
             _userManager = userManager;
             _boletinService = boletinService;
-            _plantilla = plantilla;
+            _plantillaPredeterminada = plantillaPredeterminada;
+            _plantillaRite = plantillaRite;
         }
 
         private async Task<IActionResult?> ValidarPermisoAsync(int alumnoId)
@@ -90,8 +92,10 @@ namespace pagos_administracion_mvc.Controllers
             return View();
         }
 
-        // GET: Boletines/Pdf?alumnoId=1&anioLectivo=2026
-        public async Task<IActionResult> Pdf(int alumnoId, int anioLectivo)
+        // GET: Boletines/Pdf?alumnoId=1&anioLectivo=2026&plantilla=rite
+        // plantilla=rite usa el formulario oficial (RITE, Fase 1 — ver BoletinPlantillaRite);
+        // cualquier otro valor (o ninguno) usa la plantilla propia de siempre.
+        public async Task<IActionResult> Pdf(int alumnoId, int anioLectivo, string? plantilla)
         {
             var error = await ValidarPermisoAsync(alumnoId);
             if (error != null) return error;
@@ -99,8 +103,17 @@ namespace pagos_administracion_mvc.Controllers
             var datos = await _boletinService.ObtenerDatosAsync(alumnoId, anioLectivo);
             if (datos == null) return NotFound();
 
-            var configuracionSitio = await _context.ConfiguracionSitio.FirstOrDefaultAsync(c => c.Id == 1);
-            var pdf = _plantilla.Generar(datos, configuracionSitio);
+            byte[] pdf;
+            if (plantilla == "rite")
+            {
+                pdf = _plantillaRite.Generar(datos, null);
+            }
+            else
+            {
+                var configuracionSitio = await _context.ConfiguracionSitio.FirstOrDefaultAsync(c => c.Id == 1);
+                pdf = _plantillaPredeterminada.Generar(datos, configuracionSitio);
+            }
+
             var nombreArchivo = $"boletin-{datos.Alumno.Apellido}-{datos.Alumno.Nombre}-{anioLectivo}.pdf".Replace(" ", "_");
             return File(pdf, "application/pdf", nombreArchivo);
         }
