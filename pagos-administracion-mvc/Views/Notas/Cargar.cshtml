@@ -2,6 +2,12 @@
 @{
     ViewData["Title"] = "Cargar notas";
     var ca = Model.CursoAsignatura;
+
+    // Notas de 0 a 10 de a 0.5 (0, 0.5, 1, 1.5, ..., 10): se carga desde un <select> en vez de
+    // un <input type="number"> para no permitir valores como 7.23 que no tienen sentido en la
+    // escala de la escuela.
+    var pasosDeNota = new List<decimal>();
+    for (var v = 0m; v <= 10m; v += 0.5m) pasosDeNota.Add(v);
 }
 
 <h1>@(Model.SoloLectura ? "Notas (solo lectura)" : "Cargar notas")</h1>
@@ -84,13 +90,19 @@
                             {
                                 @for (var i = 1; i <= Model.Columnas; i++)
                                 {
+                                    var valorActual = fila.ValoresPorOrden.GetValueOrDefault(i);
                                     <td>
                                         <input type="hidden" name="notasSueltas[@idxSuelta].InscripcionId" value="@fila.InscripcionId" />
                                         <input type="hidden" name="notasSueltas[@idxSuelta].Orden" value="@i" />
-                                        <input type="number" step="0.01" min="0" max="10" class="form-control px-1 text-center"
-                                               name="notasSueltas[@idxSuelta].Valor"
-                                               value="@fila.ValoresPorOrden.GetValueOrDefault(i)?.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                                               disabled="@Model.SoloLectura" />
+                                        <select class="form-select form-select-sm text-center"
+                                                name="notasSueltas[@idxSuelta].Valor"
+                                                disabled="@Model.SoloLectura">
+                                            <option value="">—</option>
+                                            @foreach (var v in pasosDeNota)
+                                            {
+                                                <option value="@v.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(valorActual == v)">@v.ToString("0.0")</option>
+                                            }
+                                        </select>
                                     </td>
                                     idxSuelta++;
                                 }
@@ -98,12 +110,20 @@
 
                             <td class="fw-bold text-center">@(fila.Promedio?.ToString("0.##") ?? "-")</td>
 
+                            @{
+                                var valorManualActual = fila.EsPromedioAutomatico ? null : fila.Promedio;
+                            }
                             <td>
                                 <input type="hidden" name="notaManual[@idxManual].InscripcionId" value="@fila.InscripcionId" />
-                                <input type="number" step="0.01" min="0" max="10" class="form-control px-1 text-center"
-                                       name="notaManual[@idxManual].Valor" placeholder="Opcional"
-                                       value="@(fila.EsPromedioAutomatico ? null : fila.Promedio?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                                       disabled="@Model.SoloLectura" />
+                                <select class="form-select form-select-sm text-center"
+                                        name="notaManual[@idxManual].Valor"
+                                        disabled="@Model.SoloLectura">
+                                    <option value="">Opcional</option>
+                                    @foreach (var v in pasosDeNota)
+                                    {
+                                        <option value="@v.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(valorManualActual == v)">@v.ToString("0.0")</option>
+                                    }
+                                </select>
                             </td>
                             @{
                                 idxManual++;

@@ -1,4 +1,19 @@
 ﻿document.addEventListener('DOMContentLoaded', function () {
+    // Dropdowns de "Acciones" dentro de <div class="table-responsive">: el div recorta
+    // (overflow-x: auto) el menú cuando se abre cerca del borde inferior de la tabla, así que
+    // hay que scrollear para ver las últimas opciones. Bootstrap posiciona el menú con Popper
+    // en "absolute" por defecto (queda atado al contenedor con overflow); con "fixed" el menú se
+    // posiciona respecto a la ventana y ya no lo recorta el contenedor. Se activa acá, en vez de
+    // repetir JS por vista, para cualquier botón marcado con data-bs-strategy="fixed" (Cursos,
+    // Cuotas, Alumnos, Pagos, Familias, y el que se agregue después).
+    document.querySelectorAll('[data-bs-toggle="dropdown"][data-bs-strategy="fixed"]').forEach(function (boton) {
+        bootstrap.Dropdown.getOrCreateInstance(boton, {
+            popperConfig: function (configPorDefecto) {
+                return Object.assign({}, configPorDefecto, { strategy: 'fixed' });
+            }
+        });
+    });
+
     var switchEl = document.getElementById('temaSwitch');
     if (!switchEl) return;
 
