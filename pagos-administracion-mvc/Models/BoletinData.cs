@@ -10,7 +10,7 @@
         public Dictionary<int, decimal?> ValoresPorPeriodoId { get; set; } = new();
     }
 
-    // Todo lo que necesita BoletinPdfBuilder para armar el PDF de un alumno.
+    // Todo lo que necesita una IBoletinPlantilla para armar el PDF de un alumno.
     public class BoletinData
     {
         public Alumno Alumno { get; set; } = null!;

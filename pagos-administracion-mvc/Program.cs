@@ -43,6 +43,7 @@ builder.Services.AddScoped<PagoIniciadorService>();
 builder.Services.AddScoped<MercadoPagoService>();
 builder.Services.AddScoped<NotaCalculadora>();
 builder.Services.AddScoped<BoletinService>();
+builder.Services.AddScoped<IBoletinPlantilla, BoletinPlantillaPredeterminada>();
 builder.Services.AddScoped<AsistenteService>();
 builder.Services.AddHostedService<RevisorVencimientosService>();
 builder.Services.AddScoped<EmailService>();

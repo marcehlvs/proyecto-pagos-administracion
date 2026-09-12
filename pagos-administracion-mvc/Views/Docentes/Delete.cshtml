@@ -2,16 +2,16 @@
 
 @{
     ViewData["Title"] = "Eliminar docente";
-    var cursos = (List<pagos_administracion_mvc.Models.Curso>)ViewBag.CursosAsignados;
+    var materias = (List<pagos_administracion_mvc.Models.CursoAsignatura>)ViewBag.MateriasAsignadas;
 }
 
 <h1>Eliminar docente</h1>
 
-@if (cursos.Any())
+@if (materias.Any())
 {
     <div class="alert alert-warning">
-        <strong>⚠ Tiene @cursos.Count curso(s) asignado(s): @string.Join(", ", cursos.Select(c => c.Nombre)).</strong>
-        <p class="mb-0">Si eliminás este docente, esos cursos quedan sin profesor asignado (no se borran ni se pierde el historial de asistencia).</p>
+        <strong>⚠ Tiene @materias.Count materia(s) asignada(s): @string.Join(", ", materias.Select(m => $"{m.Curso.Etiqueta} — {m.Asignatura.Nombre}")).</strong>
+        <p class="mb-0">Si eliminás este docente, esas materias quedan sin docente asignado (no se borran ni se pierde el historial de notas).</p>
     </div>
 }
 
