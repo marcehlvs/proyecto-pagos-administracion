@@ -8,6 +8,7 @@ using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
 using static pagos_administracion_mvc.Models.Enums;
+using System.Globalization;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -698,6 +699,16 @@ namespace pagos_administracion_mvc.Controllers
         }
 
 
+        // Mismo motivo que en NotasController.ParsearValor: un <input type="number"> siempre
+        // manda "." como separador decimal, pero decimal.Parse con la cultura del servidor
+        // (es-AR) podría leerlo mal. Se parsea a mano en cultura invariante.
+        private static decimal? ParsearMonto(string? texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return null;
+            texto = texto.Trim().Replace(',', '.');
+            return decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out var valor) ? valor : null;
+        }
+
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RegistrarManual(int cuotaId)
         {
@@ -714,19 +725,27 @@ namespace pagos_administracion_mvc.Controllers
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RegistrarManual(int cuotaId, decimal monto, DateTime fecha, IFormFile? comprobante)
+        public async Task<IActionResult> RegistrarManual(int cuotaId, string monto, DateTime fecha, IFormFile? comprobante)
         {
             var cuota = await _context.Cuotas.Include(c => c.Alumno).Include(c => c.Pagos)
                 .FirstOrDefaultAsync(c => c.Id == cuotaId);
             if (cuota == null) return NotFound();
 
-            if (monto <= 0)
+            // El <input type="number"> del navegador siempre manda el monto con "." como
+            // separador decimal, pero si "monto" fuera decimal directamente, ASP.NET Core lo
+            // parsearía con la cultura del servidor (es-AR: coma decimal, punto de miles) y
+            // "1234.56" podría leerse mal. Se recibe como texto y se parsea acá en cultura
+            // invariante, para no depender de la configuración regional del servidor.
+            var montoParseado = ParsearMonto(monto);
+
+            if (!montoParseado.HasValue || montoParseado <= 0)
             {
                 ModelState.AddModelError(string.Empty, "El monto debe ser mayor a 0.");
                 ViewBag.TotalPagado = cuota.TotalPagado;
                 ViewBag.Saldo = cuota.SaldoPendiente;
                 return View(cuota);
             }
+            var montoDecimal = montoParseado.Value;
 
             string? nombreArchivo = null;
             if (comprobante != null && comprobante.Length > 0)
@@ -751,12 +770,12 @@ namespace pagos_administracion_mvc.Controllers
 
             // Calculamos el estado ANTES de agregar el pago a la colección en memoria
             // (cuota.TotalPagado ya refleja los pagos aprobados existentes).
-            var totalPagadoAcumulado = cuota.TotalPagado + monto;
+            var totalPagadoAcumulado = cuota.TotalPagado + montoDecimal;
 
             var pago = new Pago
             {
                 CuotaId = cuota.Id,
-                Monto = monto,
+                Monto = montoDecimal,
                 Fecha = fecha,
                 Estado = EstadoPago.Aprobado,
                 ComprobanteRuta = nombreArchivo,

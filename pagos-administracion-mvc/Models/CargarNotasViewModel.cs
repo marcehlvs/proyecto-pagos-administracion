@@ -17,22 +17,27 @@ namespace pagos_administracion_mvc.Models
         public bool EsPromedioAutomatico { get; set; } = true;
     }
 
-    // Una nota suelta (Orden 1..N) enviada desde el formulario. Se usa una lista plana en vez de
-    // un diccionario anidado (notasSueltas[id][orden]) porque el binding de ASP.NET Core es mucho
-    // más confiable con listas de objetos indexadas (notasSueltas[0].Valor) que con diccionarios
-    // de diccionarios.
+    // Una nota suelta (Orden 1..N) enviada desde el formulario. Valor es TEXTO, no decimal: los
+    // <input type="number"> del navegador siempre mandan el punto como separador decimal, pero
+    // si esta propiedad fuera decimal? directamente, ASP.NET Core la parsearía usando la cultura
+    // del servidor (es-AR, coma decimal) y el bind fallaría o mezclaría el valor. Se parsea a
+    // mano con cultura invariante en el controller (ver NotasController.ParsearValor). Se usa una
+    // lista plana en vez de un diccionario anidado (notasSueltas[id][orden]) porque el binding de
+    // ASP.NET Core es mucho más confiable con listas de objetos indexadas (notasSueltas[0].Valor)
+    // que con diccionarios de diccionarios.
     public class NotaSueltaInput
     {
         public int InscripcionId { get; set; }
         public int Orden { get; set; }
-        public decimal? Valor { get; set; }
+        public string? Valor { get; set; }
     }
 
-    // La nota consolidada forzada a mano (Orden 0), un alumno por entrada.
+    // La nota consolidada forzada a mano (Orden 0), un alumno por entrada. Mismo motivo: Valor es
+    // texto, se parsea con cultura invariante.
     public class NotaManualInput
     {
         public int InscripcionId { get; set; }
-        public decimal? Valor { get; set; }
+        public string? Valor { get; set; }
     }
 
     // Modelo completo de la pantalla NotasController/Cargar.
