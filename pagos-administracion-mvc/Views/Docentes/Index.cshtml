@@ -19,26 +19,26 @@
     <thead>
         <tr>
             <th>Email</th>
-            <th>Cursos asignados</th>
+            <th>Materias asignadas</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         @{
-            var cursosPorDocente = (Dictionary<string, List<string>>)ViewBag.CursosPorDocente;
+            var materiasPorDocente = (Dictionary<string, List<string>>)ViewBag.MateriasPorDocente;
         }
         @foreach (var docente in Model)
         {
             <tr>
                 <td class="align-middle">@docente.Email</td>
                 <td class="align-middle">
-                    @if (cursosPorDocente.TryGetValue(docente.Id, out var cursos) && cursos.Any())
+                    @if (materiasPorDocente.TryGetValue(docente.Id, out var materias) && materias.Any())
                     {
-                        @string.Join(", ", cursos)
+                        @string.Join(", ", materias)
                     }
                     else
                     {
-                        <span class="text-muted">Sin cursos asignados</span>
+                        <span class="text-muted">Sin materias asignadas</span>
                     }
                 </td>
                 <td class="align-middle text-end">

@@ -1,0 +1,55 @@
+@model List<pagos_administracion_mvc.Data.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Preceptores";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Preceptores</h1>
+    <a asp-action="Create" class="btn btn-primary btn-sm">+ Nuevo preceptor</a>
+</div>
+
+@if (TempData["EmailError"] != null)
+{
+    <div class="alert alert-warning">@TempData["EmailError"]</div>
+}
+
+<div class="table-responsive">
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Cursos a cargo</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            var cursosPorPreceptor = (Dictionary<string, List<string>>)ViewBag.CursosPorPreceptor;
+        }
+        @foreach (var preceptor in Model)
+        {
+            <tr>
+                <td class="align-middle">@preceptor.Email</td>
+                <td class="align-middle">
+                    @if (cursosPorPreceptor.TryGetValue(preceptor.Id, out var cursos) && cursos.Any())
+                    {
+                        @string.Join(", ", cursos)
+                    }
+                    else
+                    {
+                        <span class="text-muted">Sin cursos asignados</span>
+                    }
+                </td>
+                <td class="align-middle text-end">
+                    <a asp-action="Delete" asp-route-id="@preceptor.Id" class="btn btn-sm btn-outline-danger">Eliminar</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="3" class="text-muted">Todavía no hay preceptores cargados.</td></tr>
+        }
+    </tbody>
+</table>
+</div>

@@ -10,44 +10,42 @@ using System.Security.Cryptography;
 
 namespace pagos_administracion_mvc.Controllers
 {
+    // Preceptor: a cargo de Asistencia y de la confección de boletines de los Cursos que tiene
+    // asignados (Curso.ProfesorUserId). Rol separado de Docente: un Docente carga notas por
+    // materia (CursoAsignatura.DocenteUserId), un Preceptor está a cargo del curso en general.
+    // Mismo patrón que DocentesController (alta con contraseña provisoria + mail de bienvenida).
     [Authorize(Roles = "Admin")]
-    public class DocentesController : Controller
+    public class PreceptoresController : Controller
     {
         private readonly AdministracionDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly EmailService _emailService;
 
-        public DocentesController(AdministracionDbContext context, UserManager<ApplicationUser> userManager, EmailService emailService)
+        public PreceptoresController(AdministracionDbContext context, UserManager<ApplicationUser> userManager, EmailService emailService)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
         }
 
-        // GET: Docentes
+        // GET: Preceptores
         public async Task<IActionResult> Index()
         {
-            var docentes = await _userManager.GetUsersInRoleAsync("Docente");
+            var preceptores = await _userManager.GetUsersInRoleAsync("Preceptor");
 
-            // Un Docente ya no "es dueño" de un Curso entero (eso es el Preceptor, ver
-            // PreceptoresController): acá se muestran las materias que dicta, vía CursoAsignatura.
-            var materiasPorDocente = (await _context.CursosAsignaturas
-                    .Include(ca => ca.Curso)
-                    .Include(ca => ca.Asignatura)
-                    .Where(ca => ca.DocenteUserId != null && ca.Activo)
-                    .ToListAsync())
-                .GroupBy(ca => ca.DocenteUserId!)
-                .ToDictionary(g => g.Key, g => g.Select(ca => $"{ca.Curso.Etiqueta} — {ca.Asignatura.Nombre}").ToList());
+            var cursosPorPreceptor = (await _context.Cursos.Where(c => c.ProfesorUserId != null && c.Activo).ToListAsync())
+                .GroupBy(c => c.ProfesorUserId!)
+                .ToDictionary(g => g.Key, g => g.Select(c => c.Etiqueta).ToList());
 
-            ViewBag.MateriasPorDocente = materiasPorDocente;
+            ViewBag.CursosPorPreceptor = cursosPorPreceptor;
 
-            return View(docentes.OrderBy(d => d.Email).ToList());
+            return View(preceptores.OrderBy(p => p.Email).ToList());
         }
 
-        // GET: Docentes/Create
+        // GET: Preceptores/Create
         public IActionResult Create() => View();
 
-        // POST: Docentes/Create
+        // POST: Preceptores/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Required, EmailAddress] string email)
@@ -67,11 +65,11 @@ namespace pagos_administracion_mvc.Controllers
 
             if (resultado.Succeeded)
             {
-                await _userManager.AddToRoleAsync(usuario, "Docente");
+                await _userManager.AddToRoleAsync(usuario, "Preceptor");
 
                 var cuerpoBienvenida = EmailService.EnvolverPlantilla(
                     "¡Bienvenido/a al portal de la escuela!",
-                    $@"<p style=""margin:0 0 16px 0;"">Se creó tu cuenta de acceso al portal de la escuela para tomar asistencia de tus cursos.</p>
+                    $@"<p style=""margin:0 0 16px 0;"">Se creó tu cuenta de acceso al portal de la escuela para tomar asistencia y generar boletines de tus cursos.</p>
                     <p style=""margin:0 0 6px 0;""><strong>Usuario:</strong> {usuario.Email}</p>
                     <p style=""margin:0 0 16px 0;""><strong>Contraseña provisoria:</strong> {passwordTemporal}</p>
                     <p style=""margin:0; color:#4A5568; font-size:14px;"">Te recomendamos cambiarla después de tu primer ingreso, desde 'Mi perfil'.</p>");
@@ -80,7 +78,7 @@ namespace pagos_administracion_mvc.Controllers
 
                 if (!exito)
                 {
-                    TempData["EmailError"] = $"El docente se creó bien, pero el mail de bienvenida no se pudo enviar: {error}";
+                    TempData["EmailError"] = $"El preceptor se creó bien, pero el mail de bienvenida no se pudo enviar: {error}";
                 }
 
                 return RedirectToAction(nameof(Index));
@@ -92,27 +90,23 @@ namespace pagos_administracion_mvc.Controllers
             return View();
         }
 
-        // GET: Docentes/Delete/id
+        // GET: Preceptores/Delete/id
         public async Task<IActionResult> Delete(string id)
         {
             var usuario = await _userManager.FindByIdAsync(id);
             if (usuario == null) return NotFound();
 
-            ViewBag.MateriasAsignadas = await _context.CursosAsignaturas
-                .Include(ca => ca.Curso)
-                .Include(ca => ca.Asignatura)
-                .Where(ca => ca.DocenteUserId == id && ca.Activo)
-                .ToListAsync();
+            ViewBag.CursosAsignados = await _context.Cursos.Where(c => c.ProfesorUserId == id).ToListAsync();
             return View(usuario);
         }
 
-        // POST: Docentes/Delete/id
+        // POST: Preceptores/Delete/id
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            // Las materias que tenía asignadas quedan sin Docente (DocenteUserId -> null por el
-            // OnDelete(SetNull) configurado en el DbContext), no se pierde la materia ni las notas.
+            // Los cursos que tenía asignados quedan sin Preceptor (ProfesorUserId -> null por el
+            // OnDelete(SetNull) configurado en el DbContext), no se pierde el curso ni su historial.
             var usuario = await _userManager.FindByIdAsync(id);
             if (usuario != null)
                 await _userManager.DeleteAsync(usuario);

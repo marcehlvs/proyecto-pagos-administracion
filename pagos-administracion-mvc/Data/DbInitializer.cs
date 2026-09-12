@@ -56,7 +56,7 @@ namespace pagos_administracion_mvc.Data
             var config = services.GetRequiredService<IConfiguration>();
             var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
 
-            string[] roles = { "Admin", "Familia", "Alumno", "Docente" };
+            string[] roles = { "Admin", "Familia", "Alumno", "Docente", "Preceptor" };
 
             foreach (var rol in roles)
             {

@@ -9,7 +9,7 @@
 
 <div class="card p-4" style="max-width: 500px;">
     <form asp-action="Pdf" method="get" target="_blank">
-        @if (User.IsInRole("Admin") || alumnos.Count > 1)
+        @if (User.IsInRole("Admin") || User.IsInRole("Preceptor") || alumnos.Count > 1)
         {
             <div class="mb-3">
                 <label class="form-label">Alumno</label>

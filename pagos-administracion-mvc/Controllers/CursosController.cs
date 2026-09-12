@@ -27,6 +27,16 @@ namespace pagos_administracion_mvc.Controllers
             return new SelectList(docentes.OrderBy(d => d.Email), "Id", "Email", seleccionado);
         }
 
+        // Curso.ProfesorUserId ya no es "el Docente de todo el curso" (eso lo resuelve
+        // CursoAsignatura, materia por materia): es el Preceptor a cargo de Asistencia y de la
+        // confección de boletines de este curso. Se elige de un rol propio ("Preceptor"), no del
+        // pool de Docentes, aunque una misma persona pueda tener ambos roles si corresponde.
+        private async Task<SelectList> ObtenerPreceptoresSelectListAsync(string? seleccionado = null)
+        {
+            var preceptores = await _userManager.GetUsersInRoleAsync("Preceptor");
+            return new SelectList(preceptores.OrderBy(p => p.Email), "Id", "Email", seleccionado);
+        }
+
         private async Task<List<Asignatura>> ObtenerMateriasDelNivelAsync(NivelEducativo nivel, HashSet<int>? excluirIds = null)
         {
             var query = _context.Asignaturas.Where(a => a.Nivel == nivel);
@@ -95,7 +105,7 @@ namespace pagos_administracion_mvc.Controllers
                 DiasEducacionFisica = CombinarDias(diasEF)
             };
 
-            ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync(profesorUserId);
+            ViewBag.ProfesorUserId = await ObtenerPreceptoresSelectListAsync(profesorUserId);
             ViewBag.DiasEFSeleccionados = diasEF ?? new List<int>();
             ViewBag.Buscado = nivel.HasValue && gradoAnio.HasValue && turno.HasValue;
 
@@ -156,7 +166,7 @@ namespace pagos_administracion_mvc.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync(curso.ProfesorUserId);
+            ViewBag.ProfesorUserId = await ObtenerPreceptoresSelectListAsync(curso.ProfesorUserId);
             ViewBag.DiasEFSeleccionados = diasEF ?? new List<int>();
             ViewBag.Buscado = true;
             ViewBag.AlumnosCoincidentes = await _context.Alumnos
@@ -178,7 +188,7 @@ namespace pagos_administracion_mvc.Controllers
             var curso = await _context.Cursos.FindAsync(id);
             if (curso == null) return NotFound();
 
-            ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync(curso.ProfesorUserId);
+            ViewBag.ProfesorUserId = await ObtenerPreceptoresSelectListAsync(curso.ProfesorUserId);
             return View(curso);
         }
 
@@ -206,7 +216,7 @@ namespace pagos_administracion_mvc.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.ProfesorUserId = await ObtenerDocentesSelectListAsync(curso.ProfesorUserId);
+            ViewBag.ProfesorUserId = await ObtenerPreceptoresSelectListAsync(curso.ProfesorUserId);
             return View(curso);
         }
 

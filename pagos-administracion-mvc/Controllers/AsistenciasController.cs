@@ -9,10 +9,12 @@ using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
-    // Admin puede tomar asistencia de cualquier curso. Docente solo del curso que tiene asignado
-    // (se valida en cada acción, no solo con el atributo de Roles, para evitar que un Docente
-    // tome asistencia de un curso ajeno cambiando el cursoId en la URL).
-    [Authorize(Roles = "Admin,Docente")]
+    // Admin puede tomar asistencia de cualquier curso. Preceptor solo del curso que tiene
+    // asignado como Curso.ProfesorUserId (se valida en cada acción, no solo con el atributo de
+    // Roles, para evitar que un Preceptor tome asistencia de un curso ajeno cambiando el
+    // cursoId en la URL). Es un rol aparte de Docente: Docente carga notas por materia
+    // (CursoAsignatura), Preceptor está a cargo de la asistencia y los boletines del curso.
+    [Authorize(Roles = "Admin,Preceptor")]
     public class AsistenciasController : Controller
     {
         private readonly AdministracionDbContext _context;
@@ -29,7 +31,7 @@ namespace pagos_administracion_mvc.Controllers
             var curso = await _context.Cursos.FindAsync(cursoId);
             if (curso == null) return (null, NotFound());
 
-            if (User.IsInRole("Docente") && !User.IsInRole("Admin"))
+            if (User.IsInRole("Preceptor") && !User.IsInRole("Admin"))
             {
                 var userId = _userManager.GetUserId(User);
                 if (curso.ProfesorUserId != userId) return (null, Forbid());
@@ -128,7 +130,7 @@ namespace pagos_administracion_mvc.Controllers
         {
             var cursosQuery = _context.Cursos.AsQueryable();
 
-            if (User.IsInRole("Docente") && !User.IsInRole("Admin"))
+            if (User.IsInRole("Preceptor") && !User.IsInRole("Admin"))
             {
                 var userId = _userManager.GetUserId(User);
                 cursosQuery = cursosQuery.Where(c => c.ProfesorUserId == userId);

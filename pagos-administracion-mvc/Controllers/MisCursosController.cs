@@ -7,9 +7,11 @@ using pagos_administracion_mvc.Models;
 
 namespace pagos_administracion_mvc.Controllers
 {
-    // Rol Docente: solo ve los cursos que tiene asignados (Curso.ProfesorUserId), nunca el
-    // listado completo de cursos (eso es exclusivo de Admin, vía CursosController).
-    [Authorize(Roles = "Docente")]
+    // Rol Preceptor: solo ve los cursos que tiene asignados (Curso.ProfesorUserId), nunca el
+    // listado completo de cursos (eso es exclusivo de Admin, vía CursosController). Es la puerta
+    // de entrada a Asistencia/Boletines de sus cursos — distinto del Docente, que entra a Notas
+    // por materia (CursoAsignatura) vía NotasController.
+    [Authorize(Roles = "Preceptor")]
     public class MisCursosController : Controller
     {
         private readonly AdministracionDbContext _context;
