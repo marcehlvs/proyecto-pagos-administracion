@@ -43,7 +43,15 @@ namespace pagos_administracion_mvc.Services
                 // SECCIÓN del RITE: el Nombre del Curso de la primera Inscripcion (ej. "6to B").
                 // Si el alumno tuviera más de una Inscripcion (caso raro), alcanza con la primera:
                 // el boletín es "por alumno", no arma una fila de Sección por Curso.
-                Seccion = inscripciones.FirstOrDefault()?.Curso.Nombre
+                Seccion = inscripciones.FirstOrDefault()?.Curso.Nombre,
+                // Materias pendientes de años anteriores (RITE, Fase 3): no depende del año
+                // lectivo que se está imprimiendo, es un arrastre — se listan todas mientras
+                // sigan activas (ver MateriasPendientesController).
+                MateriasPendientes = await _context.MateriasPendientes
+                    .Include(mp => mp.Asignatura)
+                    .Where(mp => mp.AlumnoId == alumnoId)
+                    .OrderBy(mp => mp.Aprobada).ThenByDescending(mp => mp.GradoAnio).ThenBy(mp => mp.Asignatura.Nombre)
+                    .ToListAsync()
             };
 
             // Días hábiles / inasistencias por Cuatrimestre: se calculan una sola vez para el
@@ -51,6 +59,12 @@ namespace pagos_administracion_mvc.Services
             // con el rango FechaInicio/FechaFin del Periodo. Si el Admin no cargó esas fechas
             // para un Cuatrimestre, esa columna directamente no entra en el diccionario — la
             // plantilla la imprime en blanco en vez de mostrar un 0 que no reflejaría nada real.
+            //
+            // "Días hábiles" es el calendario oficial (lunes a viernes menos Feriado), NO la
+            // cantidad de fechas en las que efectivamente se tomó Asistencia: si el Docente
+            // todavía no cargó ninguna, el Periodo igual "tuvo" esos días hábiles.
+            var feriados = new HashSet<DateTime>(await _context.Feriados.Select(f => f.Fecha.Date).ToListAsync());
+
             var inscripcionIds = inscripciones.Select(i => i.Id).ToList();
             foreach (var columna in columnas.Where(c => c.Tipo == TipoPeriodo.Cuatrimestral && c.FechaInicio.HasValue && c.FechaFin.HasValue))
             {
@@ -62,7 +76,7 @@ namespace pagos_administracion_mvc.Services
 
                 datos.AsistenciasPorPeriodoId[columna.Id] = new ResumenAsistenciaPeriodo
                 {
-                    DiasHabiles = asistenciasDelCuatrimestre.Select(a => a.Fecha.Date).Distinct().Count(),
+                    DiasHabiles = ContarDiasHabiles(columna.FechaInicio!.Value, columna.FechaFin!.Value, feriados),
                     // Justificada cuenta como inasistencia igual que Ausente (el alumno no
                     // estuvo en clase ese día); Tarde no cuenta como falta.
                     Inasistencias = asistenciasDelCuatrimestre.Count(a => a.Estado == EstadoAsistencia.Ausente || a.Estado == EstadoAsistencia.Justificada)
@@ -96,6 +110,17 @@ namespace pagos_administracion_mvc.Services
                                 n.PeriodoId == columna.Id && n.Orden == 0);
                             fila.ValoracionesPorPeriodoId[columna.Id] = consolidada?.ValoracionPreliminar;
                         }
+                        else if (columna.Tipo == TipoPeriodo.Anual)
+                        {
+                            // Intensificación diciembre/febrero (RITE, Fase 3): vive en la fila
+                            // Orden = 0 de la columna Anual, mismo criterio que la Valoración
+                            // Preliminar arriba pero para el otro tipo de Periodo.
+                            var consolidadaAnual = await _context.Notas.FirstOrDefaultAsync(n =>
+                                n.InscripcionId == inscripcion.Id && n.CursoAsignaturaId == materia.Id &&
+                                n.PeriodoId == columna.Id && n.Orden == 0);
+                            fila.IntensificacionDiciembre = consolidadaAnual?.IntensificacionDiciembre;
+                            fila.IntensificacionFebrero = consolidadaAnual?.IntensificacionFebrero;
+                        }
                     }
 
                     datos.Filas.Add(fila);
@@ -103,6 +128,22 @@ namespace pagos_administracion_mvc.Services
             }
 
             return datos;
+        }
+
+        // Lunes a viernes entre dos fechas (inclusive) que no estén en la tabla Feriados. No
+        // hardcodea ningún feriado: todo sale de la tabla, cargada a mano por el Admin desde
+        // /Feriados (ver FeriadosController) porque los puentes turísticos recién se deciden a
+        // fines del año anterior y no hay forma de calcularlos solos.
+        private static int ContarDiasHabiles(DateTime desde, DateTime hasta, ICollection<DateTime> feriados)
+        {
+            var dias = 0;
+            for (var fecha = desde.Date; fecha <= hasta.Date; fecha = fecha.AddDays(1))
+            {
+                if (fecha.DayOfWeek == DayOfWeek.Saturday || fecha.DayOfWeek == DayOfWeek.Sunday) continue;
+                if (feriados.Contains(fecha)) continue;
+                dias++;
+            }
+            return dias;
         }
     }
 }

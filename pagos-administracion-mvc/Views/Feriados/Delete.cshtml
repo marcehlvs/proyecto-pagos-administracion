@@ -1,0 +1,15 @@
+﻿@model pagos_administracion_mvc.Models.Feriado
+@{
+    ViewData["Title"] = "Eliminar feriado";
+}
+
+<h1>Eliminar feriado</h1>
+<div class="alert alert-danger">
+    ¿Confirmás que querés eliminar "@Model.Descripcion" (@Model.Fecha.ToString("dd/MM/yyyy"))?
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" asp-route-anio="@Model.Fecha.Year" class="btn btn-link">Cancelar</a>
+</form>

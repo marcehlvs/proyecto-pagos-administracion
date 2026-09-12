@@ -22,6 +22,8 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Periodo> Periodos { get; set; }
         public DbSet<CursoAsignatura> CursosAsignaturas { get; set; }
         public DbSet<Nota> Notas { get; set; }
+        public DbSet<MateriaPendiente> MateriasPendientes { get; set; }
+        public DbSet<Feriado> Feriados { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -133,6 +135,13 @@ namespace pagos_administracion_mvc.Data
 
             modelBuilder.Entity<Asignatura>().HasQueryFilter(a => a.Activo);
             modelBuilder.Entity<Periodo>().HasQueryFilter(p => p.Activo);
+
+            // Un feriado no puede cargarse dos veces para la misma fecha.
+            modelBuilder.Entity<Feriado>()
+                .HasIndex(f => f.Fecha)
+                .IsUnique();
+
+            modelBuilder.Entity<Feriado>().HasQueryFilter(f => f.Activo);
             modelBuilder.Entity<CursoAsignatura>()
                 .HasOne(ca => ca.Curso)
                 .WithMany(c => c.CursosAsignaturas)
@@ -182,6 +191,8 @@ namespace pagos_administracion_mvc.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Nota>().Property(n => n.Valor).HasPrecision(4, 2);
+            modelBuilder.Entity<Nota>().Property(n => n.IntensificacionDiciembre).HasPrecision(4, 2);
+            modelBuilder.Entity<Nota>().Property(n => n.IntensificacionFebrero).HasPrecision(4, 2);
 
             // Una sola Nota por Alumno+Materia+Periodo+Orden (Orden distingue cada nota suelta
             // dentro del Periodo; Orden=0 es la fila "consolidada" del Periodo para el boletín).
@@ -192,6 +203,24 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Nota>().HasQueryFilter(n =>
                 n.Activo && n.Inscripcion.Activo && n.Inscripcion.Alumno.Activo &&
                 n.CursoAsignatura.Activo && n.Periodo.Activo);
+
+            // Materias pendientes de años anteriores (RITE, Fase 3): igual criterio que el resto,
+            // Restrict en las dos FK (un Alumno o una Asignatura con pendientes cargadas no se
+            // borran físicamente) y el filtro encadena con Activo del Alumno y de la Asignatura.
+            modelBuilder.Entity<MateriaPendiente>()
+                .HasOne(mp => mp.Alumno)
+                .WithMany()
+                .HasForeignKey(mp => mp.AlumnoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MateriaPendiente>()
+                .HasOne(mp => mp.Asignatura)
+                .WithMany()
+                .HasForeignKey(mp => mp.AsignaturaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MateriaPendiente>()
+                .HasQueryFilter(mp => mp.Activo && mp.Alumno.Activo && mp.Asignatura.Activo);
 
             modelBuilder.Entity<ArancelNivel>().HasQueryFilter(a => a.Activo);
             modelBuilder.Entity<ArancelNivel>().Property(a => a.Curricular).HasPrecision(18, 2);

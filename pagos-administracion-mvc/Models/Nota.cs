@@ -52,6 +52,19 @@ namespace pagos_administracion_mvc.Models
         [Display(Name = "Valoración preliminar")]
         public Enums.ValoracionPreliminar? ValoracionPreliminar { get; set; }
 
+        // Intensificación diciembre/febrero (RITE, Fase 3): examen de recuperación posterior al
+        // ciclo lectivo para el alumno que no aprobó. Se carga igual que el resto de las notas
+        // (Docente, en Notas/Cargar), pero solo tiene sentido en la fila Orden = 0 del Periodo
+        // Tipo = Anual — no por Cuatrimestre, es una instancia de fin de año. Son independientes
+        // entre sí: un alumno puede rendir solo diciembre, solo febrero, o ninguna.
+        [Range(0, 10, ErrorMessage = "La nota debe estar entre 0 y 10.")]
+        [Display(Name = "Intensificación diciembre")]
+        public decimal? IntensificacionDiciembre { get; set; }
+
+        [Range(0, 10, ErrorMessage = "La nota debe estar entre 0 y 10.")]
+        [Display(Name = "Intensificación febrero")]
+        public decimal? IntensificacionFebrero { get; set; }
+
         // Soft delete: mismo criterio que el resto del proyecto.
         public bool Activo { get; set; } = true;
 

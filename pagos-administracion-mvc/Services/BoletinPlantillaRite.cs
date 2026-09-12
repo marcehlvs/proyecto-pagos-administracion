@@ -14,9 +14,10 @@ namespace pagos_administracion_mvc.Services
     // Preliminar TEA/TEP/TED (Nota.ValoracionPreliminar, cargada por el Docente por cuatrimestre),
     // Distrito y Sección (ConfiguracionSitio.Distrito / Curso.Nombre), y Días hábiles/Inasistencias
     // cruzando Asistencia con el rango FechaInicio/FechaFin de cada Periodo Cuatrimestral.
-    // Todavía en blanco (quedan para una Fase 3): Intensificación (diciembre/febrero) y la tabla
-    // de "Materias pendientes de aprobación" (arrastre de años anteriores) — ninguna de las dos
-    // tiene todavía un lugar donde cargarse en el sistema.
+    // Fase 3 sumó: Intensificación diciembre/febrero (Nota.IntensificacionDiciembre/Febrero,
+    // cargada por el Docente en la fila Orden=0 del Periodo Anual) y la tabla de "Materias
+    // pendientes de aprobación" (MateriaPendiente, cargada por Admin/Preceptor por Alumno,
+    // independiente del año lectivo — ver MateriasPendientesController).
     //
     // Se registra en Program.cs junto a IBoletinPlantilla, bajo su propio tipo concreto
     // (BoletinPlantillaRite), no como el default: BoletinesController inyecta ambas
@@ -119,12 +120,12 @@ namespace pagos_administracion_mvc.Services
                                 header.Cell().Element(CeldaEncabezado).Text("MATERIAS");
                                 header.Cell().Element(CeldaEncabezado).AlignCenter().Text("AÑO");
                                 header.Cell().Element(CeldaEncabezado).AlignCenter().Text("1º VALORACIÓN\nPRELIMINAR");
-                                header.Cell().Element(CeldaEncabezado).AlignCenter().Text("CALIFICACIÓN\n1º CUATR.");
+                                header.Cell().Element(CeldaEncabezado).AlignCenter().Text("CALIF.\n1º CUATR.");
                                 header.Cell().Element(CeldaEncabezado).AlignCenter().Text("2º VALORACIÓN\nPRELIMINAR");
-                                header.Cell().Element(CeldaEncabezado).AlignCenter().Text("CALIFICACIÓN\n2º CUATR.");
+                                header.Cell().Element(CeldaEncabezado).AlignCenter().Text("CALIF.\n2º CUATR.");
                                 header.Cell().Element(CeldaEncabezado).AlignCenter().Text("INTENSIF.\nDICIEMBRE");
                                 header.Cell().Element(CeldaEncabezado).AlignCenter().Text("INTENSIF.\nFEBRERO");
-                                header.Cell().Element(CeldaEncabezado).AlignCenter().Text("CALIFICACIÓN\nFINAL");
+                                header.Cell().Element(CeldaEncabezado).AlignCenter().Text("CALIF.\nFINAL");
                                 header.Cell().Element(CeldaEncabezado).Text("OBSERVACIONES");
                             });
 
@@ -150,8 +151,8 @@ namespace pagos_administracion_mvc.Services
                                     table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(calif1?.ToString("0.##") ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(valoracion2?.ToString() ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(calif2?.ToString("0.##") ?? "");
-                                    table.Cell().Element(c => Celda(c, fondo)); // Intensificación diciembre: sin dato todavía.
-                                    table.Cell().Element(c => Celda(c, fondo)); // Intensificación febrero: sin dato todavía.
+                                    table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(fila.IntensificacionDiciembre?.ToString("0.##") ?? "");
+                                    table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(fila.IntensificacionFebrero?.ToString("0.##") ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)).AlignCenter().Text(califFinal?.ToString("0.##") ?? "");
                                     table.Cell().Element(c => Celda(c, fondo)).Text("1°C:\n2°C:");
                                 }
@@ -198,6 +199,44 @@ namespace pagos_administracion_mvc.Services
                             table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen2?.Inasistencias.ToString() ?? "");
                             table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(hayAlgunResumen ? totalInasistencias.ToString() : "");
                         });
+
+                        // Materias pendientes de aprobación de años anteriores (RITE, Fase 3):
+                        // solo se imprime la tabla si hay alguna cargada, para no ocupar espacio
+                        // en el boletín de un alumno sin arrastre.
+                        if (datos.MateriasPendientes.Any())
+                        {
+                            col.Item().PaddingTop(14).Text("MATERIAS PENDIENTES DE APROBACIÓN").FontSize(8).Bold();
+                            col.Item().PaddingTop(2).Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(2);  // Materia
+                                    columns.RelativeColumn(1);  // Estado
+                                    columns.RelativeColumn(1);  // Fecha de aprobación
+                                    columns.RelativeColumn(3);  // Observación
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(CeldaEncabezado).Text("MATERIA");
+                                    header.Cell().Element(CeldaEncabezado).AlignCenter().Text("ESTADO");
+                                    header.Cell().Element(CeldaEncabezado).AlignCenter().Text("FECHA DE\nAPROBACIÓN");
+                                    header.Cell().Element(CeldaEncabezado).Text("OBSERVACIÓN");
+                                });
+
+                                var filaImparPendientes = false;
+                                foreach (var pendiente in datos.MateriasPendientes)
+                                {
+                                    var fondoPendiente = filaImparPendientes ? Colors.Grey.Lighten4 : Colors.White;
+                                    filaImparPendientes = !filaImparPendientes;
+
+                                    table.Cell().Element(c => Celda(c, fondoPendiente)).Text(pendiente.Etiqueta);
+                                    table.Cell().Element(c => Celda(c, fondoPendiente)).AlignCenter().Text(pendiente.Aprobada ? "Aprobada" : "Pendiente");
+                                    table.Cell().Element(c => Celda(c, fondoPendiente)).AlignCenter().Text(pendiente.FechaAprobacion?.ToString("dd/MM/yyyy") ?? "");
+                                    table.Cell().Element(c => Celda(c, fondoPendiente)).Text(pendiente.Observacion ?? "");
+                                }
+                            });
+                        }
 
                         col.Item().PaddingTop(20).Row(row =>
                         {

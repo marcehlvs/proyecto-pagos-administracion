@@ -14,6 +14,12 @@ namespace pagos_administracion_mvc.Models
         // Solo tiene entradas para columnas Cuatrimestrales (ver BoletinService): la Valoración
         // Preliminar (TEA/TEP/TED) del RITE, independiente de la calificación numérica de arriba.
         public Dictionary<int, ValoracionPreliminar?> ValoracionesPorPeriodoId { get; set; } = new();
+
+        // Intensificación diciembre/febrero (RITE): sale de la fila Orden = 0 de la columna
+        // Anual (ver BoletinService) — no está indexada por PeriodoId como lo de arriba porque
+        // solo existe una instancia por materia por año, no una por Cuatrimestre.
+        public decimal? IntensificacionDiciembre { get; set; }
+        public decimal? IntensificacionFebrero { get; set; }
     }
 
     // Días hábiles e inasistencias de un Alumno en un Cuatrimestre, cruzando Asistencia con el
@@ -46,5 +52,10 @@ namespace pagos_administracion_mvc.Models
 
         // Por PeriodoId de una columna Cuatrimestral con FechaInicio/FechaFin cargadas.
         public Dictionary<int, ResumenAsistenciaPeriodo> AsistenciasPorPeriodoId { get; set; } = new();
+
+        // Materias pendientes de aprobación de años anteriores (RITE): no depende del año
+        // lectivo que se está imprimiendo, es un arrastre — se listan todas las que sigan
+        // activas para este Alumno (ver BoletinService/MateriasPendientesController).
+        public List<MateriaPendiente> MateriasPendientes { get; set; } = new();
     }
 }
