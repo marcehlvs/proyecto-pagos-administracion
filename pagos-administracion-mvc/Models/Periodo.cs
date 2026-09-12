@@ -35,6 +35,18 @@ namespace pagos_administracion_mvc.Models
 
         public ICollection<Periodo> Subperiodos { get; set; } = new List<Periodo>();
 
+        // Rango de fechas de este Periodo. Opcional, pero si un Cuatrimestral las tiene cargadas,
+        // el boletín RITE calcula solo "Días hábiles"/"Inasistencias" cruzando con Asistencia en
+        // ese rango (ver BoletinService); si falta alguna de las dos, esa columna queda en blanco
+        // en el PDF en vez de mostrar un 0 engañoso.
+        [Display(Name = "Fecha de inicio")]
+        [DataType(DataType.Date)]
+        public DateTime? FechaInicio { get; set; }
+
+        [Display(Name = "Fecha de fin")]
+        [DataType(DataType.Date)]
+        public DateTime? FechaFin { get; set; }
+
         // Soft delete: mismo criterio que el resto del proyecto.
         public bool Activo { get; set; } = true;
     }

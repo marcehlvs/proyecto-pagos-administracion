@@ -15,6 +15,10 @@ namespace pagos_administracion_mvc.Models
         // el Docente cargó a mano por encima de ese promedio.
         public decimal? Promedio { get; set; }
         public bool EsPromedioAutomatico { get; set; } = true;
+
+        // Solo se completa (y solo importa) cuando el Periodo es Cuatrimestral: valoración TEA/
+        // TEP/TED que carga el Docente para el RITE, independiente de la calificación numérica.
+        public Enums.ValoracionPreliminar? ValoracionPreliminar { get; set; }
     }
 
     // Una nota suelta (Orden 1..N) enviada desde el formulario. Valor es TEXTO, no decimal: los
@@ -38,6 +42,11 @@ namespace pagos_administracion_mvc.Models
     {
         public int InscripcionId { get; set; }
         public string? Valor { get; set; }
+
+        // "TEA"/"TEP"/"TED" o vacío ("—", sin cambios / sin cargar). Texto por el mismo motivo
+        // que el resto: más fácil de parsear a mano (y de dejar en blanco) que bindear el enum
+        // directamente. Solo se usa cuando el Periodo es Cuatrimestral (ver Cargar.cshtml).
+        public string? ValoracionPreliminar { get; set; }
     }
 
     // Modelo completo de la pantalla NotasController/Cargar.
@@ -54,6 +63,11 @@ namespace pagos_administracion_mvc.Models
         // hay notas sueltas que cargar acá: se promedian los Subperiodos. Si no tiene Subperiodos
         // (ej. un Trimestre), el Docente carga notas sueltas directamente (ver Columnas).
         public bool EsPeriodoContenedor => PeriodoSeleccionado?.Subperiodos.Any() == true;
+
+        // Columna "Valoración preliminar" (TEA/TEP/TED, RITE): solo tiene sentido para un
+        // Periodo Cuatrimestral, sea o no contenedor (aplica igual si el colegio arma el
+        // cuatrimestre a partir de Trimestres o si el Docente carga notas sueltas directamente).
+        public bool MostrarValoracionPreliminar => PeriodoSeleccionado?.Tipo == Enums.TipoPeriodo.Cuatrimestral;
 
         // Cantidad de columnas de nota suelta a mostrar (mínimo 4, se ajusta sola si ya hay
         // cargadas más, y el Docente puede pedir más desde la vista).

@@ -16,6 +16,13 @@ namespace pagos_administracion_mvc.Models
         public int GradoAnio { get; set; }
         public Turno Turno { get; set; }
 
+        // TIPO del RITE (C = cursa por primera vez / R = recursa el año): lo carga el Admin
+        // sobre el Alumno, no por materia — en este colegio, si un alumno recursa, recursa el
+        // año completo (no hay recursado materia por materia todavía). Se imprime igual en
+        // todas las filas de materia del boletín RITE.
+        [Display(Name = "Recursa este año")]
+        public bool EsRecursante { get; set; } = false;
+
         public string? FamiliaUserId { get; set; }
         public ApplicationUser? FamiliaUser { get; set; }
 

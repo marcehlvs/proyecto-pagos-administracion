@@ -47,7 +47,7 @@ namespace pagos_administracion_mvc.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Nombre,Tipo,AnioLectivo,PeriodoPadreId")] Periodo periodo)
+        public async Task<IActionResult> Create([Bind("Nombre,Tipo,AnioLectivo,PeriodoPadreId,FechaInicio,FechaFin")] Periodo periodo)
         {
             if (ModelState.IsValid)
             {
@@ -71,7 +71,7 @@ namespace pagos_administracion_mvc.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nombre,Tipo,AnioLectivo,PeriodoPadreId")] Periodo periodo)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nombre,Tipo,AnioLectivo,PeriodoPadreId,FechaInicio,FechaFin")] Periodo periodo)
         {
             if (id != periodo.Id) return NotFound();
 

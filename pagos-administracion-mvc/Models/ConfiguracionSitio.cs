@@ -32,6 +32,12 @@ namespace pagos_administracion_mvc.Models
         [MaxLength(50)]
         public string NombrePreset { get; set; } = "Institucional (por defecto)";
 
+        // Distrito DGCyE del establecimiento, para el encabezado del boletín RITE. Uno solo para
+        // todo el colegio (a diferencia de Sección, que sale del Curso de cada alumno).
+        [Display(Name = "Distrito")]
+        [MaxLength(100)]
+        public string? Distrito { get; set; }
+
         public string? ModificadaPorNombre { get; set; }
         public DateTime? FechaModificacion { get; set; }
     }
