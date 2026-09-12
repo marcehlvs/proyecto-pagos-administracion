@@ -59,7 +59,7 @@
                     {
                         @for (var i = 1; i <= Model.Columnas; i++)
                         {
-                            <th style="width: 90px;">Nota @i</th>
+                            <th style="width: 110px;">Nota @i</th>
                         }
                     }
                     <th style="width: 110px;">Promedio</th>
@@ -81,9 +81,9 @@
                                 <td>
                                     <input type="hidden" name="notasSueltas[@idxSuelta].InscripcionId" value="@fila.InscripcionId" />
                                     <input type="hidden" name="notasSueltas[@idxSuelta].Orden" value="@i" />
-                                    <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm"
+                                    <input type="number" step="0.01" min="0" max="10" class="form-control"
                                            name="notasSueltas[@idxSuelta].Valor"
-                                           value="@fila.ValoresPorOrden.GetValueOrDefault(i)"
+                                           value="@fila.ValoresPorOrden.GetValueOrDefault(i)?.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            disabled="@Model.SoloLectura" />
                                 </td>
                                 idxSuelta++;
@@ -94,9 +94,9 @@
 
                         <td>
                             <input type="hidden" name="notaManual[@idxManual].InscripcionId" value="@fila.InscripcionId" />
-                            <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm"
+                            <input type="number" step="0.01" min="0" max="10" class="form-control"
                                    name="notaManual[@idxManual].Valor" placeholder="Opcional"
-                                   value="@(fila.EsPromedioAutomatico ? null : fila.Promedio)"
+                                   value="@(fila.EsPromedioAutomatico ? null : fila.Promedio?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                    disabled="@Model.SoloLectura" />
                         </td>
                         @{ idxManual++; }

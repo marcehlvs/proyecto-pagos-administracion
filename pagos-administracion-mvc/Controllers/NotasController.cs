@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using pagos_administracion_mvc.Services;
+using System.Globalization;
 
 namespace pagos_administracion_mvc.Controllers
 {
@@ -163,15 +164,17 @@ namespace pagos_administracion_mvc.Controllers
 
             foreach (var entrada in notasSueltas ?? new List<NotaSueltaInput>())
             {
-                if (entrada.Orden <= 0 || !entrada.Valor.HasValue) continue;
-                await GuardarUnaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, entrada.Orden, entrada.Valor.Value, nombreDocente, manual: true);
+                var valor = ParsearValor(entrada.Valor);
+                if (entrada.Orden <= 0 || !valor.HasValue || valor < 0 || valor > 10) continue;
+                await GuardarUnaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, entrada.Orden, valor.Value, nombreDocente, manual: true);
                 inscripcionesTocadas.Add(entrada.InscripcionId);
             }
 
             foreach (var entrada in notaManual ?? new List<NotaManualInput>())
             {
-                if (!entrada.Valor.HasValue) continue;
-                await GuardarUnaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, 0, entrada.Valor.Value, nombreDocente, manual: true);
+                var valor = ParsearValor(entrada.Valor);
+                if (!valor.HasValue || valor < 0 || valor > 10) continue;
+                await GuardarUnaAsync(entrada.InscripcionId, cursoAsignaturaId, periodoId, 0, valor.Value, nombreDocente, manual: true);
                 inscripcionesTocadas.Add(entrada.InscripcionId);
             }
 
@@ -185,6 +188,19 @@ namespace pagos_administracion_mvc.Controllers
                 ? $"Se guardaron notas de {inscripcionesTocadas.Count} alumno(s)."
                 : "No había ninguna nota nueva para guardar.";
             return RedirectToAction(nameof(Cargar), new { cursoAsignaturaId, periodoId });
+        }
+
+        // Los <input type="number"> del navegador siempre mandan el valor con "." como separador
+        // decimal, sin importar el idioma de la página — pero si esta propiedad llegara como
+        // decimal? directamente, ASP.NET Core la parsearía con la cultura del servidor (es-AR:
+        // coma decimal, punto de miles), y "8.5" podría bindear como null o como 85. Por eso
+        // llega como string y se parsea acá, a mano, siempre en cultura invariante. De paso
+        // acepta "8,5" por si alguien lo escribe con coma sin querer.
+        private static decimal? ParsearValor(string? texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return null;
+            texto = texto.Trim().Replace(',', '.');
+            return decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out var valor) ? valor : null;
         }
 
         private async Task GuardarUnaAsync(int inscripcionId, int cursoAsignaturaId, int periodoId, int orden, decimal valor, string nombreDocente, bool manual)
