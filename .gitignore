@@ -437,4 +437,4 @@ pagos-administracion-mvc/App_Data/comprobantes/*
 !pagos-administracion-mvc/App_Data/comprobantes/.gitkeep
 
 # Sobras de patches aplicados con "git apply" que fallaron parcialmente.
-*.rej
+*.rej*.patch
