@@ -232,7 +232,7 @@
                 <button type="submit" class="btn btn-primary">Guardar notas</button>
                 @if (!Model.EsPeriodoContenedor)
                 {
-                    <a asp-action="Cargar" asp-route-cursoAsignaturaId="@ca.Id" asp-route-periodoId="@Model.PeriodoSeleccionado.Id" asp-route-columnas="@(Model.Columnas + 2)" class="btn btn-outline-secondary">+ Agregar más columnas de nota</a>
+                    <a asp-action="Cargar" asp-route-cursoAsignaturaId="@ca.Id" asp-route-periodoId="@Model.PeriodoSeleccionado.Id" asp-route-columnas="@(Model.Columnas + 1)" class="btn btn-outline-secondary">+ Agregar más columnas de nota</a>
                 }
             </div>
         }

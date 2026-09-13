@@ -427,3 +427,14 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+
+# --- Agregado: datos de usuario que no deben versionarse ---
+# Comprobantes de pago subidos por familias (archivos reales, con datos personales/bancarios).
+# Se guardan en disco local en dev; en producción van a un storage persistente aparte
+# (ver DEPLOY.md), nunca al repo.
+pagos-administracion-mvc/App_Data/comprobantes/*
+!pagos-administracion-mvc/App_Data/comprobantes/.gitkeep
+
+# Sobras de patches aplicados con "git apply" que fallaron parcialmente.
+*.rej
