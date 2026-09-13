@@ -78,5 +78,34 @@ namespace pagos_administracion_mvc.Services
             var presentismo = (1m - (faltas / diasRegistrados)) * 100m;
             return Math.Round(Math.Clamp(presentismo, 0m, 100m), 1);
         }
+
+        // Formatea una cantidad de faltas como fracción legible en vez de decimal (ej. "3 ¼" en
+        // vez de "3.25"), para el PDF del boletín. No se usa ninguna librería externa: con la
+        // tabla de CalcularFraccionFalta, el valor siempre cae en un múltiplo de 1/4 (0, .25,
+        // .5, .75), así que alcanza con mapear esos 4 casos a los glifos Unicode de fracción.
+        // Si algún día se agregan pesos distintos (octavos, etc.) y el valor no cae en un
+        // múltiplo de 1/4, se devuelve el decimal tal cual como respaldo.
+        public static string FormatearComoFraccion(decimal valor)
+        {
+            var entero = Math.Truncate(valor);
+            var resto = valor - entero;
+
+            string glifo = resto switch
+            {
+                0m => "",
+                0.25m => "¼",
+                0.5m => "½",
+                0.75m => "¾",
+                _ => null! // caso no contemplado, cae al respaldo decimal más abajo
+            };
+
+            if (glifo == null)
+                return valor.ToString("0.##");
+
+            if (entero == 0m && resto != 0m)
+                return glifo; // ej. "¼" solo, sin "0" adelante
+
+            return entero.ToString("0") + glifo;
+        }
     }
 }

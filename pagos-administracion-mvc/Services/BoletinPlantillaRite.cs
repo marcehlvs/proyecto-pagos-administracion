@@ -194,10 +194,12 @@ namespace pagos_administracion_mvc.Services
                             table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen2?.DiasHabiles.ToString() ?? "");
                             table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(hayAlgunResumen ? totalDiasHabiles.ToString() : "");
 
+                            // Se imprime como fracción (ej. "3 ¼") en vez del decimal crudo — ver
+                            // AsistenciaCalculadora.FormatearComoFraccion.
                             table.Cell().Element(c => Celda(c, Colors.White)).Text("INASISTENCIAS").Bold();
-                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen1?.Inasistencias.ToString() ?? "");
-                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen2?.Inasistencias.ToString() ?? "");
-                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(hayAlgunResumen ? totalInasistencias.ToString() : "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen1 != null ? AsistenciaCalculadora.FormatearComoFraccion(resumen1.Inasistencias) : "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(resumen2 != null ? AsistenciaCalculadora.FormatearComoFraccion(resumen2.Inasistencias) : "");
+                            table.Cell().Element(c => Celda(c, Colors.White)).AlignCenter().Text(hayAlgunResumen ? AsistenciaCalculadora.FormatearComoFraccion(totalInasistencias) : "");
                         });
 
                         // Materias pendientes de aprobación de años anteriores (RITE, Fase 3):

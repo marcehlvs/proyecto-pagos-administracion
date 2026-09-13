@@ -65,21 +65,32 @@ namespace pagos_administracion_mvc.Services
             // todavía no cargó ninguna, el Periodo igual "tuvo" esos días hábiles.
             var feriados = new HashSet<DateTime>(await _context.Feriados.Select(f => f.Fecha.Date).ToListAsync());
 
-            var inscripcionIds = inscripciones.Select(i => i.Id).ToList();
             foreach (var columna in columnas.Where(c => c.Tipo == TipoPeriodo.Cuatrimestral && c.FechaInicio.HasValue && c.FechaFin.HasValue))
             {
-                var asistenciasDelCuatrimestre = await _context.Asistencias
-                    .Where(a => inscripcionIds.Contains(a.InscripcionId) && a.Activo &&
-                                a.Materia == Materia.Clase &&
-                                a.Fecha >= columna.FechaInicio!.Value && a.Fecha <= columna.FechaFin!.Value)
-                    .ToListAsync();
+                // Se suma inscripción por inscripción (no todas juntas) porque
+                // AsistenciaCalculadora necesita el Curso de cada una para saber, día por día,
+                // si ese Curso tenía Educación Física (afecta el peso de la falta). El caso
+                // normal es una sola Inscripcion por Alumno; si hubiera más de una, se suman las
+                // faltas fraccionadas de cada Curso.
+                //
+                // Nota: acá se traen Clase Y EducacionFisica (antes solo Materia.Clase), porque
+                // CalcularTotalFaltas necesita ambos registros del mismo día para repartir el
+                // 50/50 cuando el Curso tiene EF ese día.
+                decimal totalFaltas = 0m;
+                foreach (var inscripcion in inscripciones)
+                {
+                    var asistenciasDeLaInscripcion = await _context.Asistencias
+                        .Where(a => a.InscripcionId == inscripcion.Id && a.Activo &&
+                                    a.Fecha >= columna.FechaInicio!.Value && a.Fecha <= columna.FechaFin!.Value)
+                        .ToListAsync();
+
+                    totalFaltas += AsistenciaCalculadora.CalcularTotalFaltas(asistenciasDeLaInscripcion, inscripcion.Curso);
+                }
 
                 datos.AsistenciasPorPeriodoId[columna.Id] = new ResumenAsistenciaPeriodo
                 {
                     DiasHabiles = ContarDiasHabiles(columna.FechaInicio!.Value, columna.FechaFin!.Value, feriados),
-                    // Justificada cuenta como inasistencia igual que Ausente (el alumno no
-                    // estuvo en clase ese día); Tarde no cuenta como falta.
-                    Inasistencias = asistenciasDelCuatrimestre.Count(a => a.Estado == EstadoAsistencia.Ausente || a.Estado == EstadoAsistencia.Justificada)
+                    Inasistencias = totalFaltas
                 };
             }
 

@@ -29,7 +29,12 @@ namespace pagos_administracion_mvc.Models
     public class ResumenAsistenciaPeriodo
     {
         public int DiasHabiles { get; set; }
-        public int Inasistencias { get; set; }
+
+        // Antes era int (Count() de registros Ausente/Justificada). Ahora es decimal porque sale
+        // de AsistenciaCalculadora.CalcularTotalFaltas, que pesa distinto según Tarde (1/4) y
+        // días con Educación Física (1/2 + 1/2) en vez de contar días enteros. Ver
+        // AsistenciaCalculadora.FormatearComoFraccion para cómo se imprime en el PDF.
+        public decimal Inasistencias { get; set; }
     }
 
     // Todo lo que necesita una IBoletinPlantilla para armar el PDF de un alumno.
