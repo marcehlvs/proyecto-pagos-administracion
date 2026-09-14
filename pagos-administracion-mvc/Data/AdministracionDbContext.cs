@@ -23,6 +23,8 @@ namespace pagos_administracion_mvc.Data
         public DbSet<CursoAsignatura> CursosAsignaturas { get; set; }
         public DbSet<Nota> Notas { get; set; }
         public DbSet<MateriaPendiente> MateriasPendientes { get; set; }
+        public DbSet<Tarea> Tareas { get; set; }
+        public DbSet<Entrega> Entregas { get; set; }
         public DbSet<Feriado> Feriados { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -203,6 +205,54 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Nota>().HasQueryFilter(n =>
                 n.Activo && n.Inscripcion.Activo && n.Inscripcion.Alumno.Activo &&
                 n.CursoAsignatura.Activo && n.Periodo.Activo);
+
+            // --- Tareas (tipo Classroom) ---
+
+            modelBuilder.Entity<Tarea>()
+                .HasOne(t => t.CursoAsignatura)
+                .WithMany()
+                .HasForeignKey(t => t.CursoAsignaturaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Tarea>()
+                .HasOne(t => t.Periodo)
+                .WithMany()
+                .HasForeignKey(t => t.PeriodoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Tarea>().HasQueryFilter(t =>
+                t.Activo && t.CursoAsignatura.Activo);
+
+            modelBuilder.Entity<Entrega>()
+                .HasOne(e => e.Tarea)
+                .WithMany(t => t.Entregas)
+                .HasForeignKey(e => e.TareaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Entrega>()
+                .HasOne(e => e.Inscripcion)
+                .WithMany()
+                .HasForeignKey(e => e.InscripcionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Restrict, no Cascade: si se borra (soft-delete) la Nota generada por esta Entrega,
+            // no queremos que la Entrega se borre con ella — se desvincula (NotaId vuelve a
+            // setearse null) desde el código, ver TareasController.
+            modelBuilder.Entity<Entrega>()
+                .HasOne(e => e.Nota)
+                .WithMany()
+                .HasForeignKey(e => e.NotaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Entrega>().Property(e => e.Calificacion).HasPrecision(4, 2);
+
+            // Una sola Entrega por Alumno+Tarea.
+            modelBuilder.Entity<Entrega>()
+                .HasIndex(e => new { e.TareaId, e.InscripcionId })
+                .IsUnique();
+
+            modelBuilder.Entity<Entrega>().HasQueryFilter(e =>
+                e.Activo && e.Tarea.Activo && e.Inscripcion.Activo && e.Inscripcion.Alumno.Activo);
 
             // Materias pendientes de años anteriores (RITE, Fase 3): igual criterio que el resto,
             // Restrict en las dos FK (un Alumno o una Asignatura con pendientes cargadas no se
