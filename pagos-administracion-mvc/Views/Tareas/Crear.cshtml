@@ -1,0 +1,45 @@
+@model pagos_administracion_mvc.Models.Tarea
+@{
+    var ca = (pagos_administracion_mvc.Models.CursoAsignatura)ViewBag.CursoAsignatura;
+    var periodos = (List<pagos_administracion_mvc.Models.Periodo>)ViewBag.Periodos;
+    ViewData["Title"] = "Nueva tarea";
+}
+
+<h1 class="h3">Nueva tarea</h1>
+<p class="text-muted">@ca.Asignatura.Nombre — @ca.Curso.Etiqueta</p>
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<form asp-action="Crear" method="post" class="col-lg-6">
+    <input type="hidden" asp-for="CursoAsignaturaId" />
+
+    <div class="mb-3">
+        <label asp-for="Titulo" class="form-label"></label>
+        <input asp-for="Titulo" class="form-control" placeholder="Ej. Guía de ejercicios cap. 4" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Descripcion" class="form-label">Consigna</label>
+        <textarea asp-for="Descripcion" class="form-control" rows="4" placeholder="Detalle de la actividad (opcional)"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="FechaEntrega" class="form-label"></label>
+        <input asp-for="FechaEntrega" type="date" class="form-control" value="@Model.FechaEntrega.ToString("yyyy-MM-dd")" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="PeriodoId" class="form-label">Período</label>
+        <select asp-for="PeriodoId" class="form-select">
+            <option value="">-- No cuenta para el boletín (solo informativa) --</option>
+            @foreach (var p in periodos)
+            {
+                <option value="@p.Id">@p.Nombre (@p.Tipo)</option>
+            }
+        </select>
+        <div class="form-text">Si elegís un Período, la calificación de esta tarea se suma como una nota suelta de ese Período y entra en el promedio del boletín.</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Crear tarea</button>
+    <a asp-action="PorMateria" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-link">Cancelar</a>
+</form>

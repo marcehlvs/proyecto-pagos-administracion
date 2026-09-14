@@ -1,0 +1,432 @@
+diff --git a/pagos-administracion-mvc/Views/MisTareas/Index.cshtml b/pagos-administracion-mvc/Views/MisTareas/Index.cshtml
+new file mode 100644
+index 0000000..9ee8f7d
+--- /dev/null
++++ b/pagos-administracion-mvc/Views/MisTareas/Index.cshtml
+@@ -0,0 +1,97 @@
++@model List<pagos_administracion_mvc.Models.Entrega>
++@{
++    var misAlumnos = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.MisAlumnos;
++    var alumno = (pagos_administracion_mvc.Models.Alumno)ViewBag.AlumnoSeleccionado;
++    ViewData["Title"] = "Tareas";
++}
++
++<div class="d-flex justify-content-between align-items-center mb-3">
++    <h1 class="h3 mb-0">Tareas</h1>
++
++    @if (misAlumnos.Count > 1)
++    {
++        <form method="get" class="d-flex align-items-center gap-2">
++            <label class="form-label mb-0 small text-muted">Alumno</label>
++            <select name="alumnoId" class="form-select form-select-sm" onchange="this.form.submit()">
++                @foreach (var a in misAlumnos)
++                {
++                    <option value="@a.Id" selected="@(a.Id == alumno.Id)">@a.Apellido, @a.Nombre</option>
++                }
++            </select>
++        </form>
++    }
++</div>
++
++@if (TempData["Mensaje"] != null)
++{
++    <div class="alert alert-success">@TempData["Mensaje"]</div>
++}
++@if (TempData["ErrorTarea"] != null)
++{
++    <div class="alert alert-danger">@TempData["ErrorTarea"]</div>
++}
++
++@if (!Model.Any())
++{
++    <p class="text-muted">Todavía no hay tareas cargadas.</p>
++}
++
++@foreach (var entrega in Model)
++{
++    var tarea = entrega.Tarea;
++    var vencida = !entrega.Entregada && tarea.FechaEntrega < DateTime.Today;
++
++    <div class="card mb-3">
++        <div class="card-body">
++            <div class="d-flex justify-content-between align-items-start">
++                <div>
++                    <h5 class="card-title mb-1">@tarea.Titulo</h5>
++                    <p class="text-muted small mb-1">@tarea.CursoAsignatura.Asignatura.Nombre — entrega: @tarea.FechaEntrega.ToString("dd/MM/yyyy")</p>
++                </div>
++                <span class="badge @(entrega.Entregada ? "bg-success" : vencida ? "bg-danger" : "bg-secondary")">
++                    @(entrega.Entregada ? "Entregada" : vencida ? "Vencida" : "Pendiente")
++                </span>
++            </div>
++
++            @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
++            {
++                <p class="card-text">@tarea.Descripcion</p>
++            }
++
++            @if (entrega.Calificacion.HasValue)
++            {
++                <p class="mb-1"><strong>Calificación:</strong> @entrega.Calificacion.Value.ToString("0.##")</p>
++            }
++            @if (!string.IsNullOrWhiteSpace(entrega.ObservacionDocente))
++            {
++                <p class="mb-2 small"><strong>Comentario del Docente:</strong> @entrega.ObservacionDocente</p>
++            }
++
++            @if (entrega.ArchivoRuta != null)
++            {
++                <p class="mb-2">
++                    <a asp-action="DescargarArchivo" asp-route-entregaId="@entrega.Id" target="_blank">
++                        📎 @(entrega.ArchivoNombreOriginal ?? "archivo entregado")
++                    </a>
++                </p>
++            }
++
++            <details class="mt-2">
++                <summary class="small text-primary" style="cursor:pointer;">
++                    @(entrega.Entregada ? "Volver a entregar / editar" : "Entregar")
++                </summary>
++                <form asp-controller="MisTareas" asp-action="Subir" method="post" enctype="multipart/form-data" class="mt-2">
++                    <input type="hidden" name="entregaId" value="@entrega.Id" />
++                    <div class="mb-2">
++                        <textarea name="texto" class="form-control" rows="3" placeholder="Escribí tu respuesta (opcional si adjuntás archivo)">@entrega.Texto</textarea>
++                    </div>
++                    <div class="mb-2">
++                        <input type="file" name="archivo" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
++                        <div class="form-text">jpg, png, pdf, doc o docx — máx 5MB.</div>
++                    </div>
++                    <button type="submit" class="btn btn-sm btn-primary">Entregar</button>
++                </form>
++            </details>
++        </div>
++    </div>
++}
+diff --git a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
+index 95958f5..c2a47c6 100644
+--- a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
++++ b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
+@@ -54,7 +54,7 @@
+                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
+                         var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos" }
+     .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+-                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Feriados", "Notas", "Boletines", "MateriasPendientes" }
++                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Feriados", "Notas", "Tareas", "Boletines", "MateriasPendientes" }
+                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
+                     }
+                     <ul class="navbar-nav flex-grow-1">
+@@ -98,6 +98,7 @@
+                                     <li><a class="dropdown-item" asp-controller="Periodos" asp-action="Index"><i class="bi bi-calendar3-range"></i> Períodos</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Feriados" asp-action="Index"><i class="bi bi-calendar-x"></i> Feriados</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Notas" asp-action="Index"><i class="bi bi-journal-check"></i> Notas</a></li>
++                                    <li><a class="dropdown-item" asp-controller="Tareas" asp-action="Index"><i class="bi bi-list-task"></i> Tareas</a></li>
+                                     <li><a class="dropdown-item" asp-controller="MateriasPendientes" asp-action="Index"><i class="bi bi-hourglass-split"></i> Materias pendientes</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Index"><i class="bi bi-file-earmark-text"></i> Boletines</a></li>
+                                 </ul>
+@@ -106,11 +107,13 @@
+                         else if (User.IsInRole("Familia"))
+                         {
+                             <li class="nav-item"><a class="@clase("MisCuotas")" asp-controller="MisCuotas" asp-action="Index">Mis Cuotas</a></li>
++                            <li class="nav-item"><a class="@clase("MisTareas")" asp-controller="MisTareas" asp-action="Index">Tareas</a></li>
+                             <li class="nav-item"><a class="@clase("Boletines")" asp-controller="Boletines" asp-action="Index">Boletín</a></li>
+                         }
+                         else if (User.IsInRole("Alumno"))
+                         {
+                             <li class="nav-item"><a class="@clase("MisAsistencias")" asp-controller="MisAsistencias" asp-action="Index">Mis Asistencias</a></li>
++                            <li class="nav-item"><a class="@clase("MisTareas")" asp-controller="MisTareas" asp-action="Index">Tareas</a></li>
+                             <li class="nav-item"><a class="@clase("Boletines")" asp-controller="Boletines" asp-action="Index">Boletín</a></li>
+                         }
+                         else
+@@ -128,6 +131,7 @@
+                             if (User.IsInRole("Docente"))
+                             {
+                                 <li class="nav-item"><a class="@clase("Notas")" asp-controller="Notas" asp-action="Index">Notas</a></li>
++                                <li class="nav-item"><a class="@clase("Tareas")" asp-controller="Tareas" asp-action="Index">Tareas</a></li>
+                             }
+                         }
+                     </ul>
+diff --git a/pagos-administracion-mvc/Views/Tareas/Crear.cshtml b/pagos-administracion-mvc/Views/Tareas/Crear.cshtml
+new file mode 100644
+index 0000000..077b396
+--- /dev/null
++++ b/pagos-administracion-mvc/Views/Tareas/Crear.cshtml
+@@ -0,0 +1,45 @@
++@model pagos_administracion_mvc.Models.Tarea
++@{
++    var ca = (pagos_administracion_mvc.Models.CursoAsignatura)ViewBag.CursoAsignatura;
++    var periodos = (List<pagos_administracion_mvc.Models.Periodo>)ViewBag.Periodos;
++    ViewData["Title"] = "Nueva tarea";
++}
++
++<h1 class="h3">Nueva tarea</h1>
++<p class="text-muted">@ca.Asignatura.Nombre — @ca.Curso.Etiqueta</p>
++
++<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
++
++<form asp-action="Crear" method="post" class="col-lg-6">
++    <input type="hidden" asp-for="CursoAsignaturaId" />
++
++    <div class="mb-3">
++        <label asp-for="Titulo" class="form-label"></label>
++        <input asp-for="Titulo" class="form-control" placeholder="Ej. Guía de ejercicios cap. 4" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="Descripcion" class="form-label">Consigna</label>
++        <textarea asp-for="Descripcion" class="form-control" rows="4" placeholder="Detalle de la actividad (opcional)"></textarea>
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="FechaEntrega" class="form-label"></label>
++        <input asp-for="FechaEntrega" type="date" class="form-control" value="@Model.FechaEntrega.ToString("yyyy-MM-dd")" />
++    </div>
++
++    <div class="mb-3">
++        <label asp-for="PeriodoId" class="form-label">Período</label>
++        <select asp-for="PeriodoId" class="form-select">
++            <option value="">-- No cuenta para el boletín (solo informativa) --</option>
++            @foreach (var p in periodos)
++            {
++                <option value="@p.Id">@p.Nombre (@p.Tipo)</option>
++            }
++        </select>
++        <div class="form-text">Si elegís un Período, la calificación de esta tarea se suma como una nota suelta de ese Período y entra en el promedio del boletín.</div>
++    </div>
++
++    <button type="submit" class="btn btn-primary">Crear tarea</button>
++    <a asp-action="PorMateria" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-link">Cancelar</a>
++</form>
+diff --git a/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml b/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml
+new file mode 100644
+index 0000000..52d243a
+--- /dev/null
++++ b/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml
+@@ -0,0 +1,119 @@
++@model List<pagos_administracion_mvc.Models.Entrega>
++@{
++    var tarea = (pagos_administracion_mvc.Models.Tarea)ViewBag.Tarea;
++    var soloLectura = (bool)ViewBag.SoloLectura;
++    ViewData["Title"] = tarea.Titulo;
++}
++
++<div class="mb-3">
++    <h1 class="h3 mb-0">@tarea.Titulo</h1>
++    <p class="text-muted mb-0">@tarea.CursoAsignatura.Asignatura.Nombre — @tarea.CursoAsignatura.Curso.Etiqueta</p>
++    <p class="mb-0">
++        <span class="text-muted small">Entrega: @tarea.FechaEntrega.ToString("dd/MM/yyyy")</span>
++        @if (tarea.Periodo != null)
++        {
++            <span class="badge bg-info text-dark ms-2">Cuenta para @tarea.Periodo.Nombre</span>
++        }
++    </p>
++    @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
++    {
++        <p class="mt-2">@tarea.Descripcion</p>
++    }
++</div>
++
++@if (TempData["Mensaje"] != null)
++{
++    <div class="alert alert-success">@TempData["Mensaje"]</div>
++}
++@if (TempData["ErrorTarea"] != null)
++{
++    <div class="alert alert-danger">@TempData["ErrorTarea"]</div>
++}
++
++<div class="table-responsive">
++<table class="table table-striped align-middle">
++    <thead>
++        <tr>
++            <th>Alumno</th>
++            <th>Estado</th>
++            <th>Entrega</th>
++            <th>Calificación</th>
++            @if (!soloLectura)
++            {
++                <th></th>
++            }
++        </tr>
++    </thead>
++    <tbody>
++        @foreach (var entrega in Model)
++        {
++            <tr>
++                <td>@entrega.Inscripcion.Alumno.Apellido, @entrega.Inscripcion.Alumno.Nombre</td>
++                <td>
++                    @if (entrega.Entregada)
++                    {
++                        <span class="badge bg-success">Entregada</span>
++                        @if (entrega.FechaEntrega.HasValue)
++                        {
++                            <div class="small text-muted">@entrega.FechaEntrega.Value.ToString("dd/MM HH:mm")</div>
++                        }
++                    }
++                    else if (tarea.FechaEntrega < DateTime.Today)
++                    {
++                        <span class="badge bg-danger">Vencida sin entregar</span>
++                    }
++                    else
++                    {
++                        <span class="badge bg-secondary">Pendiente</span>
++                    }
++                </td>
++                <td>
++                    @if (!string.IsNullOrWhiteSpace(entrega.Texto))
++                    {
++                        <p class="small mb-1" style="max-width:22rem; white-space:pre-wrap;">@entrega.Texto</p>
++                    }
++                    @if (entrega.ArchivoRuta != null)
++                    {
++                        <a asp-action="DescargarArchivo" asp-route-entregaId="@entrega.Id" class="small" target="_blank">
++                            📎 @(entrega.ArchivoNombreOriginal ?? "archivo")
++                        </a>
++                    }
++                    @if (string.IsNullOrWhiteSpace(entrega.Texto) && entrega.ArchivoRuta == null)
++                    {
++                        <span class="text-muted small">—</span>
++                    }
++                </td>
++                <td style="min-width:8rem;">
++                    @if (soloLectura)
++                    {
++                        @(entrega.Calificacion?.ToString("0.##") ?? "—")
++                    }
++                    else
++                    {
++                        <form asp-action="Calificar" method="post" class="d-flex gap-1">
++                            <input type="hidden" name="entregaId" value="@entrega.Id" />
++                            <input type="number" name="calificacion" class="form-control form-control-sm" style="width:5rem;"
++                                   min="0" max="10" step="0.25" value="@entrega.Calificacion" placeholder="—" />
++                            <button type="submit" class="btn btn-sm btn-outline-primary">Guardar</button>
++                        </form>
++                    }
++                </td>
++                @if (!soloLectura)
++                {
++                    <td>
++                        <form asp-action="MarcarEntregada" method="post">
++                            <input type="hidden" name="entregaId" value="@entrega.Id" />
++                            <input type="hidden" name="entregada" value="@(!entrega.Entregada)" />
++                            <button type="submit" class="btn btn-sm btn-outline-secondary">
++                                @(entrega.Entregada ? "Marcar no entregada" : "Marcar entregada")
++                            </button>
++                        </form>
++                    </td>
++                }
++            </tr>
++        }
++    </tbody>
++</table>
++</div>
++
++<a asp-action="PorMateria" asp-route-cursoAsignaturaId="@tarea.CursoAsignaturaId" class="btn btn-link px-0">← Volver a tareas</a>
+diff --git a/pagos-administracion-mvc/Views/Tareas/Index.cshtml b/pagos-administracion-mvc/Views/Tareas/Index.cshtml
+new file mode 100644
+index 0000000..cae299f
+--- /dev/null
++++ b/pagos-administracion-mvc/Views/Tareas/Index.cshtml
+@@ -0,0 +1,29 @@
++@model List<pagos_administracion_mvc.Models.CursoAsignatura>
++@{
++    ViewData["Title"] = "Tareas";
++}
++
++<h1>Tareas</h1>
++<p class="text-muted">@(User.IsInRole("Admin") ? "Elegí una materia para ver sus tareas." : "Tus materias asignadas.")</p>
++
++<div class="table-responsive">
++<table class="table table-striped">
++    <thead>
++        <tr><th>Curso</th><th>Materia</th><th></th></tr>
++    </thead>
++    <tbody>
++        @foreach (var ca in Model)
++        {
++            <tr>
++                <td>@ca.Curso.Etiqueta</td>
++                <td>@ca.Asignatura.Nombre</td>
++                <td><a asp-action="PorMateria" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-sm btn-primary">Ver tareas</a></td>
++            </tr>
++        }
++        @if (!Model.Any())
++        {
++            <tr><td colspan="3" class="text-muted">No hay materias @(User.IsInRole("Admin") ? "cargadas" : "asignadas") todavía.</td></tr>
++        }
++    </tbody>
++</table>
++</div>
+diff --git a/pagos-administracion-mvc/Views/Tareas/PorMateria.cshtml b/pagos-administracion-mvc/Views/Tareas/PorMateria.cshtml
+new file mode 100644
+index 0000000..cf49207
+--- /dev/null
++++ b/pagos-administracion-mvc/Views/Tareas/PorMateria.cshtml
+@@ -0,0 +1,69 @@
++@model List<pagos_administracion_mvc.Models.Tarea>
++@{
++    var ca = (pagos_administracion_mvc.Models.CursoAsignatura)ViewBag.CursoAsignatura;
++    var soloLectura = (bool)ViewBag.SoloLectura;
++    ViewData["Title"] = "Tareas — " + ca.Asignatura.Nombre;
++}
++
++<div class="d-flex justify-content-between align-items-center mb-3">
++    <div>
++        <h1 class="h3 mb-0">@ca.Asignatura.Nombre</h1>
++        <p class="text-muted mb-0">@ca.Curso.Etiqueta</p>
++    </div>
++    @if (!soloLectura)
++    {
++        <a asp-action="Crear" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-primary">+ Nueva tarea</a>
++    }
++</div>
++
++@if (TempData["Mensaje"] != null)
++{
++    <div class="alert alert-success">@TempData["Mensaje"]</div>
++}
++
++<div class="table-responsive">
++<table class="table table-striped align-middle">
++    <thead>
++        <tr>
++            <th>Título</th>
++            <th>Entrega</th>
++            <th>Período</th>
++            <th>Entregadas</th>
++            <th></th>
++        </tr>
++    </thead>
++    <tbody>
++        @foreach (var tarea in Model)
++        {
++            var total = tarea.Entregas.Count;
++            var entregadas = tarea.Entregas.Count(e => e.Entregada);
++            <tr>
++                <td>@tarea.Titulo</td>
++                <td>@tarea.FechaEntrega.ToString("dd/MM/yyyy")</td>
++                <td>
++                    @if (tarea.Periodo != null)
++                    {
++                        <span class="badge bg-info text-dark">@tarea.Periodo.Nombre</span>
++                    }
++                    else
++                    {
++                        <span class="text-muted small">—</span>
++                    }
++                </td>
++                <td>
++                    <span class="badge @(entregadas == total ? "bg-success" : entregadas > 0 ? "bg-warning text-dark" : "bg-secondary")">
++                        @entregadas / @total
++                    </span>
++                </td>
++                <td><a asp-action="Detalle" asp-route-id="@tarea.Id" class="btn btn-sm btn-outline-primary">Ver</a></td>
++            </tr>
++        }
++        @if (!Model.Any())
++        {
++            <tr><td colspan="5" class="text-muted">Todavía no hay tareas cargadas para esta materia.</td></tr>
++        }
++    </tbody>
++</table>
++</div>
++
++<a asp-action="Index" class="btn btn-link px-0">← Volver a materias</a>

@@ -1,0 +1,97 @@
+@model List<pagos_administracion_mvc.Models.Entrega>
+@{
+    var misAlumnos = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.MisAlumnos;
+    var alumno = (pagos_administracion_mvc.Models.Alumno)ViewBag.AlumnoSeleccionado;
+    ViewData["Title"] = "Tareas";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Tareas</h1>
+
+    @if (misAlumnos.Count > 1)
+    {
+        <form method="get" class="d-flex align-items-center gap-2">
+            <label class="form-label mb-0 small text-muted">Alumno</label>
+            <select name="alumnoId" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var a in misAlumnos)
+                {
+                    <option value="@a.Id" selected="@(a.Id == alumno.Id)">@a.Apellido, @a.Nombre</option>
+                }
+            </select>
+        </form>
+    }
+</div>
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success">@TempData["Mensaje"]</div>
+}
+@if (TempData["ErrorTarea"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorTarea"]</div>
+}
+
+@if (!Model.Any())
+{
+    <p class="text-muted">Todavía no hay tareas cargadas.</p>
+}
+
+@foreach (var entrega in Model)
+{
+    var tarea = entrega.Tarea;
+    var vencida = !entrega.Entregada && tarea.FechaEntrega < DateTime.Today;
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="card-title mb-1">@tarea.Titulo</h5>
+                    <p class="text-muted small mb-1">@tarea.CursoAsignatura.Asignatura.Nombre — entrega: @tarea.FechaEntrega.ToString("dd/MM/yyyy")</p>
+                </div>
+                <span class="badge @(entrega.Entregada ? "bg-success" : vencida ? "bg-danger" : "bg-secondary")">
+                    @(entrega.Entregada ? "Entregada" : vencida ? "Vencida" : "Pendiente")
+                </span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
+            {
+                <p class="card-text">@tarea.Descripcion</p>
+            }
+
+            @if (entrega.Calificacion.HasValue)
+            {
+                <p class="mb-1"><strong>Calificación:</strong> @entrega.Calificacion.Value.ToString("0.##")</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(entrega.ObservacionDocente))
+            {
+                <p class="mb-2 small"><strong>Comentario del Docente:</strong> @entrega.ObservacionDocente</p>
+            }
+
+            @if (entrega.ArchivoRuta != null)
+            {
+                <p class="mb-2">
+                    <a asp-action="DescargarArchivo" asp-route-entregaId="@entrega.Id" target="_blank">
+                        📎 @(entrega.ArchivoNombreOriginal ?? "archivo entregado")
+                    </a>
+                </p>
+            }
+
+            <details class="mt-2">
+                <summary class="small text-primary" style="cursor:pointer;">
+                    @(entrega.Entregada ? "Volver a entregar / editar" : "Entregar")
+                </summary>
+                <form asp-controller="MisTareas" asp-action="Subir" method="post" enctype="multipart/form-data" class="mt-2">
+                    <input type="hidden" name="entregaId" value="@entrega.Id" />
+                    <div class="mb-2">
+                        <textarea name="texto" class="form-control" rows="3" placeholder="Escribí tu respuesta (opcional si adjuntás archivo)">@entrega.Texto</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <input type="file" name="archivo" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
+                        <div class="form-text">jpg, png, pdf, doc o docx — máx 5MB.</div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Entregar</button>
+                </form>
+            </details>
+        </div>
+    </div>
+}

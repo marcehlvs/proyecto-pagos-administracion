@@ -1,0 +1,69 @@
+@model List<pagos_administracion_mvc.Models.Tarea>
+@{
+    var ca = (pagos_administracion_mvc.Models.CursoAsignatura)ViewBag.CursoAsignatura;
+    var soloLectura = (bool)ViewBag.SoloLectura;
+    ViewData["Title"] = "Tareas — " + ca.Asignatura.Nombre;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">@ca.Asignatura.Nombre</h1>
+        <p class="text-muted mb-0">@ca.Curso.Etiqueta</p>
+    </div>
+    @if (!soloLectura)
+    {
+        <a asp-action="Crear" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-primary">+ Nueva tarea</a>
+    }
+</div>
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success">@TempData["Mensaje"]</div>
+}
+
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Título</th>
+            <th>Entrega</th>
+            <th>Período</th>
+            <th>Entregadas</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var tarea in Model)
+        {
+            var total = tarea.Entregas.Count;
+            var entregadas = tarea.Entregas.Count(e => e.Entregada);
+            <tr>
+                <td>@tarea.Titulo</td>
+                <td>@tarea.FechaEntrega.ToString("dd/MM/yyyy")</td>
+                <td>
+                    @if (tarea.Periodo != null)
+                    {
+                        <span class="badge bg-info text-dark">@tarea.Periodo.Nombre</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">—</span>
+                    }
+                </td>
+                <td>
+                    <span class="badge @(entregadas == total ? "bg-success" : entregadas > 0 ? "bg-warning text-dark" : "bg-secondary")">
+                        @entregadas / @total
+                    </span>
+                </td>
+                <td><a asp-action="Detalle" asp-route-id="@tarea.Id" class="btn btn-sm btn-outline-primary">Ver</a></td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="5" class="text-muted">Todavía no hay tareas cargadas para esta materia.</td></tr>
+        }
+    </tbody>
+</table>
+</div>
+
+<a asp-action="Index" class="btn btn-link px-0">← Volver a materias</a>

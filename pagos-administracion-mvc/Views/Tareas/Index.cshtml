@@ -1,0 +1,29 @@
+@model List<pagos_administracion_mvc.Models.CursoAsignatura>
+@{
+    ViewData["Title"] = "Tareas";
+}
+
+<h1>Tareas</h1>
+<p class="text-muted">@(User.IsInRole("Admin") ? "Elegí una materia para ver sus tareas." : "Tus materias asignadas.")</p>
+
+<div class="table-responsive">
+<table class="table table-striped">
+    <thead>
+        <tr><th>Curso</th><th>Materia</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var ca in Model)
+        {
+            <tr>
+                <td>@ca.Curso.Etiqueta</td>
+                <td>@ca.Asignatura.Nombre</td>
+                <td><a asp-action="PorMateria" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-sm btn-primary">Ver tareas</a></td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="3" class="text-muted">No hay materias @(User.IsInRole("Admin") ? "cargadas" : "asignadas") todavía.</td></tr>
+        }
+    </tbody>
+</table>
+</div>

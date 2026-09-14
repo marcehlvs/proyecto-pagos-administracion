@@ -1,0 +1,119 @@
+@model List<pagos_administracion_mvc.Models.Entrega>
+@{
+    var tarea = (pagos_administracion_mvc.Models.Tarea)ViewBag.Tarea;
+    var soloLectura = (bool)ViewBag.SoloLectura;
+    ViewData["Title"] = tarea.Titulo;
+}
+
+<div class="mb-3">
+    <h1 class="h3 mb-0">@tarea.Titulo</h1>
+    <p class="text-muted mb-0">@tarea.CursoAsignatura.Asignatura.Nombre — @tarea.CursoAsignatura.Curso.Etiqueta</p>
+    <p class="mb-0">
+        <span class="text-muted small">Entrega: @tarea.FechaEntrega.ToString("dd/MM/yyyy")</span>
+        @if (tarea.Periodo != null)
+        {
+            <span class="badge bg-info text-dark ms-2">Cuenta para @tarea.Periodo.Nombre</span>
+        }
+    </p>
+    @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
+    {
+        <p class="mt-2">@tarea.Descripcion</p>
+    }
+</div>
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success">@TempData["Mensaje"]</div>
+}
+@if (TempData["ErrorTarea"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorTarea"]</div>
+}
+
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Alumno</th>
+            <th>Estado</th>
+            <th>Entrega</th>
+            <th>Calificación</th>
+            @if (!soloLectura)
+            {
+                <th></th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var entrega in Model)
+        {
+            <tr>
+                <td>@entrega.Inscripcion.Alumno.Apellido, @entrega.Inscripcion.Alumno.Nombre</td>
+                <td>
+                    @if (entrega.Entregada)
+                    {
+                        <span class="badge bg-success">Entregada</span>
+                        @if (entrega.FechaEntrega.HasValue)
+                        {
+                            <div class="small text-muted">@entrega.FechaEntrega.Value.ToString("dd/MM HH:mm")</div>
+                        }
+                    }
+                    else if (tarea.FechaEntrega < DateTime.Today)
+                    {
+                        <span class="badge bg-danger">Vencida sin entregar</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Pendiente</span>
+                    }
+                </td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(entrega.Texto))
+                    {
+                        <p class="small mb-1" style="max-width:22rem; white-space:pre-wrap;">@entrega.Texto</p>
+                    }
+                    @if (entrega.ArchivoRuta != null)
+                    {
+                        <a asp-action="DescargarArchivo" asp-route-entregaId="@entrega.Id" class="small" target="_blank">
+                            📎 @(entrega.ArchivoNombreOriginal ?? "archivo")
+                        </a>
+                    }
+                    @if (string.IsNullOrWhiteSpace(entrega.Texto) && entrega.ArchivoRuta == null)
+                    {
+                        <span class="text-muted small">—</span>
+                    }
+                </td>
+                <td style="min-width:8rem;">
+                    @if (soloLectura)
+                    {
+                        @(entrega.Calificacion?.ToString("0.##") ?? "—")
+                    }
+                    else
+                    {
+                        <form asp-action="Calificar" method="post" class="d-flex gap-1">
+                            <input type="hidden" name="entregaId" value="@entrega.Id" />
+                            <input type="number" name="calificacion" class="form-control form-control-sm" style="width:5rem;"
+                                   min="0" max="10" step="0.25" value="@entrega.Calificacion" placeholder="—" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Guardar</button>
+                        </form>
+                    }
+                </td>
+                @if (!soloLectura)
+                {
+                    <td>
+                        <form asp-action="MarcarEntregada" method="post">
+                            <input type="hidden" name="entregaId" value="@entrega.Id" />
+                            <input type="hidden" name="entregada" value="@(!entrega.Entregada)" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                @(entrega.Entregada ? "Marcar no entregada" : "Marcar entregada")
+                            </button>
+                        </form>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+</div>
+
+<a asp-action="PorMateria" asp-route-cursoAsignaturaId="@tarea.CursoAsignaturaId" class="btn btn-link px-0">← Volver a tareas</a>
