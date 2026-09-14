@@ -274,6 +274,23 @@ namespace pagos_administracion_mvc.Controllers
             }
         }
 
+        // GET: Tareas/DescargarArchivo/5 — lo que subió el Alumno, para el Docente/Admin de esa
+        // materia. La versión para el propio Alumno/Familia vive en MisTareasController.
+        public async Task<IActionResult> DescargarArchivo(int entregaId)
+        {
+            var entrega = await _context.Entregas.Include(e => e.Tarea).FirstOrDefaultAsync(e => e.Id == entregaId);
+            if (entrega?.ArchivoRuta == null) return NotFound();
+
+            var (_, _, error) = await ObtenerConPermisoAsync(entrega.Tarea.CursoAsignaturaId, soloLectura: true);
+            if (error != null) return error;
+
+            var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas", entrega.ArchivoRuta);
+            if (!System.IO.File.Exists(ruta)) return NotFound();
+
+            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
+            return PhysicalFile(ruta, contentType, entrega.ArchivoNombreOriginal ?? entrega.ArchivoRuta);
+        }
+
         private async Task<List<Periodo>> PeriodosDelAnioAsync()
         {
             var anioActual = DateTime.Today.Year;

@@ -436,5 +436,9 @@ FodyWeavers.xsd
 pagos-administracion-mvc/App_Data/comprobantes/*
 !pagos-administracion-mvc/App_Data/comprobantes/.gitkeep
 
+# Archivos que suben los alumnos al entregar una Tarea — mismo criterio que comprobantes.
+pagos-administracion-mvc/App_Data/tareas/*
+!pagos-administracion-mvc/App_Data/tareas/.gitkeep
+
 # Sobras de patches aplicados con "git apply" que fallaron parcialmente.
 *.rej*.patch
