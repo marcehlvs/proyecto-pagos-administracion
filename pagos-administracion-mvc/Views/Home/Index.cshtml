@@ -117,4 +117,114 @@
             Calendario Escolar
         </a>
     </div>
+
+    @if (User.IsInRole("Familia"))
+    {
+        <div class="col-6 col-md-3">
+            <a asp-controller="MisCuotas" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">💳</div>
+                Mis Cuotas
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="MisTareas" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📝</div>
+                Tareas
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="Boletines" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📄</div>
+                Boletín
+            </a>
+        </div>
+    }
+
+    @if (User.IsInRole("Alumno"))
+    {
+        <div class="col-6 col-md-3">
+            <a asp-controller="MisAsistencias" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">✅</div>
+                Mis Asistencias
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="MisTareas" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📝</div>
+                Tareas
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="Boletines" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📄</div>
+                Boletín
+            </a>
+        </div>
+    }
+
+    @if (User.IsInRole("Docente"))
+    {
+        <div class="col-6 col-md-3">
+            <a asp-controller="Notas" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">✏️</div>
+                Notas
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="Tareas" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📝</div>
+                Tareas
+            </a>
+        </div>
+    }
+
+    @if (User.IsInRole("Preceptor"))
+    {
+        <div class="col-6 col-md-3">
+            <a asp-controller="Asistencias" asp-action="Resumen" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">🗓️</div>
+                Asistencias
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="MateriasPendientes" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📋</div>
+                Materias Pendientes
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="Boletines" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📄</div>
+                Boletín
+            </a>
+        </div>
+    }
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="col-6 col-md-3">
+            <a asp-controller="Dashboard" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📊</div>
+                Dashboard
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="Cursos" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">🏫</div>
+                Cursos
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="Boletines" asp-action="Publicaciones" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📄</div>
+                Publicar Boletines
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-controller="MateriasPendientes" asp-action="Index" class="card p-3 text-center text-decoration-none">
+                <div class="fs-2">📋</div>
+                Materias Pendientes
+            </a>
+        </div>
+    }
 </div>
