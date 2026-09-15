@@ -1,59 +1,27 @@
-// Editor enriquecido (Summernote) + dropzone de archivo, compartido entre
-// Views/Tareas/Crear.cshtml (consigna del Docente) y Views/MisTareas/Index.cshtml (entrega del
-// Alumno). Requiere que jQuery y Summernote ya estén cargados en la página.
-
-// Bug conocido de summernote-bs5 0.8.20: sus botones con dropdown (color, tamaño de fuente,
-// alineación/párrafo, listas) renderizan el atributo viejo data-toggle="dropdown", pero
-// Bootstrap 5 solo reacciona a data-bs-toggle="dropdown" (Bootstrap 5 renombró todos los
-// data-*). Por eso Bold/Italic/Underline andan bien (son toggles simples, no dependen de esto)
-// y todo lo que abre un menú desplegable queda muerto. Ver
-// https://github.com/summernote/summernote/issues/4603
-function corregirDropdownsBs5(raiz) {
-    if (!raiz || !raiz.querySelectorAll) return;
-    raiz.querySelectorAll('[data-toggle="dropdown"]').forEach(function (el) {
-        el.setAttribute('data-bs-toggle', 'dropdown');
-    });
-}
-
+// Editor enriquecido (TinyMCE, autohospedado vía CDN con licencia GPL — gratis, sin API key ni
+// límite de uso) + dropzone de archivo, compartido entre Views/Tareas/Crear.cshtml (consigna del
+// Docente) y Views/MisTareas/Index.cshtml (entrega del Alumno). Requiere que tinymce.min.js ya
+// esté cargado en la página. Reemplaza a Summernote: sus dropdowns (color/tamaño/alineación)
+// quedaban rotos con Bootstrap 5 y el proyecto está casi sin mantenimiento; TinyMCE tiene su
+// propia UI (no depende de Bootstrap) y es más parecido a Word/Docs, más conocido para
+// Docentes/Alumnos.
 function initEditorTareas(textareaSelector) {
-    var $el = $(textareaSelector);
-    $el.summernote({
-        height: 160,
+    tinymce.init({
+        selector: textareaSelector,
+        license_key: 'gpl', // autohospedado bajo GPLv2+: sin cuenta, sin API key, sin límite.
+        language: 'es',
+        language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@26/langs8/es.js',
+        height: 220,
+        menubar: false,
+        statusbar: false,
         placeholder: 'Escribí acá...',
-        lang: 'es-ES',
-        toolbar: [
-            ['style', ['bold', 'italic', 'underline', 'strikethrough']],
-            ['fontsize', ['fontsize']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['insert', ['link']],
-        ],
+        plugins: 'lists link',
+        toolbar: 'bold italic underline strikethrough | fontsize forecolor backcolor | ' +
+                 'bullist numlist | alignleft aligncenter alignright alignjustify | link',
         // Las imágenes/PDF se adjuntan por el dropzone de abajo (quedan como adjunto
         // descargable), no pegadas sueltas adentro del texto.
-        disableDragAndDrop: true,
-        callbacks: {
-            onInit: function () {
-                // El toolbar ya está armado en este punto: primer pase sobre todo lo generado.
-                corregirDropdownsBs5($el.next('.note-editor')[0]);
-            },
-        },
+        paste_data_images: false,
     });
-
-    // Algunos paneles de Summernote (ej. "Más colores") se arman recién la primera vez que se
-    // abren, no en el onInit — un MutationObserver los agarra apenas se insertan en el DOM, sin
-    // depender de que Summernote avise por ningún callback.
-    var contenedor = $el.next('.note-editor')[0];
-    if (contenedor && window.MutationObserver) {
-        new MutationObserver(function (mutaciones) {
-            mutaciones.forEach(function (m) {
-                m.addedNodes.forEach(function (nodo) {
-                    if (nodo.nodeType !== 1) return;
-                    if (nodo.matches && nodo.matches('[data-toggle="dropdown"]')) nodo.setAttribute('data-bs-toggle', 'dropdown');
-                    corregirDropdownsBs5(nodo);
-                });
-            });
-        }).observe(contenedor, { childList: true, subtree: true });
-    }
 }
 
 // dropzoneSelector: contenedor con la clase .dropzone-archivo
