@@ -30,6 +30,17 @@
     <div class="alert alert-success">@TempData["Mensaje"]</div>
 }
 
+@{
+    var alumnosConAsistencia = (int)ViewBag.AlumnosConAsistencia;
+}
+@if (alumnosConAsistencia > 0)
+{
+    <div class="alert alert-warning">
+        ⚠️ Ya hay asistencia cargada para @alumnosConAsistencia de @Model.Count alumno(s) el @fecha.ToString("dd/MM/yyyy")
+        — lo que guardes ahora <strong>corrige</strong> lo que ya estaba, no se duplica.
+    </div>
+}
+
 <form method="get" asp-action="Tomar" class="row g-2 mb-3 align-items-end">
     <input type="hidden" name="cursoId" value="@curso.Id" />
     <div class="col-auto">

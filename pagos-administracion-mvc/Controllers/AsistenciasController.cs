@@ -61,6 +61,9 @@ namespace pagos_administracion_mvc.Controllers
             ViewBag.Curso = curso;
             ViewBag.Fecha = fechaClase;
             ViewBag.DiaTieneEF = diaTieneEF;
+            // Cuántos alumnos ya tienen asistencia cargada ESE día — si es > 0, la vista muestra
+            // un cartel para que no se pase por alto que se está corrigiendo, no cargando de cero.
+            ViewBag.AlumnosConAsistencia = inscripciones.Count(i => i.Asistencias.Any());
 
             return View(inscripciones);
         }
