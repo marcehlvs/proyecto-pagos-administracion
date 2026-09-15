@@ -7,8 +7,16 @@
 
 <h1>Alumnos</h1>
 
-<p>
-    <a asp-action="Create" class="btn btn-primary btn-sm">+ Nuevo alumno</a>
+<p class="d-flex gap-2 flex-wrap">
+    <a asp-action="Create" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo alumno
+    </a>
+    <a asp-action="Importar" class="btn btn-outline-secondary btn-sm" id="btn-importar-masivo">
+        <i class="bi bi-upload me-1"></i>Importar desde CSV / XLSX
+    </a>
+    <a asp-action="ExportarExcel" class="btn btn-outline-success btn-sm" id="btn-exportar-padron">
+        <i class="bi bi-file-earmark-excel me-1"></i>Exportar padrón
+    </a>
 </p>
 
 <form method="get" class="row g-2 mb-3 align-items-end">
