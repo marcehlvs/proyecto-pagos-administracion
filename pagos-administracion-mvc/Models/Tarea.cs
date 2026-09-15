@@ -20,6 +20,12 @@ namespace pagos_administracion_mvc.Models
         [Display(Name = "Consigna")]
         public string? Descripcion { get; set; }
 
+        // Adjunto del Docente al crear la Tarea (imagen o PDF), mismo patrón que
+        // Entrega.ArchivoRuta: se guarda en App_Data/tareas con nombre GUID,
+        // ArchivoNombreOriginal es solo para mostrarlo con su nombre real en la UI.
+        public string? ArchivoRuta { get; set; }
+        public string? ArchivoNombreOriginal { get; set; }
+
         [Display(Name = "Fecha de entrega")]
         public DateTime FechaEntrega { get; set; }
 

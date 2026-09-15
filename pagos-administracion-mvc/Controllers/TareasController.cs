@@ -15,6 +15,11 @@ namespace pagos_administracion_mvc.Controllers
     [Authorize(Roles = "Admin,Docente")]
     public class TareasController : Controller
     {
+        // Mismos límites que MisTareasController.Subir (no hay controller base compartido en
+        // el proyecto, se repite a propósito — ver comentario de ObtenerConPermisoAsync).
+        private static readonly string[] ExtensionesPermitidas = { ".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx" };
+        private const long TamañoMaximoBytes = 5 * 1024 * 1024;
+
         private readonly AdministracionDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly NotaCalculadora _calculadora;
@@ -108,7 +113,7 @@ namespace pagos_administracion_mvc.Controllers
         // alumnos (no solo los que ya entregaron).
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(Tarea tarea)
+        public async Task<IActionResult> Crear(Tarea tarea, IFormFile? archivo)
         {
             var (cursoAsignatura, _, error) = await ObtenerConPermisoAsync(tarea.CursoAsignaturaId, soloLectura: false);
             if (error != null) return error;
@@ -120,6 +125,27 @@ namespace pagos_administracion_mvc.Controllers
                 ViewBag.CursoAsignatura = cursoAsignatura;
                 ViewBag.Periodos = await PeriodosDelAnioAsync();
                 return View(tarea);
+            }
+
+            if (archivo != null && archivo.Length > 0)
+            {
+                var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+                if (!ExtensionesPermitidas.Contains(extension) || archivo.Length > TamañoMaximoBytes)
+                {
+                    ModelState.AddModelError(string.Empty, "Archivo inválido (jpg/png/pdf/doc/docx, máx 5MB).");
+                    ViewBag.CursoAsignatura = cursoAsignatura;
+                    ViewBag.Periodos = await PeriodosDelAnioAsync();
+                    return View(tarea);
+                }
+
+                var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas");
+                Directory.CreateDirectory(carpeta);
+                var nombreArchivo = $"{Guid.NewGuid()}{extension}";
+                using (var stream = new FileStream(Path.Combine(carpeta, nombreArchivo), FileMode.Create))
+                    await archivo.CopyToAsync(stream);
+
+                tarea.ArchivoRuta = nombreArchivo;
+                tarea.ArchivoNombreOriginal = archivo.FileName;
             }
 
             tarea.CreadaPorNombre = User.Identity?.Name;
@@ -289,6 +315,24 @@ namespace pagos_administracion_mvc.Controllers
 
             var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
             return PhysicalFile(ruta, contentType, entrega.ArchivoNombreOriginal ?? entrega.ArchivoRuta);
+        }
+
+        // GET: Tareas/DescargarArchivoTarea/5 — el adjunto que puso el Docente al crear/editar la
+        // Tarea (la consigna, no una entrega). Mismo chequeo de permiso que el resto (Docente
+        // propio de la materia o Admin).
+        public async Task<IActionResult> DescargarArchivoTarea(int id)
+        {
+            var tarea = await _context.Tareas.FindAsync(id);
+            if (tarea?.ArchivoRuta == null) return NotFound();
+
+            var (_, _, error) = await ObtenerConPermisoAsync(tarea.CursoAsignaturaId, soloLectura: true);
+            if (error != null) return error;
+
+            var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas", tarea.ArchivoRuta);
+            if (!System.IO.File.Exists(ruta)) return NotFound();
+
+            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
+            return PhysicalFile(ruta, contentType, tarea.ArchivoNombreOriginal ?? tarea.ArchivoRuta);
         }
 
         private async Task<List<Periodo>> PeriodosDelAnioAsync()

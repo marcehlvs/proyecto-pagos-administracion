@@ -137,5 +137,26 @@ namespace pagos_administracion_mvc.Controllers
             var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
             return PhysicalFile(ruta, contentType, entrega.ArchivoNombreOriginal ?? entrega.ArchivoRuta);
         }
+
+        // GET: MisTareas/DescargarArchivoTarea/5 — el adjunto que puso el Docente en la consigna
+        // de la Tarea. Válido solo si la Tarea tiene una Entrega para alguno de mis alumnos (o
+        // sea, es de un curso donde está inscripto) — mismo espíritu que ObtenerEntregaPropiaAsync.
+        public async Task<IActionResult> DescargarArchivoTarea(int tareaId)
+        {
+            var tarea = await _context.Tareas.FindAsync(tareaId);
+            if (tarea?.ArchivoRuta == null) return NotFound();
+
+            var misAlumnoIds = (await MisAlumnosAsync()).Select(a => a.Id).ToHashSet();
+            var esVisible = await _context.Entregas
+                .Include(e => e.Inscripcion)
+                .AnyAsync(e => e.TareaId == tareaId && misAlumnoIds.Contains(e.Inscripcion.AlumnoId));
+            if (!esVisible) return NotFound();
+
+            var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas", tarea.ArchivoRuta);
+            if (!System.IO.File.Exists(ruta)) return NotFound();
+
+            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
+            return PhysicalFile(ruta, contentType, tarea.ArchivoNombreOriginal ?? tarea.ArchivoRuta);
+        }
     }
 }

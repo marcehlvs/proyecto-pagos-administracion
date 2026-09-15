@@ -5,6 +5,9 @@
     ViewData["Title"] = "Tareas";
 }
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css">
+<link rel="stylesheet" href="~/css/editor-tareas.css" asp-append-version="true">
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Tareas</h1>
 
@@ -40,6 +43,9 @@
 {
     var tarea = entrega.Tarea;
     var vencida = !entrega.Entregada && tarea.FechaEntrega < DateTime.Today;
+    var editorId = $"editor-entrega-{entrega.Id}";
+    var dropzoneId = $"dropzone-entrega-{entrega.Id}";
+    var inputId = $"input-archivo-entrega-{entrega.Id}";
 
     <div class="card mb-3">
         <div class="card-body">
@@ -55,7 +61,15 @@
 
             @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
             {
-                <p class="card-text">@tarea.Descripcion</p>
+                <div class="card-text">@Html.Raw(tarea.Descripcion)</div>
+            }
+            @if (tarea.ArchivoRuta != null)
+            {
+                <p class="mb-2">
+                    <a asp-action="DescargarArchivoTarea" asp-route-tareaId="@tarea.Id" target="_blank">
+                        📎 @(tarea.ArchivoNombreOriginal ?? "adjunto de la consigna")
+                    </a>
+                </p>
             }
 
             @if (entrega.Calificacion.HasValue)
@@ -83,15 +97,46 @@
                 <form asp-controller="MisTareas" asp-action="Subir" method="post" enctype="multipart/form-data" class="mt-2">
                     <input type="hidden" name="entregaId" value="@entrega.Id" />
                     <div class="mb-2">
-                        <textarea name="texto" class="form-control" rows="3" placeholder="Escribí tu respuesta (opcional si adjuntás archivo)">@entrega.Texto</textarea>
+                        <textarea name="texto" id="@editorId" class="form-control" rows="3" placeholder="Escribí tu respuesta (opcional si adjuntás archivo)">@Html.Raw(entrega.Texto)</textarea>
                     </div>
                     <div class="mb-2">
-                        <input type="file" name="archivo" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
-                        <div class="form-text">jpg, png, pdf, doc o docx — máx 5MB.</div>
+                        <div class="dropzone-archivo" id="@dropzoneId">
+                            <input type="file" name="archivo" id="@inputId" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
+                            <span class="dropzone-icono">⬆</span>
+                            <div>Arrastre y suelte aquí su archivo, o <a href="#" data-buscar>búsquelo</a></div>
+                            <small data-nombre-archivo>Permitido: jpg, png, pdf, doc o docx — máx 5MB.</small>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-primary">Entregar</button>
                 </form>
             </details>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+    <script src="~/js/editor-tareas.js" asp-append-version="true"></script>
+    <script>
+        $(function () {
+            // Los editores viven adentro de <details>, colapsados. Summernote necesita medidas
+            // reales para calcular su toolbar, así que se inicializa recién al abrirse (si se
+            // inicializara de entrada, adentro de un <details> cerrado, queda mal renderizado).
+            document.querySelectorAll('details').forEach(function (det) {
+                det.addEventListener('toggle', function () {
+                    if (!det.open) return;
+                    var textarea = det.querySelector('textarea[id^="editor-entrega-"]');
+                    if (textarea && !$(textarea).next('.note-editor').length) {
+                        initEditorTareas('#' + textarea.id);
+                    }
+                    var dropzone = det.querySelector('[id^="dropzone-entrega-"]');
+                    if (dropzone && !dropzone.dataset.inicializado) {
+                        dropzone.dataset.inicializado = '1';
+                        var input = det.querySelector('[id^="input-archivo-entrega-"]');
+                        initDropzoneArchivo('#' + dropzone.id, '#' + input.id);
+                    }
+                }, { once: false });
+            });
+        });
+    </script>
 }

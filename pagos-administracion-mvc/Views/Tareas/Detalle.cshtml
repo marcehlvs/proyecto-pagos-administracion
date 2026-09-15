@@ -17,7 +17,15 @@
     </p>
     @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
     {
-        <p class="mt-2">@tarea.Descripcion</p>
+        <div class="mt-2">@Html.Raw(tarea.Descripcion)</div>
+    }
+    @if (tarea.ArchivoRuta != null)
+    {
+        <p class="mb-0">
+            <a asp-action="DescargarArchivoTarea" asp-route-id="@tarea.Id" target="_blank">
+                📎 @(tarea.ArchivoNombreOriginal ?? "adjunto")
+            </a>
+        </p>
     }
 </div>
 
@@ -70,7 +78,7 @@
                 <td>
                     @if (!string.IsNullOrWhiteSpace(entrega.Texto))
                     {
-                        <p class="small mb-1" style="max-width:22rem; white-space:pre-wrap;">@entrega.Texto</p>
+                        <div class="small mb-1" style="max-width:22rem;">@Html.Raw(entrega.Texto)</div>
                     }
                     @if (entrega.ArchivoRuta != null)
                     {
