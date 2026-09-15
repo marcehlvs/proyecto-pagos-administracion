@@ -25,5 +25,15 @@ namespace pagos_administracion_mvc.Models
         public int TotalCuotasHistorico { get; set; }
         [Display(Name = "Total Cuotas Vencidas Historico")]
         public int TotalVencidasHistorico { get; set; }
+
+        // Alertas operativas — ver DashboardController.Index para cómo se calcula cada una.
+        [Display(Name = "Cuotas por vencer (7 días)")]
+        public int CuotasPorVencer { get; set; }
+        [Display(Name = "Tareas entregadas sin calificar")]
+        public int TareasSinCalificar { get; set; }
+        [Display(Name = "Cursos sin asistencia reciente")]
+        public int CursosSinAsistenciaReciente { get; set; }
+        [Display(Name = "Boletines sin publicar")]
+        public int BoletinesPendientes { get; set; }
     }
 }
