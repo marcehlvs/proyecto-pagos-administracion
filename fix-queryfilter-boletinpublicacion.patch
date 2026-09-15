@@ -1,0 +1,15 @@
+diff --git a/pagos-administracion-mvc/Data/AdministracionDbContext.cs b/pagos-administracion-mvc/Data/AdministracionDbContext.cs
+index 8b4abb1..be5dbb6 100644
+--- a/pagos-administracion-mvc/Data/AdministracionDbContext.cs
++++ b/pagos-administracion-mvc/Data/AdministracionDbContext.cs
+@@ -138,6 +138,10 @@ namespace pagos_administracion_mvc.Data
+             modelBuilder.Entity<Curso>().HasQueryFilter(c => c.Activo);
+             modelBuilder.Entity<Inscripcion>().HasQueryFilter(i => i.Activo && i.Alumno.Activo && i.Curso.Activo);
+             modelBuilder.Entity<Asistencia>().HasQueryFilter(a => a.Activo && a.Inscripcion.Activo && a.Inscripcion.Alumno.Activo && a.Inscripcion.Curso.Activo);
++            // BoletinPublicacion no tiene su propio Activo, pero su FK a Curso es obligatoria (no
++            // nullable) y Curso sí tiene query filter — sin este filtro, EF tira
++            // "required end of a relationship... may lead to unexpected results" al migrar.
++            modelBuilder.Entity<BoletinPublicacion>().HasQueryFilter(bp => bp.Curso.Activo);
+ 
+             // Periodo es autorreferenciado (PeriodoPadreId -> Periodo). Restrict, no Cascade/SetNull:
+             // con self-reference, SQL Server no acepta cascada (mismo motivo que Alumno.AlumnoUserId
