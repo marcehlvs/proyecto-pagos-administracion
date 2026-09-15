@@ -46,15 +46,6 @@ namespace pagos_administracion_mvc.Controllers
             var totalVencidas = await _context.Cuotas.CountAsync(c => c.Estado == EstadoCuota.Vencida);
             var porcentajeMorosidad = totalCuotas > 0 ? Math.Round((decimal)totalVencidas / totalCuotas * 100, 1) : 0m;
 
-            var modelo = new DashboardViewModel
-            {
-                RecaudacionMes = recaudacionMes,
-                MesActual = mesActual,
-                AnioActual = anioActual,
-                CuotasPagadas = cuotasPagadas,
-                CuotasPendientes = cuotasPendientes,
-                CuotasVencidas = cuotasVencidas,
-                CuotasParciales = cuotasParciales,
             // 4) Alertas operativas — cosas que alguien se puede haber olvidado de cargar/hacer,
             // para que el Admin las vea de entrada en vez de descubrirlas por casualidad.
 
