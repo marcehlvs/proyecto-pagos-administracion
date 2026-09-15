@@ -5,7 +5,8 @@
 }
 
 <h1 class="mb-1">Faltas — @curso.Etiqueta</h1>
-<p class="text-muted mb-4">@Model.Count alumno(s) inscripto(s).</p>
+<p class="text-muted mb-2">@Model.Count alumno(s) inscripto(s).</p>
+<p class="mb-4"><a asp-action="Grilla" asp-route-cursoId="@curso.Id">Ver grilla día por día →</a></p>
 
 @if (!Model.Any())
 {

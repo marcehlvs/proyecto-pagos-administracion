@@ -213,5 +213,58 @@ namespace pagos_administracion_mvc.Controllers
             ViewBag.Curso = curso;
             return View(filas);
         }
+
+        // GET: Asistencias/Grilla?cursoId=1&mes=9&anio=2026
+        // Un alumno por fila, un día hábil del mes por columna — para detectar de un vistazo qué
+        // días quedaron sin cargar (celda vacía), sin tener que entrar fecha por fecha a Tomar.
+        // Solo mira Materia.Clase (no Educación Física) para que la grilla quede legible.
+        public async Task<IActionResult> Grilla(int cursoId, int? mes, int? anio)
+        {
+            var (curso, error) = await ObtenerCursoConPermiso(cursoId);
+            if (error != null) return error;
+
+            var hoy = DateTime.Today;
+            var mesElegido = mes ?? hoy.Month;
+            var anioElegido = anio ?? hoy.Year;
+
+            var feriados = await _context.Feriados.Select(f => f.Fecha.Date).ToListAsync();
+            var diasHabiles = DiasHabilesDelMes(mesElegido, anioElegido, feriados);
+
+            var inscripciones = await _context.Inscripciones
+                .Include(i => i.Alumno)
+                .Include(i => i.Asistencias.Where(a => a.Materia == Materia.Clase &&
+                                                        a.Fecha.Month == mesElegido && a.Fecha.Year == anioElegido))
+                .Where(i => i.CursoId == cursoId)
+                .OrderBy(i => i.Alumno.Apellido)
+                .ToListAsync();
+
+            var filas = inscripciones.Select(i => new FilaAlumnoGrilla
+            {
+                AlumnoNombre = $"{i.Alumno.Apellido}, {i.Alumno.Nombre}",
+                EstadosPorDia = diasHabiles.ToDictionary(
+                    d => d,
+                    d => i.Asistencias.FirstOrDefault(a => a.Fecha.Date == d)?.Estado)
+            }).ToList();
+
+            ViewBag.Curso = curso;
+            ViewBag.Mes = mesElegido;
+            ViewBag.Anio = anioElegido;
+            return View(new GrillaAsistenciaViewModel { DiasHabiles = diasHabiles, Filas = filas });
+        }
+
+        // Mismo criterio de "día hábil" que BoletinService.ContarDiasHabiles (sábados, domingos
+        // y Feriados afuera), pero devolviendo la lista de fechas en vez de solo el total.
+        private static List<DateTime> DiasHabilesDelMes(int mes, int anio, ICollection<DateTime> feriados)
+        {
+            var dias = new List<DateTime>();
+            var ultimoDia = new DateTime(anio, mes, 1).AddMonths(1).AddDays(-1);
+            for (var d = new DateTime(anio, mes, 1); d <= ultimoDia; d = d.AddDays(1))
+            {
+                if (d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday) continue;
+                if (feriados.Contains(d.Date)) continue;
+                dias.Add(d);
+            }
+            return dias;
+        }
     }
 }
