@@ -1,13 +1,25 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using pagos_administracion_mvc.Models;
+using System.Text.Json;
 
 namespace pagos_administracion_mvc.Data
 {
     public class AdministracionDbContext : IdentityDbContext<ApplicationUser>
     {
-        public AdministracionDbContext(DbContextOptions<AdministracionDbContext> options)
-            : base(options) { }
+        // IHttpContextAccessor permite al DbContext obtener el usuario autenticado en cada
+        // request HTTP. Es nullable a propósito: los background services (RevisorVencimientosService)
+        // no tienen contexto HTTP y pasan null — en ese caso el autor del log es "Sistema".
+        private readonly IHttpContextAccessor? _httpContextAccessor;
+
+        public AdministracionDbContext(
+            DbContextOptions<AdministracionDbContext> options,
+            IHttpContextAccessor? httpContextAccessor = null)
+            : base(options)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
         public DbSet<Alumno> Alumnos { get; set; }
         public DbSet<Cuota> Cuotas { get; set; }
         public DbSet<Pago> Pagos { get; set; }
@@ -27,6 +39,133 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Entrega> Entregas { get; set; }
         public DbSet<Feriado> Feriados { get; set; }
         public DbSet<BoletinPublicacion> BoletinPublicaciones { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        // ── Audit Log ────────────────────────────────────────────────────────────
+        // Tipos C# que queremos auditar. Cualquier cambio (Add/Modify/Delete) sobre
+        // instancias de estos tipos genera automáticamente una fila en AuditLogs.
+        private static readonly HashSet<Type> _tiposAuditables = new()
+        {
+            typeof(Nota),
+            typeof(Pago),
+            typeof(Cuota),
+            typeof(Alumno),
+            typeof(Inscripcion),
+            typeof(ArancelNivel),
+        };
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            // Capturamos los entries ANTES de llamar a base.SaveChangesAsync porque
+            // después el ChangeTracker ya no tiene la información de estado original.
+            var entries = ChangeTracker.Entries()
+                .Where(e => _tiposAuditables.Contains(e.Entity.GetType())
+                         && e.State is EntityState.Added
+                                    or EntityState.Modified
+                                    or EntityState.Deleted)
+                .ToList();
+
+            // Identificar al autor del cambio.
+            // User.FindFirst(ClaimTypes.NameIdentifier) es el Id del ApplicationUser.
+            var httpContext = _httpContextAccessor?.HttpContext;
+            var usuarioId    = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var usuarioEmail = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                            ?? httpContext?.User?.Identity?.Name;
+
+            // Para entries en estado Added, la PK todavía no existe hasta que SaveChanges
+            // escriba en la BD. Los resolvemos en dos tandas:
+            //   - Tanda 1: Modified y Deleted → PK ya conocida, generamos log inmediatamente.
+            //   - Tanda 2: Added → guardamos el entry para leerlo DESPUÉS del base.SaveChangesAsync.
+            var logsInmediatos = new List<AuditLog>();
+            var entriesPendientesAdd = new List<EntityEntry>(); // Added, esperan la PK
+
+            foreach (var entry in entries)
+            {
+                var accion = entry.State switch
+                {
+                    EntityState.Added    => "Create",
+                    EntityState.Modified => "Update",
+                    EntityState.Deleted  => "Delete",
+                    _                    => "Unknown"
+                };
+
+                if (entry.State == EntityState.Added)
+                {
+                    entriesPendientesAdd.Add(entry);
+                    continue;
+                }
+
+                // PK de la entidad (puede ser int, string, Guid — la convertimos a string).
+                var pkValue = entry.Properties
+                    .FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "?";
+
+                string? jsonAnterior = null;
+                string? jsonNuevo   = null;
+
+                if (entry.State == EntityState.Modified)
+                {
+                    jsonAnterior = JsonSerializer.Serialize(
+                        entry.OriginalValues.Properties
+                             .ToDictionary(p => p.Name,
+                                          p => entry.OriginalValues[p]));
+                    jsonNuevo = JsonSerializer.Serialize(
+                        entry.CurrentValues.Properties
+                             .ToDictionary(p => p.Name,
+                                          p => entry.CurrentValues[p]));
+                }
+                else if (entry.State == EntityState.Deleted)
+                {
+                    jsonAnterior = JsonSerializer.Serialize(
+                        entry.OriginalValues.Properties
+                             .ToDictionary(p => p.Name,
+                                          p => entry.OriginalValues[p]));
+                }
+
+                logsInmediatos.Add(new AuditLog
+                {
+                    Fecha            = DateTime.UtcNow,
+                    UsuarioId        = usuarioId,
+                    UsuarioEmail     = usuarioEmail ?? (usuarioId == null ? "Sistema" : null),
+                    Entidad          = entry.Entity.GetType().Name,
+                    EntidadId        = pkValue,
+                    Accion           = accion,
+                    ValoresAnteriores = jsonAnterior,
+                    ValoresNuevos    = jsonNuevo,
+                });
+            }
+
+            // Agregar los logs inmediatos ANTES de persistir (misma transacción implícita de EF).
+            // Los de tipo Added se agregan DESPUÉS porque aún no tienen PK.
+            AuditLogs.AddRange(logsInmediatos);
+
+            // Persistir todo (entidades originales + logs inmediatos).
+            var resultado = await base.SaveChangesAsync(cancellationToken);
+
+            // Tanda 2: ahora las entidades Added ya tienen su PK generada por la BD.
+            if (entriesPendientesAdd.Any())
+            {
+                var logsAdd = entriesPendientesAdd.Select(entry => new AuditLog
+                {
+                    Fecha        = DateTime.UtcNow,
+                    UsuarioId    = usuarioId,
+                    UsuarioEmail = usuarioEmail ?? (usuarioId == null ? "Sistema" : null),
+                    Entidad      = entry.Entity.GetType().Name,
+                    EntidadId    = entry.Properties
+                                       .FirstOrDefault(p => p.Metadata.IsPrimaryKey())
+                                       ?.CurrentValue?.ToString() ?? "?",
+                    Accion       = "Create",
+                    ValoresNuevos = JsonSerializer.Serialize(
+                        entry.CurrentValues.Properties
+                             .ToDictionary(p => p.Name,
+                                          p => entry.CurrentValues[p])),
+                }).ToList();
+
+                AuditLogs.AddRange(logsAdd);
+                await base.SaveChangesAsync(cancellationToken); // solo los logs de Add
+            }
+
+            return resultado;
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

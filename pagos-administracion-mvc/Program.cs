@@ -11,6 +11,9 @@ QuestPDF.Settings.License = LicenseType.Community;
 // Registro de Servicios
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+// Necesario para que AdministracionDbContext pueda resolver el usuario HTTP actual
+// en SaveChangesAsync y atribuir cada AuditLog al autor correcto.
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDbContext<AdministracionDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection")));
