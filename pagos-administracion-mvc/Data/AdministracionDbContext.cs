@@ -26,6 +26,7 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Tarea> Tareas { get; set; }
         public DbSet<Entrega> Entregas { get; set; }
         public DbSet<Feriado> Feriados { get; set; }
+        public DbSet<BoletinPublicacion> BoletinPublicaciones { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -108,6 +109,18 @@ namespace pagos_administracion_mvc.Data
             // (Clase o Educación Física), pero sí una de cada una (2 registros por día).
             modelBuilder.Entity<Asistencia>()
                 .HasIndex(a => new { a.InscripcionId, a.Fecha, a.Materia })
+                .IsUnique();
+
+            modelBuilder.Entity<BoletinPublicacion>()
+                .HasOne(bp => bp.Curso)
+                .WithMany()
+                .HasForeignKey(bp => bp.CursoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Un solo estado de publicación por Curso+AnioLectivo (se hace upsert sobre esta fila,
+            // nunca se insertan duplicados).
+            modelBuilder.Entity<BoletinPublicacion>()
+                .HasIndex(bp => new { bp.CursoId, bp.AnioLectivo })
                 .IsUnique();
 
             // Soft delete: por defecto, todas las consultas a Pagos ignoran los "eliminados" (Activo = false).

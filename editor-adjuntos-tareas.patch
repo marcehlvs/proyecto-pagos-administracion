@@ -1,0 +1,427 @@
+diff --git a/pagos-administracion-mvc/Controllers/MisTareasController.cs b/pagos-administracion-mvc/Controllers/MisTareasController.cs
+index b4b77cc..ab7b0de 100644
+--- a/pagos-administracion-mvc/Controllers/MisTareasController.cs
++++ b/pagos-administracion-mvc/Controllers/MisTareasController.cs
+@@ -137,5 +137,26 @@ namespace pagos_administracion_mvc.Controllers
+             var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
+             return PhysicalFile(ruta, contentType, entrega.ArchivoNombreOriginal ?? entrega.ArchivoRuta);
+         }
++
++        // GET: MisTareas/DescargarArchivoTarea/5 — el adjunto que puso el Docente en la consigna
++        // de la Tarea. Válido solo si la Tarea tiene una Entrega para alguno de mis alumnos (o
++        // sea, es de un curso donde está inscripto) — mismo espíritu que ObtenerEntregaPropiaAsync.
++        public async Task<IActionResult> DescargarArchivoTarea(int tareaId)
++        {
++            var tarea = await _context.Tareas.FindAsync(tareaId);
++            if (tarea?.ArchivoRuta == null) return NotFound();
++
++            var misAlumnoIds = (await MisAlumnosAsync()).Select(a => a.Id).ToHashSet();
++            var esVisible = await _context.Entregas
++                .Include(e => e.Inscripcion)
++                .AnyAsync(e => e.TareaId == tareaId && misAlumnoIds.Contains(e.Inscripcion.AlumnoId));
++            if (!esVisible) return NotFound();
++
++            var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas", tarea.ArchivoRuta);
++            if (!System.IO.File.Exists(ruta)) return NotFound();
++
++            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
++            return PhysicalFile(ruta, contentType, tarea.ArchivoNombreOriginal ?? tarea.ArchivoRuta);
++        }
+     }
+ }
+diff --git a/pagos-administracion-mvc/Controllers/TareasController.cs b/pagos-administracion-mvc/Controllers/TareasController.cs
+index 4528ca9..e53a29a 100644
+--- a/pagos-administracion-mvc/Controllers/TareasController.cs
++++ b/pagos-administracion-mvc/Controllers/TareasController.cs
+@@ -15,6 +15,11 @@ namespace pagos_administracion_mvc.Controllers
+     [Authorize(Roles = "Admin,Docente")]
+     public class TareasController : Controller
+     {
++        // Mismos límites que MisTareasController.Subir (no hay controller base compartido en
++        // el proyecto, se repite a propósito — ver comentario de ObtenerConPermisoAsync).
++        private static readonly string[] ExtensionesPermitidas = { ".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx" };
++        private const long TamañoMaximoBytes = 5 * 1024 * 1024;
++
+         private readonly AdministracionDbContext _context;
+         private readonly UserManager<ApplicationUser> _userManager;
+         private readonly NotaCalculadora _calculadora;
+@@ -108,7 +113,7 @@ namespace pagos_administracion_mvc.Controllers
+         // alumnos (no solo los que ya entregaron).
+         [HttpPost]
+         [ValidateAntiForgeryToken]
+-        public async Task<IActionResult> Crear(Tarea tarea)
++        public async Task<IActionResult> Crear(Tarea tarea, IFormFile? archivo)
+         {
+             var (cursoAsignatura, _, error) = await ObtenerConPermisoAsync(tarea.CursoAsignaturaId, soloLectura: false);
+             if (error != null) return error;
+@@ -122,6 +127,27 @@ namespace pagos_administracion_mvc.Controllers
+                 return View(tarea);
+             }
+ 
++            if (archivo != null && archivo.Length > 0)
++            {
++                var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
++                if (!ExtensionesPermitidas.Contains(extension) || archivo.Length > TamañoMaximoBytes)
++                {
++                    ModelState.AddModelError(string.Empty, "Archivo inválido (jpg/png/pdf/doc/docx, máx 5MB).");
++                    ViewBag.CursoAsignatura = cursoAsignatura;
++                    ViewBag.Periodos = await PeriodosDelAnioAsync();
++                    return View(tarea);
++                }
++
++                var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas");
++                Directory.CreateDirectory(carpeta);
++                var nombreArchivo = $"{Guid.NewGuid()}{extension}";
++                using (var stream = new FileStream(Path.Combine(carpeta, nombreArchivo), FileMode.Create))
++                    await archivo.CopyToAsync(stream);
++
++                tarea.ArchivoRuta = nombreArchivo;
++                tarea.ArchivoNombreOriginal = archivo.FileName;
++            }
++
+             tarea.CreadaPorNombre = User.Identity?.Name;
+             _context.Tareas.Add(tarea);
+             await _context.SaveChangesAsync();
+@@ -291,6 +317,24 @@ namespace pagos_administracion_mvc.Controllers
+             return PhysicalFile(ruta, contentType, entrega.ArchivoNombreOriginal ?? entrega.ArchivoRuta);
+         }
+ 
++        // GET: Tareas/DescargarArchivoTarea/5 — el adjunto que puso el Docente al crear/editar la
++        // Tarea (la consigna, no una entrega). Mismo chequeo de permiso que el resto (Docente
++        // propio de la materia o Admin).
++        public async Task<IActionResult> DescargarArchivoTarea(int id)
++        {
++            var tarea = await _context.Tareas.FindAsync(id);
++            if (tarea?.ArchivoRuta == null) return NotFound();
++
++            var (_, _, error) = await ObtenerConPermisoAsync(tarea.CursoAsignaturaId, soloLectura: true);
++            if (error != null) return error;
++
++            var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "tareas", tarea.ArchivoRuta);
++            if (!System.IO.File.Exists(ruta)) return NotFound();
++
++            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "application/octet-stream";
++            return PhysicalFile(ruta, contentType, tarea.ArchivoNombreOriginal ?? tarea.ArchivoRuta);
++        }
++
+         private async Task<List<Periodo>> PeriodosDelAnioAsync()
+         {
+             var anioActual = DateTime.Today.Year;
+diff --git a/pagos-administracion-mvc/Models/Tarea.cs b/pagos-administracion-mvc/Models/Tarea.cs
+index 41a3007..3aefff7 100644
+--- a/pagos-administracion-mvc/Models/Tarea.cs
++++ b/pagos-administracion-mvc/Models/Tarea.cs
+@@ -20,6 +20,12 @@ namespace pagos_administracion_mvc.Models
+         [Display(Name = "Consigna")]
+         public string? Descripcion { get; set; }
+ 
++        // Adjunto del Docente al crear la Tarea (imagen o PDF), mismo patrón que
++        // Entrega.ArchivoRuta: se guarda en App_Data/tareas con nombre GUID,
++        // ArchivoNombreOriginal es solo para mostrarlo con su nombre real en la UI.
++        public string? ArchivoRuta { get; set; }
++        public string? ArchivoNombreOriginal { get; set; }
++
+         [Display(Name = "Fecha de entrega")]
+         public DateTime FechaEntrega { get; set; }
+ 
+diff --git a/pagos-administracion-mvc/Views/MisTareas/Index.cshtml b/pagos-administracion-mvc/Views/MisTareas/Index.cshtml
+index 9ee8f7d..0e7caa5 100644
+--- a/pagos-administracion-mvc/Views/MisTareas/Index.cshtml
++++ b/pagos-administracion-mvc/Views/MisTareas/Index.cshtml
+@@ -5,6 +5,9 @@
+     ViewData["Title"] = "Tareas";
+ }
+ 
++<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css">
++<link rel="stylesheet" href="~/css/editor-tareas.css" asp-append-version="true">
++
+ <div class="d-flex justify-content-between align-items-center mb-3">
+     <h1 class="h3 mb-0">Tareas</h1>
+ 
+@@ -40,6 +43,9 @@
+ {
+     var tarea = entrega.Tarea;
+     var vencida = !entrega.Entregada && tarea.FechaEntrega < DateTime.Today;
++    var editorId = $"editor-entrega-{entrega.Id}";
++    var dropzoneId = $"dropzone-entrega-{entrega.Id}";
++    var inputId = $"input-archivo-entrega-{entrega.Id}";
+ 
+     <div class="card mb-3">
+         <div class="card-body">
+@@ -55,7 +61,15 @@
+ 
+             @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
+             {
+-                <p class="card-text">@tarea.Descripcion</p>
++                <div class="card-text">@Html.Raw(tarea.Descripcion)</div>
++            }
++            @if (tarea.ArchivoRuta != null)
++            {
++                <p class="mb-2">
++                    <a asp-action="DescargarArchivoTarea" asp-route-tareaId="@tarea.Id" target="_blank">
++                        📎 @(tarea.ArchivoNombreOriginal ?? "adjunto de la consigna")
++                    </a>
++                </p>
+             }
+ 
+             @if (entrega.Calificacion.HasValue)
+@@ -83,11 +97,15 @@
+                 <form asp-controller="MisTareas" asp-action="Subir" method="post" enctype="multipart/form-data" class="mt-2">
+                     <input type="hidden" name="entregaId" value="@entrega.Id" />
+                     <div class="mb-2">
+-                        <textarea name="texto" class="form-control" rows="3" placeholder="Escribí tu respuesta (opcional si adjuntás archivo)">@entrega.Texto</textarea>
++                        <textarea name="texto" id="@editorId" class="form-control" rows="3" placeholder="Escribí tu respuesta (opcional si adjuntás archivo)">@Html.Raw(entrega.Texto)</textarea>
+                     </div>
+                     <div class="mb-2">
+-                        <input type="file" name="archivo" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
+-                        <div class="form-text">jpg, png, pdf, doc o docx — máx 5MB.</div>
++                        <div class="dropzone-archivo" id="@dropzoneId">
++                            <input type="file" name="archivo" id="@inputId" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
++                            <span class="dropzone-icono">⬆</span>
++                            <div>Arrastre y suelte aquí su archivo, o <a href="#" data-buscar>búsquelo</a></div>
++                            <small data-nombre-archivo>Permitido: jpg, png, pdf, doc o docx — máx 5MB.</small>
++                        </div>
+                     </div>
+                     <button type="submit" class="btn btn-sm btn-primary">Entregar</button>
+                 </form>
+@@ -95,3 +113,30 @@
+         </div>
+     </div>
+ }
++
++@section Scripts {
++    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
++    <script src="~/js/editor-tareas.js" asp-append-version="true"></script>
++    <script>
++        $(function () {
++            // Los editores viven adentro de <details>, colapsados. Summernote necesita medidas
++            // reales para calcular su toolbar, así que se inicializa recién al abrirse (si se
++            // inicializara de entrada, adentro de un <details> cerrado, queda mal renderizado).
++            document.querySelectorAll('details').forEach(function (det) {
++                det.addEventListener('toggle', function () {
++                    if (!det.open) return;
++                    var textarea = det.querySelector('textarea[id^="editor-entrega-"]');
++                    if (textarea && !$(textarea).next('.note-editor').length) {
++                        initEditorTareas('#' + textarea.id);
++                    }
++                    var dropzone = det.querySelector('[id^="dropzone-entrega-"]');
++                    if (dropzone && !dropzone.dataset.inicializado) {
++                        dropzone.dataset.inicializado = '1';
++                        var input = det.querySelector('[id^="input-archivo-entrega-"]');
++                        initDropzoneArchivo('#' + dropzone.id, '#' + input.id);
++                    }
++                }, { once: false });
++            });
++        });
++    </script>
++}
+diff --git a/pagos-administracion-mvc/Views/Tareas/Crear.cshtml b/pagos-administracion-mvc/Views/Tareas/Crear.cshtml
+index 077b396..540bc1a 100644
+--- a/pagos-administracion-mvc/Views/Tareas/Crear.cshtml
++++ b/pagos-administracion-mvc/Views/Tareas/Crear.cshtml
+@@ -5,12 +5,15 @@
+     ViewData["Title"] = "Nueva tarea";
+ }
+ 
++<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css">
++<link rel="stylesheet" href="~/css/editor-tareas.css" asp-append-version="true">
++
+ <h1 class="h3">Nueva tarea</h1>
+ <p class="text-muted">@ca.Asignatura.Nombre — @ca.Curso.Etiqueta</p>
+ 
+ <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+ 
+-<form asp-action="Crear" method="post" class="col-lg-6">
++<form asp-action="Crear" method="post" enctype="multipart/form-data" class="col-lg-6">
+     <input type="hidden" asp-for="CursoAsignaturaId" />
+ 
+     <div class="mb-3">
+@@ -20,7 +23,17 @@
+ 
+     <div class="mb-3">
+         <label asp-for="Descripcion" class="form-label">Consigna</label>
+-        <textarea asp-for="Descripcion" class="form-control" rows="4" placeholder="Detalle de la actividad (opcional)"></textarea>
++        <textarea asp-for="Descripcion" id="editor-consigna" class="form-control" rows="4" placeholder="Detalle de la actividad (opcional)"></textarea>
++    </div>
++
++    <div class="mb-3">
++        <label class="form-label">Archivo (imagen o PDF, opcional)</label>
++        <div class="dropzone-archivo" id="dropzone-consigna">
++            <input type="file" name="archivo" id="input-archivo-consigna" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" />
++            <span class="dropzone-icono">⬆</span>
++            <div>Arrastre y suelte aquí su archivo, o <a href="#" data-buscar>búsquelo</a></div>
++            <small data-nombre-archivo>Permitido: jpg, png, pdf, doc o docx — máx 5MB.</small>
++        </div>
+     </div>
+ 
+     <div class="mb-3">
+@@ -43,3 +56,14 @@
+     <button type="submit" class="btn btn-primary">Crear tarea</button>
+     <a asp-action="PorMateria" asp-route-cursoAsignaturaId="@ca.Id" class="btn btn-link">Cancelar</a>
+ </form>
++
++@section Scripts {
++    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
++    <script src="~/js/editor-tareas.js" asp-append-version="true"></script>
++    <script>
++        $(function () {
++            initEditorTareas('#editor-consigna');
++            initDropzoneArchivo('#dropzone-consigna', '#input-archivo-consigna');
++        });
++    </script>
++}
+diff --git a/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml b/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml
+index 52d243a..babd2b0 100644
+--- a/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml
++++ b/pagos-administracion-mvc/Views/Tareas/Detalle.cshtml
+@@ -17,7 +17,15 @@
+     </p>
+     @if (!string.IsNullOrWhiteSpace(tarea.Descripcion))
+     {
+-        <p class="mt-2">@tarea.Descripcion</p>
++        <div class="mt-2">@Html.Raw(tarea.Descripcion)</div>
++    }
++    @if (tarea.ArchivoRuta != null)
++    {
++        <p class="mb-0">
++            <a asp-action="DescargarArchivoTarea" asp-route-id="@tarea.Id" target="_blank">
++                📎 @(tarea.ArchivoNombreOriginal ?? "adjunto")
++            </a>
++        </p>
+     }
+ </div>
+ 
+@@ -70,7 +78,7 @@
+                 <td>
+                     @if (!string.IsNullOrWhiteSpace(entrega.Texto))
+                     {
+-                        <p class="small mb-1" style="max-width:22rem; white-space:pre-wrap;">@entrega.Texto</p>
++                        <div class="small mb-1" style="max-width:22rem;">@Html.Raw(entrega.Texto)</div>
+                     }
+                     @if (entrega.ArchivoRuta != null)
+                     {
+diff --git a/pagos-administracion-mvc/wwwroot/css/editor-tareas.css b/pagos-administracion-mvc/wwwroot/css/editor-tareas.css
+new file mode 100644
+index 0000000..97140c5
+--- /dev/null
++++ b/pagos-administracion-mvc/wwwroot/css/editor-tareas.css
+@@ -0,0 +1,45 @@
++.dropzone-archivo {
++    border: 2px dashed #c9d3e0;
++    border-radius: .5rem;
++    background: #f7f9fc;
++    padding: 1.75rem 1rem;
++    text-align: center;
++    color: #6c757d;
++    cursor: pointer;
++    transition: background-color .15s ease, border-color .15s ease;
++}
++
++.dropzone-archivo:hover,
++.dropzone-archivo.dropzone-activo {
++    background: #eef3fb;
++    border-color: #4f7cff;
++}
++
++.dropzone-archivo.dropzone-con-archivo {
++    border-style: solid;
++    border-color: #28a745;
++    background: #f3faf5;
++}
++
++.dropzone-archivo .dropzone-icono {
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    width: 2.5rem;
++    height: 2.5rem;
++    border-radius: 50%;
++    background: #fff;
++    border: 1px solid #c9d3e0;
++    font-size: 1.1rem;
++    margin-bottom: .5rem;
++}
++
++.dropzone-archivo small {
++    display: block;
++    margin-top: .35rem;
++    color: #8a94a6;
++}
++
++.dropzone-archivo input[type="file"] {
++    display: none;
++}
+diff --git a/pagos-administracion-mvc/wwwroot/js/editor-tareas.js b/pagos-administracion-mvc/wwwroot/js/editor-tareas.js
+new file mode 100644
+index 0000000..1a9e26c
+--- /dev/null
++++ b/pagos-administracion-mvc/wwwroot/js/editor-tareas.js
+@@ -0,0 +1,68 @@
++// Editor enriquecido (Summernote) + dropzone de archivo, compartido entre
++// Views/Tareas/Crear.cshtml (consigna del Docente) y Views/MisTareas/Index.cshtml (entrega del
++// Alumno). Requiere que jQuery y Summernote ya estén cargados en la página.
++
++function initEditorTareas(textareaSelector) {
++    $(textareaSelector).summernote({
++        height: 160,
++        placeholder: 'Escribí acá...',
++        lang: 'es-ES',
++        toolbar: [
++            ['style', ['bold', 'italic', 'underline', 'strikethrough']],
++            ['fontsize', ['fontsize']],
++            ['color', ['color']],
++            ['para', ['ul', 'ol', 'paragraph']],
++            ['insert', ['link']],
++        ],
++        // Las imágenes/PDF se adjuntan por el dropzone de abajo (quedan como adjunto
++        // descargable), no pegadas sueltas adentro del texto.
++        disableDragAndDrop: true,
++    });
++}
++
++// dropzoneSelector: contenedor con la clase .dropzone-archivo
++// inputSelector: el <input type="file"> real, oculto adentro del dropzone
++function initDropzoneArchivo(dropzoneSelector, inputSelector) {
++    var dropzone = document.querySelector(dropzoneSelector);
++    var input = document.querySelector(inputSelector);
++    if (!dropzone || !input) return;
++
++    var nombreEl = dropzone.querySelector('[data-nombre-archivo]');
++    var textoInicial = nombreEl ? nombreEl.textContent : '';
++
++    function actualizarNombre() {
++        if (input.files && input.files.length > 0 && nombreEl) {
++            nombreEl.textContent = input.files[0].name;
++            dropzone.classList.add('dropzone-con-archivo');
++        }
++    }
++
++    var linkBuscar = dropzone.querySelector('[data-buscar]');
++    if (linkBuscar) {
++        linkBuscar.addEventListener('click', function (e) {
++            e.preventDefault();
++            input.click();
++        });
++    }
++    dropzone.addEventListener('click', function (e) {
++        if (e.target === dropzone || e.target.closest('.dropzone-icono')) input.click();
++    });
++
++    input.addEventListener('change', actualizarNombre);
++
++    ['dragover', 'dragleave', 'drop'].forEach(function (evt) {
++        dropzone.addEventListener(evt, function (e) {
++            e.preventDefault();
++            e.stopPropagation();
++        });
++    });
++    dropzone.addEventListener('dragover', function () { dropzone.classList.add('dropzone-activo'); });
++    dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('dropzone-activo'); });
++    dropzone.addEventListener('drop', function (e) {
++        dropzone.classList.remove('dropzone-activo');
++        if (e.dataTransfer.files.length > 0) {
++            input.files = e.dataTransfer.files;
++            actualizarNombre();
++        }
++    });
++}

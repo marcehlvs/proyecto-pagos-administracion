@@ -3,9 +3,18 @@
     var alumnos = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.Alumnos;
     int? alumnoIdSeleccionado = ViewBag.AlumnoIdSeleccionado;
     var anio = (int)ViewBag.AnioLectivo;
+    bool publicado = ViewBag.Publicado;
 }
 
 <h1>Boletín</h1>
+
+@if (!publicado && alumnos.Any())
+{
+    <div class="alert alert-info" style="max-width: 500px;">
+        El boletín de <strong>@anio</strong> todavía no está disponible. El preceptor lo va a habilitar
+        cuando las notas estén cerradas — te vamos a avisar apenas esté listo.
+    </div>
+}
 
 <div class="card p-4" style="max-width: 500px;">
     <form asp-action="Pdf" method="get" target="_blank">
@@ -46,6 +55,6 @@
             <div class="form-text">El RITE completa Valoración Preliminar, Inasistencias, Intensificación y Materias pendientes automáticamente si el Docente/Preceptor/Admin las cargaron.</div>
         </div>
 
-        <button type="submit" class="btn btn-primary" @(alumnos.Any() ? "" : "disabled")>Descargar PDF</button>
+        <button type="submit" class="btn btn-primary" @(alumnos.Any() && publicado ? "" : "disabled")>Descargar PDF</button>
     </form>
 </div>

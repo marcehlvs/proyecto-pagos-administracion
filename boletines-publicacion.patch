@@ -1,0 +1,420 @@
+diff --git a/pagos-administracion-mvc/Controllers/BoletinesController.cs b/pagos-administracion-mvc/Controllers/BoletinesController.cs
+index 82422d3..ef8f35e 100644
+--- a/pagos-administracion-mvc/Controllers/BoletinesController.cs
++++ b/pagos-administracion-mvc/Controllers/BoletinesController.cs
+@@ -8,11 +8,11 @@ using pagos_administracion_mvc.Services;
+ 
+ namespace pagos_administracion_mvc.Controllers
+ {
+-    // Admin puede generar el boletín de cualquier Alumno. Familia solo el de sus propios hijos
+-    // (Alumno.FamiliaUserId). Alumno solo el propio (Alumno.AlumnoUserId). Preceptor solo el de
+-    // alumnos inscriptos en algún Curso donde figura como ProfesorUserId (mismo criterio que
+-    // Asistencias). Se valida en la acción, mismo criterio que el resto de los controllers con
+-    // datos sensibles por rol.
++    // Admin y Preceptor siempre tienen acceso (ver ValidarPermisoAsync). Familia solo el de sus
++    // propios hijos (Alumno.FamiliaUserId) y Alumno solo el propio (Alumno.AlumnoUserId), pero
++    // ADEMÁS solo cuando el Preceptor (o el Admin) publicó el boletín de ese Curso+AnioLectivo
++    // (ver BoletinPublicacion / EstaPublicadoAsync). Hasta que eso pase, Familia/Alumno no ven
++    // nada, ni siquiera que el boletín "existe".
+     [Authorize(Roles = "Admin,Familia,Alumno,Preceptor")]
+     public class BoletinesController : Controller
+     {
+@@ -32,7 +32,27 @@ namespace pagos_administracion_mvc.Controllers
+             _plantillaRite = plantillaRite;
+         }
+ 
+-        private async Task<IActionResult?> ValidarPermisoAsync(int alumnoId)
++        // true si TODOS los cursos en los que está inscripto el alumno tienen el boletín
++        // publicado para ese año (lo normal es un solo curso; si tuviera más de uno, tienen que
++        // estar todos listos para no mostrar un boletín "a medias").
++        private async Task<bool> EstaPublicadoAsync(int alumnoId, int anioLectivo)
++        {
++            var cursosIds = await _context.Inscripciones
++                .Where(i => i.AlumnoId == alumnoId)
++                .Select(i => i.CursoId)
++                .ToListAsync();
++
++            if (cursosIds.Count == 0) return false;
++
++            var publicados = await _context.BoletinPublicaciones
++                .Where(bp => cursosIds.Contains(bp.CursoId) && bp.AnioLectivo == anioLectivo && bp.Publicado)
++                .Select(bp => bp.CursoId)
++                .ToListAsync();
++
++            return cursosIds.All(id => publicados.Contains(id));
++        }
++
++        private async Task<IActionResult?> ValidarPermisoAsync(int alumnoId, int anioLectivo)
+         {
+             if (User.IsInRole("Admin")) return null;
+ 
+@@ -40,22 +60,28 @@ namespace pagos_administracion_mvc.Controllers
+             var alumno = await _context.Alumnos.FindAsync(alumnoId);
+             if (alumno == null) return NotFound();
+ 
+-            if (User.IsInRole("Familia") && alumno.FamiliaUserId == userId) return null;
+-            if (User.IsInRole("Alumno") && alumno.AlumnoUserId == userId) return null;
+-
+             if (User.IsInRole("Preceptor"))
+             {
+                 var esDeSuCurso = await _context.Inscripciones
+                     .AnyAsync(i => i.AlumnoId == alumnoId && i.Curso.ProfesorUserId == userId);
+                 if (esDeSuCurso) return null;
++                return Forbid();
+             }
+ 
+-            return Forbid();
++            var esPropio = (User.IsInRole("Familia") && alumno.FamiliaUserId == userId) ||
++                            (User.IsInRole("Alumno") && alumno.AlumnoUserId == userId);
++            if (!esPropio) return Forbid();
++
++            // Es su hijo/el suyo propio, pero todavía no está publicado: no es un error de
++            // permisos (Forbid), es "todavía no" -> NotFound para no filtrar que el boletín existe.
++            if (!await EstaPublicadoAsync(alumnoId, anioLectivo)) return NotFound();
++
++            return null;
+         }
+ 
+         // GET: Boletines?alumnoId=1&anioLectivo=2026
+-        // Pantalla simple: Admin elige alumno + año. Familia/Alumno arrancan con su(s) propio(s)
+-        // alumno(s) ya resuelto(s), sin tener que elegir un id ajeno a mano.
++        // Pantalla simple: Admin elige cualquier alumno. Preceptor elige entre los alumnos de sus
++        // cursos. Familia/Alumno arrancan con su(s) propio(s) alumno(s) ya resuelto(s).
+         public async Task<IActionResult> Index(int? alumnoId, int? anioLectivo)
+         {
+             var anio = anioLectivo ?? DateTime.Today.Year;
+@@ -64,11 +90,6 @@ namespace pagos_administracion_mvc.Controllers
+             {
+                 ViewBag.Alumnos = await _context.Alumnos.OrderBy(a => a.Apellido).ToListAsync();
+             }
+-            else if (User.IsInRole("Familia"))
+-            {
+-                var userId = _userManager.GetUserId(User);
+-                ViewBag.Alumnos = await _context.Alumnos.Where(a => a.FamiliaUserId == userId).OrderBy(a => a.Apellido).ToListAsync();
+-            }
+             else if (User.IsInRole("Preceptor"))
+             {
+                 var userId = _userManager.GetUserId(User);
+@@ -79,6 +100,11 @@ namespace pagos_administracion_mvc.Controllers
+                     .OrderBy(a => a.Apellido)
+                     .ToListAsync();
+             }
++            else if (User.IsInRole("Familia"))
++            {
++                var userId = _userManager.GetUserId(User);
++                ViewBag.Alumnos = await _context.Alumnos.Where(a => a.FamiliaUserId == userId).OrderBy(a => a.Apellido).ToListAsync();
++            }
+             else // Alumno
+             {
+                 var userId = _userManager.GetUserId(User);
+@@ -87,6 +113,17 @@ namespace pagos_administracion_mvc.Controllers
+                 alumnoId ??= propio?.Id;
+             }
+ 
++            // Para Familia/Alumno, la vista necesita saber si todavía no está publicado, para
++            // mostrar "todavía no está disponible" en vez de un botón que va a dar 404.
++            if (!User.IsInRole("Admin") && !User.IsInRole("Preceptor") && alumnoId.HasValue)
++            {
++                ViewBag.Publicado = await EstaPublicadoAsync(alumnoId.Value, anio);
++            }
++            else
++            {
++                ViewBag.Publicado = true;
++            }
++
+             ViewBag.AlumnoIdSeleccionado = alumnoId;
+             ViewBag.AnioLectivo = anio;
+             return View();
+@@ -97,7 +134,7 @@ namespace pagos_administracion_mvc.Controllers
+         // cualquier otro valor (o ninguno) usa la plantilla propia de siempre.
+         public async Task<IActionResult> Pdf(int alumnoId, int anioLectivo, string? plantilla)
+         {
+-            var error = await ValidarPermisoAsync(alumnoId);
++            var error = await ValidarPermisoAsync(alumnoId, anioLectivo);
+             if (error != null) return error;
+ 
+             var datos = await _boletinService.ObtenerDatosAsync(alumnoId, anioLectivo);
+@@ -117,5 +154,76 @@ namespace pagos_administracion_mvc.Controllers
+             var nombreArchivo = $"boletin-{datos.Alumno.Apellido}-{datos.Alumno.Nombre}-{anioLectivo}.pdf".Replace(" ", "_");
+             return File(pdf, "application/pdf", nombreArchivo);
+         }
++
++        // GET: Boletines/Publicaciones?anioLectivo=2026
++        // Pantalla para que Preceptor (sus cursos) o Admin (todos) marquen qué cursos ya tienen
++        // el boletín listo para que lo vean Familia/Alumno.
++        [Authorize(Roles = "Admin,Preceptor")]
++        public async Task<IActionResult> Publicaciones(int? anioLectivo)
++        {
++            var anio = anioLectivo ?? DateTime.Today.Year;
++
++            var cursos = User.IsInRole("Admin")
++                ? await _context.Cursos.OrderBy(c => c.Nivel).ThenBy(c => c.GradoAnio).ToListAsync()
++                : await _context.Cursos.Where(c => c.ProfesorUserId == _userManager.GetUserId(User))
++                    .OrderBy(c => c.Nivel).ThenBy(c => c.GradoAnio).ToListAsync();
++
++            var cursosIds = cursos.Select(c => c.Id).ToList();
++            var publicaciones = await _context.BoletinPublicaciones
++                .Where(bp => cursosIds.Contains(bp.CursoId) && bp.AnioLectivo == anio)
++                .ToDictionaryAsync(bp => bp.CursoId);
++
++            ViewBag.Cursos = cursos;
++            ViewBag.Publicaciones = publicaciones;
++            ViewBag.AnioLectivo = anio;
++            return View();
++        }
++
++        // POST: Boletines/Publicar
++        // Alterna Publicado para un Curso+AnioLectivo. Preceptor solo puede tocar sus propios
++        // cursos (mismo criterio que el resto de las acciones); Admin, cualquiera. Al pasar a
++        // publicado, dispara un Aviso para que Familia se entere sin tener que estar
++        // entrando a mirar.
++        [HttpPost, ValidateAntiForgeryToken]
++        [Authorize(Roles = "Admin,Preceptor")]
++        public async Task<IActionResult> Publicar(int cursoId, int anioLectivo, bool publicado)
++        {
++            var curso = await _context.Cursos.FindAsync(cursoId);
++            if (curso == null) return NotFound();
++
++            if (User.IsInRole("Preceptor") && curso.ProfesorUserId != _userManager.GetUserId(User))
++            {
++                return Forbid();
++            }
++
++            var publicacion = await _context.BoletinPublicaciones
++                .FirstOrDefaultAsync(bp => bp.CursoId == cursoId && bp.AnioLectivo == anioLectivo);
++
++            var yaEstabaPublicado = publicacion?.Publicado ?? false;
++
++            if (publicacion == null)
++            {
++                publicacion = new BoletinPublicacion { CursoId = cursoId, AnioLectivo = anioLectivo };
++                _context.BoletinPublicaciones.Add(publicacion);
++            }
++
++            publicacion.Publicado = publicado;
++            publicacion.FechaPublicacion = publicado ? DateTime.Now : null;
++            publicacion.PublicadoPorNombre = publicado ? User.Identity?.Name : null;
++
++            // Aviso solo la primera vez que pasa a publicado (no en cada toggle on/off).
++            if (publicado && !yaEstabaPublicado)
++            {
++                _context.Avisos.Add(new Aviso
++                {
++                    Titulo = $"Boletín disponible — {curso.Etiqueta}",
++                    Descripcion = $"Ya está disponible el boletín de {curso.Etiqueta} correspondiente al ciclo lectivo {anioLectivo}. Podés verlo desde la sección Boletín.",
++                    Tipo = TipoAviso.Importante
++                });
++            }
++
++            await _context.SaveChangesAsync();
++            return RedirectToAction(nameof(Publicaciones), new { anioLectivo });
++        }
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/pagos-administracion-mvc/Data/AdministracionDbContext.cs b/pagos-administracion-mvc/Data/AdministracionDbContext.cs
+index 0a76892..8b4abb1 100644
+--- a/pagos-administracion-mvc/Data/AdministracionDbContext.cs
++++ b/pagos-administracion-mvc/Data/AdministracionDbContext.cs
+@@ -26,6 +26,7 @@ namespace pagos_administracion_mvc.Data
+         public DbSet<Tarea> Tareas { get; set; }
+         public DbSet<Entrega> Entregas { get; set; }
+         public DbSet<Feriado> Feriados { get; set; }
++        public DbSet<BoletinPublicacion> BoletinPublicaciones { get; set; }
+         protected override void OnModelCreating(ModelBuilder modelBuilder)
+         {
+             base.OnModelCreating(modelBuilder);
+@@ -110,6 +111,18 @@ namespace pagos_administracion_mvc.Data
+                 .HasIndex(a => new { a.InscripcionId, a.Fecha, a.Materia })
+                 .IsUnique();
+ 
++            modelBuilder.Entity<BoletinPublicacion>()
++                .HasOne(bp => bp.Curso)
++                .WithMany()
++                .HasForeignKey(bp => bp.CursoId)
++                .OnDelete(DeleteBehavior.Restrict);
++
++            // Un solo estado de publicación por Curso+AnioLectivo (se hace upsert sobre esta fila,
++            // nunca se insertan duplicados).
++            modelBuilder.Entity<BoletinPublicacion>()
++                .HasIndex(bp => new { bp.CursoId, bp.AnioLectivo })
++                .IsUnique();
++
+             // Soft delete: por defecto, todas las consultas a Pagos ignoran los "eliminados" (Activo = false).
+             // Para incluirlos explícitamente (ej. auditoría), usar .IgnoreQueryFilters().
+             // Los filtros están encadenados hacia arriba (Cuota depende de Alumno.Activo, Pago y
+diff --git a/pagos-administracion-mvc/Models/BoletinPublicacion.cs b/pagos-administracion-mvc/Models/BoletinPublicacion.cs
+new file mode 100644
+index 0000000..0b519ef
+--- /dev/null
++++ b/pagos-administracion-mvc/Models/BoletinPublicacion.cs
+@@ -0,0 +1,26 @@
++namespace pagos_administracion_mvc.Models
++{
++    // Controla cuándo Familia/Alumno pueden ver el boletín. Se publica por Curso + AnioLectivo
++    // (no por Alumno individual): el Preceptor o el Admin lo marcan como "listo" una vez que
++    // cerraron las notas del curso, y recién ahí se habilita para todos los alumnos de ese curso.
++    // Mientras no exista fila (o exista con Publicado = false), Familia/Alumno no pueden acceder
++    // (ver BoletinesController.ValidarPermisoAsync). Admin y Preceptor siempre pueden, sin
++    // importar este estado.
++    public class BoletinPublicacion
++    {
++        public int Id { get; set; }
++
++        public int CursoId { get; set; }
++        public Curso Curso { get; set; } = null!;
++
++        public int AnioLectivo { get; set; }
++
++        public bool Publicado { get; set; }
++
++        public DateTime? FechaPublicacion { get; set; }
++
++        // Auditoría, mismo patrón que Nota/Asistencia/Tarea (guardamos el nombre, no solo el userId,
++        // para que el dato sobreviva si el usuario se borra más adelante).
++        public string? PublicadoPorNombre { get; set; }
++    }
++}
+diff --git a/pagos-administracion-mvc/Views/Boletines/Index.cshtml b/pagos-administracion-mvc/Views/Boletines/Index.cshtml
+index 6681461..745cf73 100644
+--- a/pagos-administracion-mvc/Views/Boletines/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Boletines/Index.cshtml
+@@ -3,10 +3,19 @@
+     var alumnos = (List<pagos_administracion_mvc.Models.Alumno>)ViewBag.Alumnos;
+     int? alumnoIdSeleccionado = ViewBag.AlumnoIdSeleccionado;
+     var anio = (int)ViewBag.AnioLectivo;
++    bool publicado = ViewBag.Publicado;
+ }
+ 
+ <h1>Boletín</h1>
+ 
++@if (!publicado && alumnos.Any())
++{
++    <div class="alert alert-info" style="max-width: 500px;">
++        El boletín de <strong>@anio</strong> todavía no está disponible. El preceptor lo va a habilitar
++        cuando las notas estén cerradas — te vamos a avisar apenas esté listo.
++    </div>
++}
++
+ <div class="card p-4" style="max-width: 500px;">
+     <form asp-action="Pdf" method="get" target="_blank">
+         @if (User.IsInRole("Admin") || User.IsInRole("Preceptor") || alumnos.Count > 1)
+@@ -46,6 +55,6 @@
+             <div class="form-text">El RITE completa Valoración Preliminar, Inasistencias, Intensificación y Materias pendientes automáticamente si el Docente/Preceptor/Admin las cargaron.</div>
+         </div>
+ 
+-        <button type="submit" class="btn btn-primary" @(alumnos.Any() ? "" : "disabled")>Descargar PDF</button>
++        <button type="submit" class="btn btn-primary" @(alumnos.Any() && publicado ? "" : "disabled")>Descargar PDF</button>
+     </form>
+ </div>
+\ No newline at end of file
+diff --git a/pagos-administracion-mvc/Views/Boletines/Publicaciones.cshtml b/pagos-administracion-mvc/Views/Boletines/Publicaciones.cshtml
+new file mode 100644
+index 0000000..ba022d4
+--- /dev/null
++++ b/pagos-administracion-mvc/Views/Boletines/Publicaciones.cshtml
+@@ -0,0 +1,76 @@
++﻿@using pagos_administracion_mvc.Models
++@{
++    ViewData["Title"] = "Publicar boletines";
++    var cursos = (List<Curso>)ViewBag.Cursos;
++    var publicaciones = (Dictionary<int, BoletinPublicacion>)ViewBag.Publicaciones;
++    var anio = (int)ViewBag.AnioLectivo;
++}
++
++<h1>Publicar boletines</h1>
++<p class="text-muted">
++    Mientras un curso no esté publicado acá, Familia y Alumno no pueden ver ni descargar el boletín
++    de sus alumnos, aunque las notas ya estén cargadas. Al publicar un curso por primera vez se
++    genera automáticamente un Aviso.
++</p>
++
++<form method="get" class="row g-2 align-items-end mb-4" style="max-width: 300px;">
++    <div class="col">
++        <label class="form-label">Año lectivo</label>
++        <input type="number" name="anioLectivo" class="form-control" value="@anio" />
++    </div>
++    <div class="col-auto">
++        <button type="submit" class="btn btn-outline-secondary">Ver</button>
++    </div>
++</form>
++
++@if (!cursos.Any())
++{
++    <p class="text-muted">No tenés cursos a cargo.</p>
++}
++else
++{
++    <table class="table align-middle">
++        <thead>
++            <tr>
++                <th>Curso</th>
++                <th>Estado</th>
++                <th></th>
++            </tr>
++        </thead>
++        <tbody>
++            @foreach (var curso in cursos)
++            {
++                publicaciones.TryGetValue(curso.Id, out var publicacion);
++                var estaPublicado = publicacion?.Publicado ?? false;
++                <tr>
++                    <td>@curso.Etiqueta</td>
++                    <td>
++                        @if (estaPublicado)
++                        {
++                            <span class="badge text-bg-success">Publicado</span>
++                            @if (publicacion?.FechaPublicacion != null)
++                            {
++                                <span class="text-muted small ms-2">desde @publicacion.FechaPublicacion.Value.ToString("dd/MM/yyyy")@(string.IsNullOrEmpty(publicacion.PublicadoPorNombre) ? "" : $" · {publicacion.PublicadoPorNombre}")</span>
++                            }
++                        }
++                        else
++                        {
++                            <span class="badge text-bg-secondary">No publicado</span>
++                        }
++                    </td>
++                    <td class="text-end">
++                        <form asp-action="Publicar" method="post" class="d-inline">
++                            @Html.AntiForgeryToken()
++                            <input type="hidden" name="cursoId" value="@curso.Id" />
++                            <input type="hidden" name="anioLectivo" value="@anio" />
++                            <input type="hidden" name="publicado" value="@(!estaPublicado)" />
++                            <button type="submit" class="btn btn-sm @(estaPublicado ? "btn-outline-danger" : "btn-success")">
++                                @(estaPublicado ? "Despublicar" : "Publicar")
++                            </button>
++                        </form>
++                    </td>
++                </tr>
++            }
++        </tbody>
++    </table>
++}
+diff --git a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
+index c2a47c6..d73ffc6 100644
+--- a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
++++ b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
+@@ -101,6 +101,7 @@
+                                     <li><a class="dropdown-item" asp-controller="Tareas" asp-action="Index"><i class="bi bi-list-task"></i> Tareas</a></li>
+                                     <li><a class="dropdown-item" asp-controller="MateriasPendientes" asp-action="Index"><i class="bi bi-hourglass-split"></i> Materias pendientes</a></li>
+                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Index"><i class="bi bi-file-earmark-text"></i> Boletines</a></li>
++                                    <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Publicaciones"><i class="bi bi-send-check"></i> Publicar boletines</a></li>
+                                 </ul>
+                             </li>
+                         }
+@@ -126,7 +127,13 @@
+                                 <li class="nav-item"><a class="@clase("MisCursos")" asp-controller="MisCursos" asp-action="Index">Mis Cursos</a></li>
+                                 <li class="nav-item"><a class="@clase("Asistencias")" asp-controller="Asistencias" asp-action="Resumen">Asistencias</a></li>
+                                 <li class="nav-item"><a class="@clase("MateriasPendientes")" asp-controller="MateriasPendientes" asp-action="Index">Materias pendientes</a></li>
+-                                <li class="nav-item"><a class="@clase("Boletines")" asp-controller="Boletines" asp-action="Index">Boletines</a></li>
++                                @{
++                                    var accionActual = ViewContext.RouteData.Values["action"]?.ToString();
++                                    var enBoletinesIndex = string.Equals(controladorActual, "Boletines", StringComparison.OrdinalIgnoreCase) && !string.Equals(accionActual, "Publicaciones", StringComparison.OrdinalIgnoreCase);
++                                    var enPublicaciones = string.Equals(controladorActual, "Boletines", StringComparison.OrdinalIgnoreCase) && string.Equals(accionActual, "Publicaciones", StringComparison.OrdinalIgnoreCase);
++                                }
++                                <li class="nav-item"><a class="nav-link@(enBoletinesIndex ? " active" : "")" asp-controller="Boletines" asp-action="Index">Boletines</a></li>
++                                <li class="nav-item"><a class="nav-link@(enPublicaciones ? " active" : "")" asp-controller="Boletines" asp-action="Publicaciones">Publicar boletines</a></li>
+                             }
+                             if (User.IsInRole("Docente"))
+                             {

@@ -101,6 +101,7 @@
                                     <li><a class="dropdown-item" asp-controller="Tareas" asp-action="Index"><i class="bi bi-list-task"></i> Tareas</a></li>
                                     <li><a class="dropdown-item" asp-controller="MateriasPendientes" asp-action="Index"><i class="bi bi-hourglass-split"></i> Materias pendientes</a></li>
                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Index"><i class="bi bi-file-earmark-text"></i> Boletines</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Publicaciones"><i class="bi bi-send-check"></i> Publicar boletines</a></li>
                                 </ul>
                             </li>
                         }
@@ -123,10 +124,15 @@
                                de un curso), así que se muestran por separado, no con "else if". *@
                             if (User.IsInRole("Preceptor"))
                             {
+                                var accionActual = ViewContext.RouteData.Values["action"]?.ToString();
+                                var enBoletinesIndex = string.Equals(controladorActual, "Boletines", StringComparison.OrdinalIgnoreCase) && !string.Equals(accionActual, "Publicaciones", StringComparison.OrdinalIgnoreCase);
+                                var enPublicaciones = string.Equals(controladorActual, "Boletines", StringComparison.OrdinalIgnoreCase) && string.Equals(accionActual, "Publicaciones", StringComparison.OrdinalIgnoreCase);
+
                                 <li class="nav-item"><a class="@clase("MisCursos")" asp-controller="MisCursos" asp-action="Index">Mis Cursos</a></li>
                                 <li class="nav-item"><a class="@clase("Asistencias")" asp-controller="Asistencias" asp-action="Resumen">Asistencias</a></li>
                                 <li class="nav-item"><a class="@clase("MateriasPendientes")" asp-controller="MateriasPendientes" asp-action="Index">Materias pendientes</a></li>
-                                <li class="nav-item"><a class="@clase("Boletines")" asp-controller="Boletines" asp-action="Index">Boletines</a></li>
+                                <li class="nav-item"><a class="nav-link@(enBoletinesIndex ? " active" : "")" asp-controller="Boletines" asp-action="Index">Boletines</a></li>
+                                <li class="nav-item"><a class="nav-link@(enPublicaciones ? " active" : "")" asp-controller="Boletines" asp-action="Publicaciones">Publicar boletines</a></li>
                             }
                             if (User.IsInRole("Docente"))
                             {

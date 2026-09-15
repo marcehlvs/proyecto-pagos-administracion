@@ -1,0 +1,76 @@
+﻿@using pagos_administracion_mvc.Models
+@{
+    ViewData["Title"] = "Publicar boletines";
+    var cursos = (List<Curso>)ViewBag.Cursos;
+    var publicaciones = (Dictionary<int, BoletinPublicacion>)ViewBag.Publicaciones;
+    var anio = (int)ViewBag.AnioLectivo;
+}
+
+<h1>Publicar boletines</h1>
+<p class="text-muted">
+    Mientras un curso no esté publicado acá, Familia y Alumno no pueden ver ni descargar el boletín
+    de sus alumnos, aunque las notas ya estén cargadas. Al publicar un curso por primera vez se
+    genera automáticamente un Aviso.
+</p>
+
+<form method="get" class="row g-2 align-items-end mb-4" style="max-width: 300px;">
+    <div class="col">
+        <label class="form-label">Año lectivo</label>
+        <input type="number" name="anioLectivo" class="form-control" value="@anio" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Ver</button>
+    </div>
+</form>
+
+@if (!cursos.Any())
+{
+    <p class="text-muted">No tenés cursos a cargo.</p>
+}
+else
+{
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Curso</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var curso in cursos)
+            {
+                publicaciones.TryGetValue(curso.Id, out var publicacion);
+                var estaPublicado = publicacion?.Publicado ?? false;
+                <tr>
+                    <td>@curso.Etiqueta</td>
+                    <td>
+                        @if (estaPublicado)
+                        {
+                            <span class="badge text-bg-success">Publicado</span>
+                            @if (publicacion?.FechaPublicacion != null)
+                            {
+                                <span class="text-muted small ms-2">desde @publicacion.FechaPublicacion.Value.ToString("dd/MM/yyyy")@(string.IsNullOrEmpty(publicacion.PublicadoPorNombre) ? "" : $" · {publicacion.PublicadoPorNombre}")</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-secondary">No publicado</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <form asp-action="Publicar" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="cursoId" value="@curso.Id" />
+                            <input type="hidden" name="anioLectivo" value="@anio" />
+                            <input type="hidden" name="publicado" value="@(!estaPublicado)" />
+                            <button type="submit" class="btn btn-sm @(estaPublicado ? "btn-outline-danger" : "btn-success")">
+                                @(estaPublicado ? "Despublicar" : "Publicar")
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
