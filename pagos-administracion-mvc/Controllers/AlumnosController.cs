@@ -723,4 +723,44 @@ public class AlumnosController : Controller
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             nombreArchivo);
     }
+
+    // ── Buscador global ───────────────────────────────────────────────────────
+    // Endpoint liviano para el autocomplete del navbar. Devuelve JSON puro
+    // (sin vista) para que el frontend pueda llamarlo con fetch() sin overhead
+    // de Razor. Solo accesible para Admin: si otro rol llega a la URL, MVC
+    // responde 403 automáticamente por el atributo de la clase.
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Buscar(string? q)
+    {
+        // Umbral mínimo: menos de 2 caracteres genera demasiados resultados y
+        // carga innecesaria en la BD. El frontend también lo valida, pero lo
+        // verificamos acá por si alguien llama al endpoint directamente.
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            return Json(Array.Empty<object>());
+
+        var termino = q.Trim();
+
+        // SQL Server es case-insensitive por collation por defecto, así que
+        // .Contains() ya busca sin distinguir mayúsculas. EF lo traduce a
+        // LIKE '%termino%' en la query SQL — eficiente para tablas de 500-600
+        // alumnos sin necesidad de índice de texto completo.
+        var resultados = await _context.Alumnos
+            .Where(a => a.Nombre.Contains(termino)
+                     || a.Apellido.Contains(termino)
+                     || a.Dni.Contains(termino))
+            .OrderBy(a => a.Apellido)
+            .ThenBy(a => a.Nombre)
+            .Take(10)
+            .Select(a => new
+            {
+                a.Id,
+                a.Nombre,
+                a.Apellido,
+                a.Dni,
+            })
+            .ToListAsync();
+
+        return Json(resultados);
+    }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
@@ -17,50 +17,51 @@ namespace pagos_administracion_mvc.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        // Página de registros en la tabla de Auditoría del Panel.
+        private const int TamanioPagina = 25;
+
+        public async Task<IActionResult> Index(
+            string tab = "metricas",
+            string? entidad = null,
+            string? accion = null,
+            int pagina = 1)
         {
             var hoy = DateTime.Today;
             var mesActual = hoy.Month;
             var anioActual = hoy.Year;
 
-            // 1) Recaudación del mes (pagos aprobados con fecha dentro del mes/año actual)
+            // ── Sección 1: Métricas de pagos ─────────────────────────────────
             var recaudacionMes = await _context.Pagos
                 .Where(p => p.Estado == EstadoPago.Aprobado
                     && p.Fecha.Month == mesActual && p.Fecha.Year == anioActual)
                 .SumAsync(p => (decimal?)p.Monto) ?? 0m;
 
-            // 2) Cuotas del mes/año actual: pagadas vs pendientes (incluye vencidas y parciales dentro de "pendientes")
             var cuotasDelMes = await _context.Cuotas
                 .Where(c => c.Mes == mesActual && c.Anio == anioActual)
                 .Select(c => c.Estado)
                 .ToListAsync();
 
-            var totalCuotasMes = cuotasDelMes.Count;
-            var cuotasPagadas = cuotasDelMes.Count(e => e == EstadoCuota.Pagada);
-            var cuotasPendientes = cuotasDelMes.Count(e => e == EstadoCuota.Pendiente);
-            var cuotasVencidas = cuotasDelMes.Count(e => e == EstadoCuota.Vencida);
-            var cuotasParciales = cuotasDelMes.Count(e => e == EstadoCuota.Parcial);
+            var totalCuotasMes    = cuotasDelMes.Count;
+            var cuotasPagadas     = cuotasDelMes.Count(e => e == EstadoCuota.Pagada);
+            var cuotasPendientes  = cuotasDelMes.Count(e => e == EstadoCuota.Pendiente);
+            var cuotasVencidas    = cuotasDelMes.Count(e => e == EstadoCuota.Vencida);
+            var cuotasParciales   = cuotasDelMes.Count(e => e == EstadoCuota.Parcial);
 
-            // 3) % de morosidad: cuotas vencidas sobre el total de cuotas generadas (histórico, no solo el mes)
-            var totalCuotas = await _context.Cuotas.CountAsync();
-            var totalVencidas = await _context.Cuotas.CountAsync(c => c.Estado == EstadoCuota.Vencida);
-            var porcentajeMorosidad = totalCuotas > 0 ? Math.Round((decimal)totalVencidas / totalCuotas * 100, 1) : 0m;
+            var totalCuotas       = await _context.Cuotas.CountAsync();
+            var totalVencidas     = await _context.Cuotas.CountAsync(c => c.Estado == EstadoCuota.Vencida);
+            var porcentajeMorosidad = totalCuotas > 0
+                ? Math.Round((decimal)totalVencidas / totalCuotas * 100, 1)
+                : 0m;
 
-            // 4) Alertas operativas — cosas que alguien se puede haber olvidado de cargar/hacer,
-            // para que el Admin las vea de entrada en vez de descubrirlas por casualidad.
-
-            // Cuotas venciendo en los próximos 7 días (Pendientes o Parciales).
+            // Alertas operativas
             var en7Dias = hoy.AddDays(7);
             var cuotasPorVencer = await _context.Cuotas
                 .CountAsync(c => (c.Estado == EstadoCuota.Pendiente || c.Estado == EstadoCuota.Parcial)
                     && c.FechaVencimiento >= hoy && c.FechaVencimiento <= en7Dias);
 
-            // Entregas de Tareas ya entregadas pero todavía sin calificar.
-            var tareasSinCalificar = await _context.Entregas.CountAsync(e => e.Entregada && e.Calificacion == null);
+            var tareasSinCalificar = await _context.Entregas
+                .CountAsync(e => e.Entregada && e.Calificacion == null);
 
-            // Cursos con alumnos donde no se cargó asistencia (Clase) en los últimos 3 días
-            // corridos — aproximado a propósito (no calcula días hábiles exactos por curso, para
-            // no sumar otra consulta pesada acá); alcanza para levantar la mano, no para ser exacto.
             var limiteAsistencia = hoy.AddDays(-3);
             var cursosConAlumnos = await _context.Cursos
                 .Where(c => c.Activo && c.Inscripciones.Any(i => i.Activo))
@@ -77,8 +78,6 @@ namespace pagos_administracion_mvc.Controllers
                 return ultima == null || ultima < limiteAsistencia;
             });
 
-            // Boletines: solo alerta si ya cerró al menos un Cuatrimestre este año lectivo (si
-            // ninguno cerró todavía, no corresponde publicar nada, así que no es una alerta real).
             var hayCuatrimestreCerrado = await _context.Periodos.AnyAsync(p =>
                 p.Tipo == TipoPeriodo.Cuatrimestral && p.AnioLectivo == anioActual &&
                 p.FechaFin != null && p.FechaFin < hoy);
@@ -86,31 +85,66 @@ namespace pagos_administracion_mvc.Controllers
             if (hayCuatrimestreCerrado)
             {
                 var totalCursosActivos = await _context.Cursos.CountAsync(c => c.Activo);
-                var cursosPublicados = await _context.BoletinPublicaciones
+                var cursosPublicados   = await _context.BoletinPublicaciones
                     .CountAsync(bp => bp.AnioLectivo == anioActual && bp.Publicado);
                 boletinesPendientes = Math.Max(0, totalCursosActivos - cursosPublicados);
             }
 
-            var modelo = new DashboardViewModel
+            var metricas = new DashboardViewModel
             {
-                RecaudacionMes = recaudacionMes,
-                MesActual = mesActual,
-                AnioActual = anioActual,
-                CuotasPagadas = cuotasPagadas,
-                CuotasPendientes = cuotasPendientes,
-                CuotasVencidas = cuotasVencidas,
-                CuotasParciales = cuotasParciales,
-                TotalCuotasMes = totalCuotasMes,
-                PorcentajeMorosidad = porcentajeMorosidad,
-                TotalCuotasHistorico = totalCuotas,
-                TotalVencidasHistorico = totalVencidas,
-                CuotasPorVencer = cuotasPorVencer,
-                TareasSinCalificar = tareasSinCalificar,
+                RecaudacionMes           = recaudacionMes,
+                MesActual                = mesActual,
+                AnioActual               = anioActual,
+                CuotasPagadas            = cuotasPagadas,
+                CuotasPendientes         = cuotasPendientes,
+                CuotasVencidas           = cuotasVencidas,
+                CuotasParciales          = cuotasParciales,
+                TotalCuotasMes           = totalCuotasMes,
+                PorcentajeMorosidad      = porcentajeMorosidad,
+                TotalCuotasHistorico     = totalCuotas,
+                TotalVencidasHistorico   = totalVencidas,
+                CuotasPorVencer          = cuotasPorVencer,
+                TareasSinCalificar       = tareasSinCalificar,
                 CursosSinAsistenciaReciente = cursosSinAsistenciaReciente,
-                BoletinesPendientes = boletinesPendientes
+                BoletinesPendientes      = boletinesPendientes,
             };
 
-            return View(modelo);
+            // ── Sección 2: Auditoría ──────────────────────────────────────────
+            // Solo cargamos los logs si el usuario está en esa sección, para no
+            // pagar el costo de la query cuando no hace falta.
+            var queryAudit = _context.AuditLogs.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(entidad))
+                queryAudit = queryAudit.Where(a => a.Entidad == entidad);
+            if (!string.IsNullOrWhiteSpace(accion))
+                queryAudit = queryAudit.Where(a => a.Accion == accion);
+
+            pagina = Math.Max(1, pagina);
+            var totalLogs = await queryAudit.CountAsync();
+            var logs = await queryAudit
+                .OrderByDescending(a => a.Fecha)
+                .Skip((pagina - 1) * TamanioPagina)
+                .Take(TamanioPagina)
+                .ToListAsync();
+
+            // ── Sección 3: Configuración del sistema ──────────────────────────
+            var configSitio = await _context.ConfiguracionSitio
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == 1);
+
+            var vm = new PanelControlViewModel
+            {
+                Metricas           = metricas,
+                UltimosAuditLogs   = logs,
+                TotalAuditLogs     = totalLogs,
+                PaginaAudit        = pagina,
+                TamanioPaginaAudit = TamanioPagina,
+                FiltroEntidad      = entidad,
+                FiltroAccion       = accion,
+                ConfigSitio        = configSitio,
+                TabActiva          = tab,
+            };
+
+            return View(vm);
         }
     }
 }

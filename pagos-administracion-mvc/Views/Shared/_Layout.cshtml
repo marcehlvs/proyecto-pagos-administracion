@@ -52,7 +52,7 @@
                     @{
                         var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
-                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "ConfiguracionSitio", "Avisos" }
+                        var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "Avisos" }
     .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                         var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Feriados", "Notas", "Tareas", "Boletines", "MateriasPendientes" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
@@ -63,11 +63,16 @@
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item"><a class="@clase("Dashboard")" asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
                             <li class="nav-item">
                                 <a class="@clase("Pagos")" asp-controller="Pagos" asp-action="Index">
                                     Pagos
                                     <vc:pagos-pendientes-badge></vc:pagos-pendientes-badge>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(string.Equals(controladorActual, "Dashboard", StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+                                   asp-controller="Dashboard" asp-action="Index">
+                                    <i class="bi bi-grid-1x2 me-1"></i>Panel de Control
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
@@ -82,7 +87,6 @@
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-controller="GenerarCuotas" asp-action="Index"><i class="bi bi-magic"></i> Generar cuotas</a></li>
                                     <li><a class="dropdown-item" asp-controller="Aranceles" asp-action="Index"><i class="bi bi-cash-stack"></i> Aranceles</a></li>
-                                    <li><a class="dropdown-item" asp-controller="ConfiguracionSitio" asp-action="Edit"><i class="bi bi-palette"></i> Estilo del sitio</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
@@ -141,6 +145,15 @@
                             }
                         }
                     </ul>
+
+                    <!-- Buscador Global -->
+                    <div class="d-flex align-items-center ms-auto position-relative me-3">
+                        <input class="form-control" type="search" id="buscadorGlobal" placeholder="Buscar por DNI o Nombre..." autocomplete="off" style="min-width: 250px;">
+
+                        <!-- Contenedor desplegable para los resultados -->
+                        <ul id="buscadorResultados" class="list-group position-absolute w-100 shadow-sm mt-1" style="top: 100%; z-index: 1050; display: none; max-height: 300px; overflow-y: auto;">
+                        </ul>
+                    </div>
 
                     <!-- Componente de Login/Perfil -->
                     <partial name="_LoginPartial" />

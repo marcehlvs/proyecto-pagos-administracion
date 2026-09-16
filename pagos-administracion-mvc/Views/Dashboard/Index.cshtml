@@ -1,115 +1,526 @@
-﻿@model pagos_administracion_mvc.Models.DashboardViewModel
+@model pagos_administracion_mvc.Models.PanelControlViewModel
+@using System.Text.Json
 
 @{
-    ViewData["Title"] = "Dashboard";
-    var nombreMes = System.Globalization.CultureInfo.GetCultureInfo("es-AR").DateTimeFormat.GetMonthName(Model.MesActual);
-}
+    ViewData["Title"] = "Panel de Control";
+    var nombreMes = System.Globalization.CultureInfo.GetCultureInfo("es-AR")
+                        .DateTimeFormat.GetMonthName(Model.Metricas.MesActual);
+    var tab = Model.TabActiva;
 
-<h1 class="mb-1">Dashboard</h1>
-<p class="text-muted mb-4">Resumen de @nombreMes de @Model.AnioActual</p>
+    // Entidades auditables (para el select de filtro)
+    string[] entidadesAuditables = ["Alumno", "ArancelNivel", "Cuota", "Inscripcion", "Nota", "Pago"];
+    string[] accionesAudit       = ["Create", "Update", "Delete"];
 
-@{
-    var alertas = new (int Cantidad, string Texto, string Controller, string Action, object? Ruta)[]
+    // Alertas operativas (usadas en la sección Métricas)
+    var alertas = new (int Cantidad, string Texto, string Ctrl, string Accion)[]
     {
-        (Model.CuotasPorVencer, "cuota(s) vencen en los próximos 7 días", "Cuotas", "Index", null),
-        (Model.TareasSinCalificar, "entrega(s) de tareas esperando calificación", "Tareas", "Index", null),
-        (Model.CursosSinAsistenciaReciente, "curso(s) sin asistencia cargada en los últimos 3 días", "Asistencias", "Resumen", null),
-        (Model.BoletinesPendientes, "boletín(es) de curso sin publicar", "Boletines", "Publicaciones", null),
+        (Model.Metricas.CuotasPorVencer,             "cuota(s) vencen en los próximos 7 días",        "Cuotas",     "Index"),
+        (Model.Metricas.TareasSinCalificar,          "entrega(s) de tareas esperando calificación",   "Tareas",     "Index"),
+        (Model.Metricas.CursosSinAsistenciaReciente, "curso(s) sin asistencia cargada en 3 días",     "Asistencias","Resumen"),
+        (Model.Metricas.BoletinesPendientes,         "boletín(es) de curso sin publicar",             "Boletines",  "Publicaciones"),
     };
     var hayAlertas = alertas.Any(a => a.Cantidad > 0);
+
+    Func<string, string> claseTab = t =>
+        "nav-link d-flex align-items-center gap-2 py-2 px-3 rounded" +
+        (tab == t ? " active bg-primary text-white" : " text-body");
 }
-@if (hayAlertas)
-{
-    <div class="card p-3 mb-4 border-warning">
-        <h6 class="mb-3">⚠️ Para revisar</h6>
-        <ul class="list-unstyled mb-0">
-            @foreach (var alerta in alertas.Where(a => a.Cantidad > 0))
+
+<div class="d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-grid-1x2-fill fs-4 text-primary"></i>
+    <h1 class="mb-0">Panel de Control</h1>
+</div>
+
+<div class="row g-4">
+
+    @* ── Sidebar ─────────────────────────────────────────────────────────── *@
+    <div class="col-12 col-md-3 col-xl-2">
+        <div class="card border-0 shadow-sm p-2 sticky-top" style="top: 72px;">
+            <nav class="nav flex-column gap-1" id="panel-sidebar" role="tablist">
+
+                <a href="?tab=metricas" class="@claseTab("metricas")" role="tab"
+                   id="tab-metricas">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                    <span>Métricas</span>
+                    @if (Model.Metricas.CuotasPorVencer > 0 ||
+                         Model.Metricas.TareasSinCalificar > 0 ||
+                         Model.Metricas.CursosSinAsistenciaReciente > 0 ||
+                         Model.Metricas.BoletinesPendientes > 0)
+                    {
+                        <span class="badge bg-warning text-dark ms-auto">!</span>
+                    }
+                </a>
+
+                <a href="?tab=auditoria" class="@claseTab("auditoria")" role="tab"
+                   id="tab-auditoria">
+                    <i class="bi bi-shield-lock-fill"></i>
+                    <span>Auditoría</span>
+                    @if (Model.TotalAuditLogs > 0)
+                    {
+                        <span class="badge bg-secondary ms-auto">@Model.TotalAuditLogs.ToString("N0")</span>
+                    }
+                </a>
+
+                <a href="?tab=configuracion" class="@claseTab("configuracion")" role="tab"
+                   id="tab-configuracion">
+                    <i class="bi bi-gear-fill"></i>
+                    <span>Configuración</span>
+                </a>
+
+            </nav>
+        </div>
+    </div>
+
+    @* ── Contenido principal ─────────────────────────────────────────────── *@
+    <div class="col-12 col-md-9 col-xl-10">
+
+        @* ════════════════════════════════════════════════════════════
+           SECCIÓN 1: MÉTRICAS DE PAGOS
+           ════════════════════════════════════════════════════════════ *@
+        @if (tab == "metricas")
+        {
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-bar-chart-line-fill text-primary fs-5"></i>
+                <h4 class="mb-0">Métricas — @nombreMes @Model.Metricas.AnioActual</h4>
+            </div>
+
+            @if (hayAlertas)
             {
-                <li class="mb-1">
-                    <a asp-controller="@alerta.Controller" asp-action="@alerta.Action">
-                        <span class="badge bg-warning text-dark">@alerta.Cantidad</span>
-                        @alerta.Texto
-                    </a>
-                </li>
+                <div class="alert alert-warning d-flex flex-column gap-1 mb-4" role="alert">
+                    <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Pendientes de atención</div>
+                    @foreach (var alerta in alertas.Where(a => a.Cantidad > 0))
+                    {
+                        <a asp-controller="@alerta.Ctrl" asp-action="@alerta.Accion"
+                           class="d-flex align-items-center gap-2 text-warning-emphasis text-decoration-none small">
+                            <span class="badge bg-warning text-dark">@alerta.Cantidad</span>
+                            @alerta.Texto
+                        </a>
+                    }
+                </div>
             }
-        </ul>
-    </div>
-}
 
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card h-100 p-3">
-            <span class="text-muted small">Recaudación del mes</span>
-            <span class="fs-3 fw-bold text-success">@Model.RecaudacionMes.ToString("C")</span>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card h-100 p-3">
-            <span class="text-muted small">Morosidad (histórico)</span>
-            <span class="fs-3 fw-bold text-warning">@Model.PorcentajeMorosidad.ToString("0.0")%</span>
-            <span class="text-muted small">@Model.TotalVencidasHistorico de @Model.TotalCuotasHistorico cuotas vencidas</span>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card h-100 p-3">
-            <span class="text-muted small">Cuotas del mes</span>
-            <span class="fs-3 fw-bold">@Model.TotalCuotasMes</span>
-            <span class="text-muted small">@Model.CuotasPagadas pagadas / @(Model.TotalCuotasMes - Model.CuotasPagadas) restantes</span>
-        </div>
-    </div>
-</div>
+            @* KPI cards *@
+            <div class="row g-3 mb-4">
+                <div class="col-sm-4">
+                    <div class="card h-100 border-0 shadow-sm p-3">
+                        <span class="text-muted small"><i class="bi bi-cash-coin me-1"></i>Recaudación del mes</span>
+                        <span class="fs-2 fw-bold text-success mt-1">@Model.Metricas.RecaudacionMes.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card h-100 border-0 shadow-sm p-3">
+                        <span class="text-muted small"><i class="bi bi-exclamation-circle me-1"></i>Morosidad (histórico)</span>
+                        <span class="fs-2 fw-bold text-warning mt-1">@Model.Metricas.PorcentajeMorosidad.ToString("0.0")%</span>
+                        <span class="text-muted small">@Model.Metricas.TotalVencidasHistorico de @Model.Metricas.TotalCuotasHistorico cuotas</span>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card h-100 border-0 shadow-sm p-3">
+                        <span class="text-muted small"><i class="bi bi-receipt me-1"></i>Cuotas del mes</span>
+                        <span class="fs-2 fw-bold mt-1">@Model.Metricas.TotalCuotasMes</span>
+                        <span class="text-muted small">@Model.Metricas.CuotasPagadas pagadas · @(Model.Metricas.TotalCuotasMes - Model.Metricas.CuotasPagadas) restantes</span>
+                    </div>
+                </div>
+            </div>
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card p-3">
-            <h6 class="mb-3">Cuotas pagadas vs. pendientes (mes actual)</h6>
-            <canvas id="graficoCuotasEstado" height="220"></canvas>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card p-3">
-            <h6 class="mb-3">Distribución de morosidad (histórico)</h6>
-            <canvas id="graficoMorosidad" height="220"></canvas>
-        </div>
-    </div>
-</div>
+            @* Barra de progreso de cuotas del mes *@
+            @if (Model.Metricas.TotalCuotasMes > 0)
+            {
+                var pctPagadas    = (int)Math.Round(100.0 * Model.Metricas.CuotasPagadas    / Model.Metricas.TotalCuotasMes);
+                var pctPendientes = (int)Math.Round(100.0 * Model.Metricas.CuotasPendientes / Model.Metricas.TotalCuotasMes);
+                var pctVencidas   = (int)Math.Round(100.0 * Model.Metricas.CuotasVencidas   / Model.Metricas.TotalCuotasMes);
+                var pctParciales  = 100 - pctPagadas - pctPendientes - pctVencidas;
+
+                <div class="card border-0 shadow-sm p-3 mb-4">
+                    <h6 class="mb-2 text-muted small">Estado de cuotas — @nombreMes</h6>
+                    <div class="progress mb-2" style="height:18px;" role="progressbar">
+                        <div class="progress-bar bg-success" style="width:@pctPagadas%" title="Pagadas: @Model.Metricas.CuotasPagadas"></div>
+                        <div class="progress-bar bg-warning" style="width:@pctPendientes%" title="Pendientes: @Model.Metricas.CuotasPendientes"></div>
+                        <div class="progress-bar bg-danger" style="width:@pctVencidas%" title="Vencidas: @Model.Metricas.CuotasVencidas"></div>
+                        <div class="progress-bar bg-info" style="width:@pctParciales%" title="Parciales: @Model.Metricas.CuotasParciales"></div>
+                    </div>
+                    <div class="d-flex gap-3 flex-wrap small text-muted">
+                        <span><span class="badge bg-success">&nbsp;</span> Pagadas (@Model.Metricas.CuotasPagadas)</span>
+                        <span><span class="badge bg-warning">&nbsp;</span> Pendientes (@Model.Metricas.CuotasPendientes)</span>
+                        <span><span class="badge bg-danger">&nbsp;</span> Vencidas (@Model.Metricas.CuotasVencidas)</span>
+                        <span><span class="badge bg-info">&nbsp;</span> Parciales (@Model.Metricas.CuotasParciales)</span>
+                    </div>
+                </div>
+            }
+
+            @* Gráficos Chart.js *@
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm p-3">
+                        <h6 class="mb-3 text-muted small">Cuotas por estado — mes actual</h6>
+                        <canvas id="graficoCuotasEstado" height="220"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm p-3">
+                        <h6 class="mb-3 text-muted small">Morosidad histórica</h6>
+                        <canvas id="graficoMorosidad" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ════════════════════════════════════════════════════════════
+           SECCIÓN 2: AUDITORÍA
+           ════════════════════════════════════════════════════════════ *@
+        else if (tab == "auditoria")
+        {
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+                <h4 class="mb-0">Registro de auditoría</h4>
+                <span class="badge bg-secondary ms-auto">@Model.TotalAuditLogs.ToString("N0") registros</span>
+            </div>
+
+            @* Filtros *@
+            <form method="get" class="card border-0 shadow-sm p-3 mb-3">
+                <input type="hidden" name="tab" value="auditoria" />
+                <div class="row g-2 align-items-end">
+                    <div class="col-sm-auto">
+                        <label class="form-label small mb-1">Entidad</label>
+                        <select name="entidad" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            @foreach (var e in entidadesAuditables)
+                            {
+                                <option value="@e" selected="@(Model.FiltroEntidad == e)">@e</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <label class="form-label small mb-1">Acción</label>
+                        <select name="accion" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            @foreach (var a in accionesAudit)
+                            {
+                                <option value="@a" selected="@(Model.FiltroAccion == a)">@a</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-funnel me-1"></i>Filtrar
+                        </button>
+                        <a href="?tab=auditoria" class="btn btn-outline-secondary btn-sm ms-1">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+
+            @* Tabla *@
+            @if (!Model.UltimosAuditLogs.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                    No hay registros con los filtros aplicados.
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha (UTC-3)</th>
+                                    <th>Usuario</th>
+                                    <th>Entidad</th>
+                                    <th>ID</th>
+                                    <th>Acción</th>
+                                    <th class="text-end">Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in Model.UltimosAuditLogs)
+                                {
+                                    var badgeAccion = log.Accion switch
+                                    {
+                                        "Create" => "bg-success",
+                                        "Update" => "bg-primary",
+                                        "Delete" => "bg-danger",
+                                        _        => "bg-secondary"
+                                    };
+                                    var fechaLocal = log.Fecha.AddHours(-3); // UTC → ART
+
+                                    <tr>
+                                        <td class="text-muted small">@fechaLocal.ToString("dd/MM/yy HH:mm")</td>
+                                        <td>
+                                            <span class="small @(log.UsuarioEmail == "Sistema" ? "text-muted fst-italic" : "")">
+                                                @(log.UsuarioEmail ?? "—")
+                                            </span>
+                                        </td>
+                                        <td><code class="small">@log.Entidad</code></td>
+                                        <td class="text-muted small">#@log.EntidadId</td>
+                                        <td>
+                                            <span class="badge @badgeAccion">@log.Accion</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalAudit"
+                                                    data-anterior="@(log.ValoresAnteriores ?? "")"
+                                                    data-nuevo="@(log.ValoresNuevos ?? "")"
+                                                    data-entidad="@log.Entidad"
+                                                    data-id="@log.EntidadId"
+                                                    data-accion="@log.Accion"
+                                                    data-fecha="@fechaLocal.ToString("dd/MM/yyyy HH:mm")"
+                                                    data-usuario="@(log.UsuarioEmail ?? "—")">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                @* Paginación *@
+                @if (Model.TotalPaginasAudit > 1)
+                {
+                    <nav class="mt-3" aria-label="Paginación auditoría">
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            <li class="page-item @(Model.PaginaAudit <= 1 ? "disabled" : "")">
+                                <a class="page-link"
+                                   href="?tab=auditoria&pagina=@(Model.PaginaAudit - 1)&entidad=@Model.FiltroEntidad&accion=@Model.FiltroAccion">
+                                    ‹ Anterior
+                                </a>
+                            </li>
+                            @for (int p = Math.Max(1, Model.PaginaAudit - 2);
+                                      p <= Math.Min(Model.TotalPaginasAudit, Model.PaginaAudit + 2);
+                                      p++)
+                            {
+                                <li class="page-item @(p == Model.PaginaAudit ? "active" : "")">
+                                    <a class="page-link"
+                                       href="?tab=auditoria&pagina=@p&entidad=@Model.FiltroEntidad&accion=@Model.FiltroAccion">
+                                        @p
+                                    </a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.PaginaAudit >= Model.TotalPaginasAudit ? "disabled" : "")">
+                                <a class="page-link"
+                                   href="?tab=auditoria&pagina=@(Model.PaginaAudit + 1)&entidad=@Model.FiltroEntidad&accion=@Model.FiltroAccion">
+                                    Siguiente ›
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            }
+
+            @* Modal detalle del log *@
+            <div class="modal fade" id="modalAudit" tabindex="-1" aria-labelledby="modalAuditLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalAuditLabel">
+                                Detalle del cambio — <span id="auditEntidad"></span> #<span id="auditId"></span>
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-2 mb-3">
+                                <div class="col-auto">
+                                    <span class="badge" id="auditBadgeAccion"></span>
+                                </div>
+                                <div class="col-auto text-muted small" id="auditFechaUsuario"></div>
+                            </div>
+                            <div class="row g-3" id="auditDiffContainer">
+                                <div class="col-md-6" id="colAnterior">
+                                    <h6 class="text-muted small mb-1"><i class="bi bi-dash-circle text-danger me-1"></i>Valores anteriores</h6>
+                                    <pre class="bg-danger-subtle rounded p-2 small" style="max-height:350px;overflow-y:auto;" id="auditAnterior"></pre>
+                                </div>
+                                <div class="col-md-6" id="colNuevo">
+                                    <h6 class="text-muted small mb-1"><i class="bi bi-plus-circle text-success me-1"></i>Valores nuevos</h6>
+                                    <pre class="bg-success-subtle rounded p-2 small" style="max-height:350px;overflow-y:auto;" id="auditNuevo"></pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ════════════════════════════════════════════════════════════
+           SECCIÓN 3: CONFIGURACIÓN DEL SISTEMA
+           ════════════════════════════════════════════════════════════ *@
+        else if (tab == "configuracion")
+        {
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-gear-fill text-primary fs-5"></i>
+                <h4 class="mb-0">Configuración del sistema</h4>
+            </div>
+
+            @* Paleta de colores activa *@
+            <div class="card border-0 shadow-sm p-4 mb-3">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <h5 class="mb-1">Estilo del sitio</h5>
+                        @if (Model.ConfigSitio != null)
+                        {
+                            <span class="text-muted small">
+                                Preset activo: <strong>@(Model.ConfigSitio.NombrePreset ?? "Sin nombre")</strong>
+                            </span>
+                        }
+                    </div>
+                    <a asp-controller="ConfiguracionSitio" asp-action="Edit"
+                       class="btn btn-primary btn-sm" id="btn-editar-estilo">
+                        <i class="bi bi-palette me-1"></i>Editar estilo
+                    </a>
+                </div>
+
+                @if (Model.ConfigSitio != null)
+                {
+                    <div class="row g-3">
+                        @{
+                            var colores = new[]
+                            {
+                                ("Color primario",       Model.ConfigSitio.ColorPrimario),
+                                ("Primario oscuro",      Model.ConfigSitio.ColorPrimarioOscuro),
+                                ("Éxito / Verde",        Model.ConfigSitio.ColorExito),
+                                ("Advertencia / Ámbar",  Model.ConfigSitio.ColorAdvertencia),
+                            };
+                        }
+                        @foreach (var (nombre, hex) in colores)
+                        {
+                            <div class="col-6 col-md-3">
+                                <div class="rounded-3 shadow-sm mb-2"
+                                     style="height:56px; background-color:@hex; border: 1px solid rgba(0,0,0,.08);">
+                                </div>
+                                <div class="small text-muted">@nombre</div>
+                                <code class="small">@hex</code>
+                            </div>
+                        }
+                    </div>
+
+                    @if (Model.ConfigSitio.FechaModificacion.HasValue)
+                    {
+                        <p class="text-muted small mt-3 mb-0">
+                            <i class="bi bi-clock-history me-1"></i>
+                            Última modificación: @Model.ConfigSitio.FechaModificacion.Value.ToString("dd/MM/yyyy HH:mm")
+                            @if (!string.IsNullOrEmpty(Model.ConfigSitio.ModificadaPorNombre))
+                            {
+                                <span>por <strong>@Model.ConfigSitio.ModificadaPorNombre</strong></span>
+                            }
+                        </p>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">No se encontró configuración de estilo. Usá el botón para crearla.</p>
+                }
+            </div>
+
+            @* Información del sistema *@
+            <div class="card border-0 shadow-sm p-4">
+                <h5 class="mb-3">Información de la instancia</h5>
+                <dl class="row small mb-0">
+                    <dt class="col-sm-4 text-muted">Versión .NET</dt>
+                    <dd class="col-sm-8"><code>@System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription</code></dd>
+
+                    <dt class="col-sm-4 text-muted">Entorno</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-secondary">@System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")</span>
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Fecha del servidor</dt>
+                    <dd class="col-sm-8">@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+                    <dt class="col-sm-4 text-muted">Total registros AuditLog</dt>
+                    <dd class="col-sm-8">@Model.TotalAuditLogs.ToString("N0")</dd>
+                </dl>
+            </div>
+        }
+
+    </div><!-- /col contenido -->
+</div><!-- /row -->
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script>
-        const colorPagadas = '#10B981';
-        const colorPendientes = '#F59E0B';
-        const colorVencidas = '#DC2626';
-        const colorParciales = '#3B82F6';
+    @if (tab == "metricas")
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+        <script>
+            const colorPagadas   = '#10B981';
+            const colorPendientes = '#F59E0B';
+            const colorVencidas  = '#DC2626';
+            const colorParciales = '#3B82F6';
 
-        new Chart(document.getElementById('graficoCuotasEstado'), {
-            type: 'bar',
-            data: {
-                labels: ['Pagadas', 'Pendientes', 'Vencidas', 'Parciales'],
-                datasets: [{
-                    label: 'Cuotas',
-                    data: [@Model.CuotasPagadas, @Model.CuotasPendientes, @Model.CuotasVencidas, @Model.CuotasParciales],
-                    backgroundColor: [colorPagadas, colorPendientes, colorVencidas, colorParciales]
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-            }
-        });
+            new Chart(document.getElementById('graficoCuotasEstado'), {
+                type: 'bar',
+                data: {
+                    labels: ['Pagadas', 'Pendientes', 'Vencidas', 'Parciales'],
+                    datasets: [{
+                        label: 'Cuotas',
+                        data: [@Model.Metricas.CuotasPagadas, @Model.Metricas.CuotasPendientes,
+                               @Model.Metricas.CuotasVencidas, @Model.Metricas.CuotasParciales],
+                        backgroundColor: [colorPagadas, colorPendientes, colorVencidas, colorParciales]
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
 
-        new Chart(document.getElementById('graficoMorosidad'), {
-            type: 'pie',
-            data: {
-                labels: ['Vencidas', 'Al día'],
-                datasets: [{
-                    data: [@Model.TotalVencidasHistorico, @(Model.TotalCuotasHistorico - Model.TotalVencidasHistorico)],
-                    backgroundColor: [colorVencidas, colorPagadas]
-                }]
-            },
-            options: {
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    </script>
+            new Chart(document.getElementById('graficoMorosidad'), {
+                type: 'pie',
+                data: {
+                    labels: ['Vencidas', 'Al día'],
+                    datasets: [{
+                        data: [@Model.Metricas.TotalVencidasHistorico,
+                               @(Model.Metricas.TotalCuotasHistorico - Model.Metricas.TotalVencidasHistorico)],
+                        backgroundColor: [colorVencidas, colorPagadas]
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        </script>
+    }
+
+    @if (tab == "auditoria")
+    {
+        <script>
+            // Poblar el modal de detalle con los datos del botón disparador.
+            document.getElementById('modalAudit').addEventListener('show.bs.modal', function (e) {
+                const btn = e.relatedTarget;
+
+                document.getElementById('auditEntidad').textContent = btn.dataset.entidad;
+                document.getElementById('auditId').textContent      = btn.dataset.id;
+                document.getElementById('auditFechaUsuario').textContent =
+                    btn.dataset.fecha + ' — ' + btn.dataset.usuario;
+
+                const accion = btn.dataset.accion;
+                const badge  = document.getElementById('auditBadgeAccion');
+                badge.textContent = accion;
+                badge.className   = 'badge ' + ({ Create: 'bg-success', Update: 'bg-primary', Delete: 'bg-danger' }[accion] ?? 'bg-secondary');
+
+                const fmtJson = raw => {
+                    if (!raw) return '(sin datos)';
+                    try { return JSON.stringify(JSON.parse(raw), null, 2); }
+                    catch { return raw; }
+                };
+
+                document.getElementById('auditAnterior').textContent = fmtJson(btn.dataset.anterior);
+                document.getElementById('auditNuevo').textContent    = fmtJson(btn.dataset.nuevo);
+
+                // Ocultar panel que no aplique según la acción
+                document.getElementById('colAnterior').style.display = accion === 'Create' ? 'none' : '';
+                document.getElementById('colNuevo').style.display    = accion === 'Delete' ? 'none' : '';
+
+                // Si solo hay un panel, que ocupe el ancho completo
+                if (accion === 'Create' || accion === 'Delete') {
+                    document.querySelector('#auditDiffContainer .col-md-6:not([style*="none"])').className = 'col-12';
+                } else {
+                    document.querySelectorAll('#auditDiffContainer .col-md-6, #auditDiffContainer .col-12')
+                            .forEach(el => el.className = 'col-md-6');
+                }
+            });
+        </script>
+    }
 }
