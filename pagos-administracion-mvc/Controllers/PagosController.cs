@@ -411,47 +411,11 @@ namespace pagos_administracion_mvc.Controllers
         }
 
 
-        /*[Authorize(Roles = "Familia")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Pagar(int cuotaId)
-        {
-            var userId = _userManager.GetUserId(User);
-
-            var cuota = await _context.Cuotas
-                .Include(c => c.Alumno)
-                .Include(c => c.Pagos)
-                .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
-
-            if (cuota == null) return NotFound(); // no es su cuota, o no existe
-
-            var pago = new Pago
-            {
-                CuotaId = cuota.Id,
-                Monto = cuota.SaldoPendiente,
-                Fecha = DateTime.Now,
-                Estado = EstadoPago.Pendiente,
-                RegistradoPorUserId = userId,
-                RegistradoPorNombre = User.Identity?.Name,
-                FechaRegistro = DateTime.Now
-            };
-            _context.Pagos.Add(pago);
-            await _context.SaveChangesAsync();
-
-            var preferencia = await _mpService.CrearPreferenciaAsync(pago, cuota);
-
-            pago.MercadoPagoPreferenceId = preferencia.Id;
-            await _context.SaveChangesAsync();
-
-            return Redirect(preferencia.InitPoint);
-        }
-        Otra versión de pagar
-        */
-
 
         // Mercado Pago Webhook Endpoint (Con Idempotencia, Logging y validación de firma)
         [AllowAnonymous]
         [HttpPost("api/mercadopago/webhook")]
+        [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("webhook-mp")]
         public async Task<IActionResult> Webhook()
         {
             try
@@ -463,20 +427,20 @@ namespace pagos_administracion_mvc.Controllers
                 // data.id de un pago real (propio, ajeno, o de otro comercio) y forzar que
                 // reprocesemos ese pago como si MP lo hubiera notificado.
                 var webhookSecret = _config["MercadoPago:WebhookSecret"];
-                if (!string.IsNullOrEmpty(webhookSecret))
+                if (string.IsNullOrEmpty(webhookSecret))
                 {
-                    if (!FirmaWebhookValida(webhookSecret, paymentId))
-                    {
-                        _logger.LogWarning("Webhook de MP rechazado: firma x-signature inválida o ausente. data.id={PaymentId}", paymentId);
-                        return Unauthorized();
-                    }
+                    // Sin secret configurado, el webhook no puede validarse: rechazamos todo.
+                    // Configurá MercadoPago:WebhookSecret en user-secrets (dev) o en la variable
+                    // de entorno MercadoPago__WebhookSecret (producción) para activar el endpoint.
+                    _logger.LogError("Webhook de MP rechazado: MercadoPago:WebhookSecret no está configurado. " +
+                        "Configura la variable de entorno antes de habilitar pagos en producción.");
+                    return Unauthorized();
                 }
-                else
+
+                if (!FirmaWebhookValida(webhookSecret, paymentId))
                 {
-                    // Configurá MercadoPago:WebhookSecret (user-secrets en dev, variable de entorno
-                    // MercadoPago__WebhookSecret en producción) para que esta validación se active.
-                    // Hasta entonces seguimos procesando sin validar, igual que antes.
-                    _logger.LogWarning("MercadoPago:WebhookSecret no configurado: la firma del webhook no se está validando.");
+                    _logger.LogWarning("Webhook de MP rechazado: firma x-signature inválida o ausente. data.id={PaymentId}", paymentId);
+                    return Unauthorized();
                 }
 
                 var type = Request.Query["type"].FirstOrDefault() ?? Request.Query["topic"].FirstOrDefault();
@@ -484,8 +448,14 @@ namespace pagos_administracion_mvc.Controllers
                 if (type != "payment" || string.IsNullOrEmpty(paymentId))
                     return Ok();
 
+                if (!long.TryParse(paymentId, out var paymentIdLong))
+                {
+                    _logger.LogWarning("Webhook de MP rechazado: data.id '{PaymentId}' no es un número válido.", paymentId);
+                    return BadRequest();
+                }
+
                 var paymentClient = new global::MercadoPago.Client.Payment.PaymentClient();
-                var payment = await paymentClient.GetAsync(long.Parse(paymentId));
+                var payment = await paymentClient.GetAsync(paymentIdLong);
 
                 if (payment?.ExternalReference == null)
                     return Ok();
@@ -663,7 +633,23 @@ namespace pagos_administracion_mvc.Controllers
             var ruta = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "comprobantes", pago.ComprobanteRuta);
             if (!System.IO.File.Exists(ruta)) return NotFound();
 
-            var contentType = Path.GetExtension(ruta) == ".pdf" ? "application/pdf" : "image/" + Path.GetExtension(ruta).TrimStart('.');
+            // Allowlist explícita de content-types seguros para evitar XSS almacenado:
+            // un switch dinámico sobre la extensión podría generar "image/svg" o "image/htm"
+            // que el browser ejecutaría como HTML/JS en el contexto del origen.
+            var contentType = Path.GetExtension(ruta).ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png"            => "image/png",
+                ".pdf"            => "application/pdf",
+                _                 => null
+            };
+
+            if (contentType == null)
+            {
+                _logger.LogWarning("VerComprobante: extension no permitida para el archivo '{Ruta}'.", ruta);
+                return BadRequest();
+            }
+
             return PhysicalFile(ruta, contentType);
         }
 

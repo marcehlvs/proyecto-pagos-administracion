@@ -19,7 +19,7 @@ namespace pagos_administracion_mvc.Controllers
         private readonly ConversacionAsistenteStore _historialStore;
         private readonly PagoIniciadorService _pagoIniciador;
         private readonly IConfiguration _config;
-        private string? _urlRedireccionPendiente;
+        private readonly ILogger<AsistenteController> _logger;
 
         public AsistenteController(
             AdministracionDbContext context,
@@ -27,14 +27,16 @@ namespace pagos_administracion_mvc.Controllers
             AsistenteService asistenteService,
             ConversacionAsistenteStore historialStore,
             PagoIniciadorService pagoIniciador,
-            IConfiguration config)
+            IConfiguration config,
+            ILogger<AsistenteController> logger)
         {
-            _context = context;
-            _userManager = userManager;
+            _context        = context;
+            _userManager    = userManager;
             _asistenteService = asistenteService;
             _historialStore = historialStore;
-            _pagoIniciador = pagoIniciador;
-            _config = config;
+            _pagoIniciador  = pagoIniciador;
+            _config         = config;
+            _logger         = logger;
         }
 
         public class ConsultaRequest
@@ -108,9 +110,10 @@ namespace pagos_administracion_mvc.Controllers
                 }
 
                 object resultadoTool;
+                string? urlRedireccion = null;
                 try
                 {
-                    resultadoTool = esFamilia
+                    (resultadoTool, urlRedireccion) = esFamilia
                         ? await EjecutarToolFamilia(toolName, toolInput, userId)
                         : await EjecutarToolAlumno(toolName, toolInput, userId);
                 }
@@ -149,11 +152,14 @@ namespace pagos_administracion_mvc.Controllers
                     JsonSerializer.Serialize(new { role = "assistant", content = textoFinal })
                 });
 
-                return Json(new { respuesta = textoFinal, redireccion = _urlRedireccionPendiente });
+                return Json(new { respuesta = textoFinal, redireccion = urlRedireccion });
             }
             catch (Exception ex)
             {
-                return Json(new { respuesta = $"Ocurrió un problema de conexión temporal. Intentá nuevamente en unos segundos. ({ex.Message})", redireccion = (string?)null });
+                // No exponemos ex.Message al cliente: puede contener rutas internas,
+                // detalles de configuración de la API de Groq o del stack .NET (CWE-209).
+                _logger.LogError(ex, "Error en el asistente para el usuario {UserId}", _userManager.GetUserId(User));
+                return Json(new { respuesta = "Ocurrió un problema de conexión temporal. Intentá nuevamente en unos segundos.", redireccion = (string?)null });
             }
         }
 
@@ -262,7 +268,7 @@ namespace pagos_administracion_mvc.Controllers
             }
         };
 
-        private async Task<object> EjecutarToolFamilia(string toolName, JsonElement input, string userId)
+        private async Task<(object Resultado, string? UrlRedireccion)> EjecutarToolFamilia(string toolName, JsonElement input, string userId)
         {
             switch (toolName)
             {
@@ -284,13 +290,25 @@ namespace pagos_administracion_mvc.Controllers
                             .Select(c => new { c.Id, c.Mes, c.Anio, c.SaldoPendiente, c.FechaVencimiento })
                             .ToListAsync();
 
-                        return new { alumno = $"{alumno.Nombre} {alumno.Apellido}", cuotas };
+                        return (new { alumno = $"{alumno.Nombre} {alumno.Apellido}", cuotas }, (string?)null);
                     }
                 case "IniciarPagoMercadoPago":
                     {
                         if (!input.TryGetProperty("cuotaId", out var cuotaIdProp))
                             throw new UnauthorizedAccessException();
-                        var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
+
+                        // Protegemos el parseo: si el LLM genera un valor inesperado (string
+                        // no numérico, overflow) evitamos FormatException/OverflowException no controlada.
+                        int cuotaId;
+                        if (cuotaIdProp.ValueKind == JsonValueKind.Number)
+                        {
+                            if (!cuotaIdProp.TryGetInt32(out cuotaId)) throw new UnauthorizedAccessException();
+                        }
+                        else
+                        {
+                            if (!int.TryParse(cuotaIdProp.GetString(), out cuotaId)) throw new UnauthorizedAccessException();
+                        }
+
                         var cuota = await _context.Cuotas
                             .Include(c => c.Alumno)
                             .Include(c => c.Pagos)
@@ -298,30 +316,41 @@ namespace pagos_administracion_mvc.Controllers
                         if (cuota == null) throw new UnauthorizedAccessException();
 
                         var urlCheckout = await _pagoIniciador.IniciarPagoMercadoPagoAsync(cuota, userId, User.Identity?.Name);
-                        _urlRedireccionPendiente = urlCheckout;
-                        return new { urlCheckout };
+                        // Devolvemos la URL de checkout junto al resultado de la tool para que
+                        // el caller pueda incluirla en la respuesta JSON sin usar estado mutable.
+                        return (new { urlCheckout }, urlCheckout);
                     }
                 case "ObtenerDatosTransferencia":
                     {
                         if (!input.TryGetProperty("cuotaId", out var cuotaIdProp))
                             throw new UnauthorizedAccessException();
-                        var cuotaId = cuotaIdProp.ValueKind == JsonValueKind.Number ? cuotaIdProp.GetInt32() : int.Parse(cuotaIdProp.GetString()!);
+
+                        int cuotaId;
+                        if (cuotaIdProp.ValueKind == JsonValueKind.Number)
+                        {
+                            if (!cuotaIdProp.TryGetInt32(out cuotaId)) throw new UnauthorizedAccessException();
+                        }
+                        else
+                        {
+                            if (!int.TryParse(cuotaIdProp.GetString(), out cuotaId)) throw new UnauthorizedAccessException();
+                        }
+
                         var cuota = await _context.Cuotas
                             .Include(c => c.Alumno)
                             .FirstOrDefaultAsync(c => c.Id == cuotaId && c.Alumno.FamiliaUserId == userId);
                         if (cuota == null) throw new UnauthorizedAccessException();
 
-                        return new
+                        return (new
                         {
                             saldoPendiente = cuota.SaldoPendiente,
-                            alias = _config["DatosBancarios:Alias"] ?? "No configurado",
-                            cbu = _config["DatosBancarios:Cbu"] ?? "No configurado",
-                            titular = _config["DatosBancarios:Titular"] ?? "No configurado",
+                            alias    = _config["DatosBancarios:Alias"]    ?? "No configurado",
+                            cbu      = _config["DatosBancarios:Cbu"]      ?? "No configurado",
+                            titular  = _config["DatosBancarios:Titular"]  ?? "No configurado",
                             urlSubirComprobante = Url.Action("Confirmar", "Pagos", new { cuotaId = cuota.Id, metodo = "transferencia" })
-                        };
+                        }, (string?)null);
                     }
                 case "ConsultarAvisos":
-                    return await EjecutarConsultarAvisos(input);
+                    return (await EjecutarConsultarAvisos(input), null);
 
                 case "ConsultarAranceles":
                     {
@@ -372,7 +401,7 @@ namespace pagos_administracion_mvc.Controllers
                             });
                         }
 
-                        return new { aranceles = resultado };
+                        return (new { aranceles = resultado }, null);
                     }
                 default:
                     throw new InvalidOperationException($"Tool desconocida: {toolName}");
@@ -423,14 +452,17 @@ namespace pagos_administracion_mvc.Controllers
             }
         };
 
-        private async Task<object> EjecutarToolAlumno(string toolName, JsonElement input, string userId)
+        private async Task<(object Resultado, string? UrlRedireccion)> EjecutarToolAlumno(string toolName, JsonElement input, string userId)
         {
             switch (toolName)
             {
                 case "ConsultarMisFaltas":
-                    return new { mensaje = "Consulta de faltas ejecutada." };
+                    // Esta tool aún no tiene implementación real.
+                    // Se deja visible para que el LLM la ofrezca, pero devuelve un mensaje
+                    // claro en lugar de datos ficticios que podrían inducir a error al alumno.
+                    throw new InvalidOperationException("ConsultarMisFaltas no implementada aún.");
                 case "ConsultarAvisos":
-                    return await EjecutarConsultarAvisos(input);
+                    return (await EjecutarConsultarAvisos(input), null);
                 default:
                     throw new InvalidOperationException($"Tool desconocida: {toolName}");
             }

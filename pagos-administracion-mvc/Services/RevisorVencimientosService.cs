@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using static pagos_administracion_mvc.Models.Enums;
@@ -80,12 +80,23 @@ namespace pagos_administracion_mvc.Services
                             $@"<p style=""margin:0 0 10px 0;"">La cuota de <strong>{cuota.Mes}/{cuota.Anio}</strong> tiene un saldo de <strong>{montoAviso:C}</strong>, {(esVencida ? "vencido con fecha" : "que vence el")} <strong>{cuota.FechaVencimiento:dd/MM/yyyy}</strong>.</p>
                             <p style=""margin:0; color:#4A5568; font-size:14px;"">Ingresá al portal para abonarla.</p>");
 
-                        await emailService.EnviarAsync(familia.Email, asunto, cuerpo);
+                        var (enviado, errorEnvio) = await emailService.EnviarAsync(familia.Email, asunto, cuerpo);
 
-                        if (cuota.Estado == EstadoCuota.Vencida)
-                            cuota.AvisoVencidaEnviado = true;
+                        if (enviado)
+                        {
+                            // Solo marcamos el flag si el mail salió efectivamente.
+                            // Si no lo marcamos, el job lo reintentará en la próxima corrida.
+                            if (cuota.Estado == EstadoCuota.Vencida)
+                                cuota.AvisoVencidaEnviado = true;
+                            else
+                                cuota.AvisoProximoVencimientoEnviado = true;
+                        }
                         else
-                            cuota.AvisoProximoVencimientoEnviado = true;
+                        {
+                            _logger.LogError(
+                                "No se pudo enviar aviso de cuota {CuotaId} a {Email}. Error: {Error}",
+                                cuota.Id, familia.Email, errorEnvio);
+                        }
                     }
 
                     if (proximasAVencer.Any() || vencidasSinAvisar.Any())

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -118,34 +118,8 @@ namespace pagos_administracion_mvc.Controllers
             return View(modelo);
         }
 
-        // Password temporal random, criptográficamente segura: 10 caracteres combinando
-        // mayúsculas, minúsculas, números y símbolos (aunque la política de Identity
-        // configurada es laxa, para una clave que viaja por mail conviene que sea fuerte).
-        private static string GenerarPasswordTemporal()
-        {
-            const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sin I/O para evitar confusión visual
-            const string minusculas = "abcdefghijkmnpqrstuvwxyz";
-            const string numeros = "23456789";
-            const string simbolos = "!@#$%&*";
-            const string todos = mayusculas + minusculas + numeros + simbolos;
-
-            Span<char> clave = stackalloc char[10];
-            clave[0] = mayusculas[RandomNumberGenerator.GetInt32(mayusculas.Length)];
-            clave[1] = minusculas[RandomNumberGenerator.GetInt32(minusculas.Length)];
-            clave[2] = numeros[RandomNumberGenerator.GetInt32(numeros.Length)];
-            clave[3] = simbolos[RandomNumberGenerator.GetInt32(simbolos.Length)];
-            for (int i = 4; i < clave.Length; i++)
-                clave[i] = todos[RandomNumberGenerator.GetInt32(todos.Length)];
-
-            // mezclar para que las posiciones fijas de arriba no sean predecibles
-            for (int i = clave.Length - 1; i > 0; i--)
-            {
-                int j = RandomNumberGenerator.GetInt32(i + 1);
-                (clave[i], clave[j]) = (clave[j], clave[i]);
-            }
-
-            return new string(clave);
-        }
+        // Delegamos a SecurityHelpers para no duplicar la implementación que también usa AlumnosController.
+        private static string GenerarPasswordTemporal() => SecurityHelpers.GenerarPasswordTemporal();
 
 
 

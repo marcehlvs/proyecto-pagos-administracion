@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using pagos_administracion_mvc.Data;
 using pagos_administracion_mvc.Models;
 using static pagos_administracion_mvc.Models.Enums;
@@ -18,19 +18,29 @@ namespace pagos_administracion_mvc.Services
 
         public async Task<string> IniciarPagoMercadoPagoAsync(Cuota cuota, string userId, string? userName)
         {
-            var pago = new Pago
-            {
-                CuotaId = cuota.Id,
-                Monto = cuota.SaldoPendiente,
-                Fecha = DateTime.Now,
-                Estado = EstadoPago.Pendiente,
-                RegistradoPorUserId = userId,
-                RegistradoPorNombre = userName,
-                FechaRegistro = DateTime.Now
-            };
+            // Idempotencia: si el usuario hace doble-clic o el browser reintenta el POST,
+            // reutilizamos el Pago Pendiente existente (sin PreferenceId aún) en lugar de
+            // crear un duplicado huérfano que quedaría en estado Pendiente para siempre.
+            var pago = await _context.Pagos.FirstOrDefaultAsync(p =>
+                p.CuotaId == cuota.Id &&
+                p.Estado == EstadoPago.Pendiente &&
+                p.MercadoPagoPreferenceId == null);
 
-            _context.Pagos.Add(pago);
-            await _context.SaveChangesAsync();
+            if (pago == null)
+            {
+                pago = new Pago
+                {
+                    CuotaId              = cuota.Id,
+                    Monto                = cuota.SaldoPendiente,
+                    Fecha                = DateTime.Now,
+                    Estado               = EstadoPago.Pendiente,
+                    RegistradoPorUserId  = userId,
+                    RegistradoPorNombre  = userName,
+                    FechaRegistro        = DateTime.Now
+                };
+                _context.Pagos.Add(pago);
+                await _context.SaveChangesAsync();
+            }
 
             var preferencia = await _mpService.CrearPreferenciaAsync(pago, cuota);
 

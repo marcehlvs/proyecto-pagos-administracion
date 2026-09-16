@@ -121,38 +121,44 @@ public class AlumnosController : Controller
     [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    // IMPORTANTE: Asegúrate de agregar FamiliaUserId al [Bind]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,EsRecursante,FamiliaUserId")] Alumno alumno)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nombre,Apellido,Dni,Nivel,GradoAnio,Turno,EsRecursante,FamiliaUserId")] Alumno alumnoViewModel)
     {
-        if (id != alumno.Id)
-        {
+        if (id != alumnoViewModel.Id)
             return NotFound();
-        }
 
         if (ModelState.IsValid)
         {
+            // Cargamos la entidad trackeada por EF para solo pisar los campos del formulario.
+            // Si usáramos _context.Update(alumnoViewModel), los campos que no están en el
+            // [Bind] (Activo, AlumnoUserId, etc.) quedarían en null en la BD.
+            var alumno = await _context.Alumnos.FindAsync(id);
+            if (alumno == null) return NotFound();
+
+            alumno.Nombre        = alumnoViewModel.Nombre;
+            alumno.Apellido      = alumnoViewModel.Apellido;
+            alumno.Dni           = alumnoViewModel.Dni;
+            alumno.Nivel         = alumnoViewModel.Nivel;
+            alumno.GradoAnio     = alumnoViewModel.GradoAnio;
+            alumno.Turno         = alumnoViewModel.Turno;
+            alumno.EsRecursante  = alumnoViewModel.EsRecursante;
+            alumno.FamiliaUserId = alumnoViewModel.FamiliaUserId;
+
             try
             {
-                _context.Update(alumno);
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
                 if (!AlumnoExists(alumno.Id))
-                {
                     return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
             return RedirectToAction(nameof(Index));
         }
 
         // Si el ModelState es inválido, recargar la lista manteniendo la selección
-        ViewBag.FamiliaUserId = await ObtenerFamiliasSelectListAsync(alumno.FamiliaUserId);
-        return View(alumno);
+        ViewBag.FamiliaUserId = await ObtenerFamiliasSelectListAsync(alumnoViewModel.FamiliaUserId);
+        return View(alumnoViewModel);
     }
 
     [Authorize(Roles = "Admin")]
@@ -275,31 +281,8 @@ public class AlumnosController : Controller
         return View(alumno);
     }
 
-    // Idéntico al de FamiliasController: password temporal random, criptográficamente segura.
-    private static string GenerarPasswordTemporal()
-    {
-        const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sin I/O para evitar confusión visual
-        const string minusculas = "abcdefghijkmnpqrstuvwxyz";
-        const string numeros = "23456789";
-        const string simbolos = "!@#$%&*";
-        const string todos = mayusculas + minusculas + numeros + simbolos;
-
-        Span<char> clave = stackalloc char[10];
-        clave[0] = mayusculas[RandomNumberGenerator.GetInt32(mayusculas.Length)];
-        clave[1] = minusculas[RandomNumberGenerator.GetInt32(minusculas.Length)];
-        clave[2] = numeros[RandomNumberGenerator.GetInt32(numeros.Length)];
-        clave[3] = simbolos[RandomNumberGenerator.GetInt32(simbolos.Length)];
-        for (int i = 4; i < clave.Length; i++)
-            clave[i] = todos[RandomNumberGenerator.GetInt32(todos.Length)];
-
-        for (int i = clave.Length - 1; i > 0; i--)
-        {
-            int j = RandomNumberGenerator.GetInt32(i + 1);
-            (clave[i], clave[j]) = (clave[j], clave[i]);
-        }
-
-        return new string(clave);
-    }
+    // Delegamos a SecurityHelpers para no duplicar la implementación que también usa FamiliasController.
+    private static string GenerarPasswordTemporal() => SecurityHelpers.GenerarPasswordTemporal();
 
     private bool AlumnoExists(int? id)
     {
