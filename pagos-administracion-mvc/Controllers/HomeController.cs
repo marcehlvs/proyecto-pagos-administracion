@@ -18,6 +18,10 @@ namespace pagos_administracion_mvc.Controllers
 
         public async Task<IActionResult> Index()
         {
+            ViewBag.CantidadAlumnos = await _context.Alumnos.CountAsync();
+            var random = new Random();
+            ViewBag.HeroVideo = $"hero-san-martin-{random.Next(1, 5)}.mp4"; // 1 a 4
+
             if (User.IsInRole("Admin"))
             {
                 ViewBag.PagosRecientes = await _context.Pagos

@@ -201,13 +201,13 @@
 
                 <!-- Columna Derecha: Mapa (8 de 12) -->
                 <div class="col-md-8">
-    <div class="ratio ratio-16x9 rounded-3 shadow-sm">
-        <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=-58.35,-34.79,-58.28,-34.75&layer=mapnik"
-                style="border:0;" loading="lazy"
-                title="Ubicación - @Configuration["DatosEscuela:Direccion"]">
-        </iframe>
-    </div>
-</div>
+                    <div style="height:220px; border-radius: var(--bs-border-radius-lg, .5rem); overflow:hidden;">
+                        <iframe class="w-100 h-100 rounded-3 shadow-sm" style="border:0;" loading="lazy"
+                                title="Ubicación - @Configuration["DatosEscuela:Direccion"]"
+                                src="https://maps.google.com/maps?q=Defensa%201600,%20San%20Francisco%20Solano&t=&z=15&ie=UTF8&iwloc=&output=embed">
+                        </iframe>
+                    </div>
+                </div>
 
 
             </div>
