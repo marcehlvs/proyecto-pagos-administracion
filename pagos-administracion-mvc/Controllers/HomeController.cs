@@ -18,9 +18,6 @@ namespace pagos_administracion_mvc.Controllers
 
         public async Task<IActionResult> Index()
         {
-            ViewBag.CantidadAlumnos = await _context.Alumnos.CountAsync();
-            var random = new Random();
-            ViewBag.HeroVideo = $"hero-san-martin-{random.Next(1, 5)}.mp4"; // 1 a 4
             if (User.IsInRole("Admin"))
             {
                 ViewBag.PagosRecientes = await _context.Pagos
@@ -36,15 +33,24 @@ namespace pagos_administracion_mvc.Controllers
                     .OrderBy(p => p.Fecha)
                     .ToListAsync();
             }
-                ViewBag.Avisos = await _context.Avisos
-                    .Where(a => a.Activo)
-                    .OrderByDescending(a => a.FechaPublicacion)
-                    .Take(3)
-                    .ToListAsync();
+
+            ViewBag.Avisos = await _context.Avisos
+                .Where(a => a.Activo)
+                .OrderByDescending(a => a.FechaPublicacion)
+                .Take(3)
+                .ToListAsync();
+
             return View();
         }
 
-        public IActionResult Nosotros() => View();
+        public async Task<IActionResult> Nosotros()
+        {
+            ViewBag.CantidadAlumnos = await _context.Alumnos.CountAsync();
+            var random = new Random();
+            ViewBag.HeroVideo = $"hero-san-martin-{random.Next(1, 5)}.mp4"; // 1 a 4
+
+            return View();
+        }
 
         public async Task<IActionResult> Calendario()
         {

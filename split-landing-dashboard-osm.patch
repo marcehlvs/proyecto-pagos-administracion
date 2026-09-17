@@ -1,0 +1,584 @@
+diff --git a/pagos-administracion-mvc/Controllers/HomeController.cs b/pagos-administracion-mvc/Controllers/HomeController.cs
+index d8e8614..38a2d49 100644
+--- a/pagos-administracion-mvc/Controllers/HomeController.cs
++++ b/pagos-administracion-mvc/Controllers/HomeController.cs
+@@ -18,9 +18,6 @@ namespace pagos_administracion_mvc.Controllers
+ 
+         public async Task<IActionResult> Index()
+         {
+-            ViewBag.CantidadAlumnos = await _context.Alumnos.CountAsync();
+-            var random = new Random();
+-            ViewBag.HeroVideo = $"hero-san-martin-{random.Next(1, 5)}.mp4"; // 1 a 4
+             if (User.IsInRole("Admin"))
+             {
+                 ViewBag.PagosRecientes = await _context.Pagos
+@@ -44,7 +41,13 @@ namespace pagos_administracion_mvc.Controllers
+             return View();
+         }
+ 
+-        public IActionResult Nosotros() => View();
++        public async Task<IActionResult> Nosotros()
++        {
++            ViewBag.CantidadAlumnos = await _context.Alumnos.CountAsync();
++            var random = new Random();
++            ViewBag.HeroVideo = $"hero-san-martin-{random.Next(1, 5)}.mp4"; // 1 a 4
++            return View();
++        }
+ 
+         public async Task<IActionResult> Calendario()
+         {
+diff --git a/pagos-administracion-mvc/Views/Home/Index.cshtml b/pagos-administracion-mvc/Views/Home/Index.cshtml
+index a1c040f..bb78ccb 100644
+--- a/pagos-administracion-mvc/Views/Home/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Home/Index.cshtml
+@@ -4,58 +4,28 @@
+ }
+ 
+ @* ═══════════════════════════════════════════════════════════
+-     HERO — intacto en estructura, mantenemos el video de fondo
++     ENCABEZADO — sobrio y funcional, reemplaza al hero grande
+      ═══════════════════════════════════════════════════════════ *@
+-<div class="position-relative rounded-4 overflow-hidden mb-5 text-white" style="min-height: 380px;">
+-    <video autoplay muted loop playsinline class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover; object-position: center 20%; z-index: -2;">
+-        <source src="~/videos/@ViewBag.HeroVideo" type="video/mp4">
+-    </video>
+-    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(0, 32, 69, 0.75); z-index: -1;"></div>
+-
+-    <div class="p-5 d-flex flex-column justify-content-center h-100">
+-        <span class="badge bg-light text-dark mb-3 align-self-start">CICLO LECTIVO 2026</span>
+-        <h1 class="display-6 fw-bold">Escuela José de San Martín</h1>
+-        <p class="col-md-8 fs-5">Formando el futuro con valores y excelencia académica desde el nivel inicial hasta el secundario.</p>
+-        <div class="d-flex gap-2 flex-wrap">
+-            @if (User.IsInRole("Familia"))
+-            {
+-                <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
+-            }
+-            else if (User.IsInRole("Admin"))
+-            {
+-                <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
+-            }
+-            else if (User.Identity?.IsAuthenticated != true)
+-            {
+-                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
+-            }
+-            <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-lg">Conocé nuestra propuesta</a>
+-        </div>
+-    </div>
+-</div>
+-
+-@* ═══════════════════════════════════════════════════
+-     CONTADORES — tarjetas con acento de color, sombra
+-     y animación de hover
+-     ═══════════════════════════════════════════════════ *@
+-<div class="row g-4 mb-5">
+-    <div class="col-6">
+-        <div class="stat-card card rounded-4 shadow-sm border-0 h-100 overflow-hidden">
+-            <div class="stat-card__accent"></div>
+-            <div class="card-body text-center py-4">
+-                <div class="stat-card__number fs-1 fw-bold lh-1 mb-1">@ViewBag.CantidadAlumnos</div>
+-                <div class="text-muted text-uppercase small fw-semibold ls-wide">Alumnos</div>
+-            </div>
+-        </div>
++<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 rounded-4 px-4 py-3 mb-4"
++     style="background-color: var(--color-primary-dark);">
++    <div class="text-white">
++        <h1 class="h5 fw-bold mb-0">Panel de Inicio</h1>
++        <span class="text-white-50 small">Escuela José de San Martín</span>
+     </div>
+-    <div class="col-6">
+-        <div class="stat-card card rounded-4 shadow-sm border-0 h-100 overflow-hidden">
+-            <div class="stat-card__accent stat-card__accent--gold"></div>
+-            <div class="card-body text-center py-4">
+-                <div class="stat-card__number fs-1 fw-bold lh-1 mb-1">50 Años</div>
+-                <div class="text-muted text-uppercase small fw-semibold ls-wide">De excelencia</div>
+-            </div>
+-        </div>
++    <div class="d-flex gap-2">
++        @if (User.IsInRole("Familia"))
++        {
++            <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-success btn-sm">Portal de Pagos</a>
++        }
++        else if (User.IsInRole("Admin"))
++        {
++            <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-sm">Portal de Pagos</a>
++        }
++        else if (User.Identity?.IsAuthenticated != true)
++        {
++            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-sm">Portal de Pagos</a>
++        }
++        <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-sm">Conocé nuestra propuesta</a>
+     </div>
+ </div>
+ 
+@@ -93,61 +63,6 @@
+     </div>
+ }
+ 
+-@* ═════════════════════════════════════════════
+-     PODCAST — Video central, rotación y Modal
+-     ═════════════════════════════════════════════ *@
+-<section class="mb-5">
+-    <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
+-        <span class="podcast-badge badge rounded-pill px-3 py-2 fs-6">
+-            <i class="bi bi-play-circle-fill me-1"></i>Podcast
+-        </span>
+-        <h2 class="h4 fw-bold mb-0">San Martín en Corto</h2>
+-    </div>
+-
+-    <div class="row justify-content-center">
+-        <div class="col-12 col-md-7 col-lg-5">
+-            <div class="podcast-card card border-0 rounded-4 shadow-sm overflow-hidden">
+-                @* Contenedor del video con botón Play superpuesto *@
+-                <div class="position-relative" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#podcastModal" onclick="abrirModalVideo()">
+-                    <video id="videoDestacado" class="w-100" style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:380px;" autoplay loop muted playsinline>
+-                        <source src="~/videos/podcast-ep1.mp4" type="video/mp4">
+-                    </video>
+-                    <div class="position-absolute top-50 start-50 translate-middle">
+-                        <div class="bg-dark bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; backdrop-filter: blur(4px);">
+-                            <i class="bi bi-play-fill text-white fs-1"></i>
+-                        </div>
+-                    </div>
+-                </div>
+-
+-                @* Descripción y botón rotativo *@
+-                <div class="card-body pb-4">
+-                    <div class="d-flex justify-content-between align-items-center mb-2">
+-                        <span id="badgeEpisodio" class="badge bg-primary-subtle text-primary-emphasis rounded-pill">Ep. 01</span>
+-                        <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="siguienteEpisodio()">Ver siguiente <i class="bi bi-arrow-right"></i></button>
+-                    </div>
+-                    <h6 id="tituloEpisodio" class="fw-semibold mb-1">Historia de nuestra escuela</h6>
+-                    <p id="descEpisodio" class="text-muted small mb-0">Un recorrido por los 50 años de trayectoria educativa.</p>
+-                </div>
+-            </div>
+-        </div>
+-    </div>
+-</section>
+-
+-@* ── Modal para reproducir el video en grande (con audio) ── *@
+-<div class="modal fade" id="podcastModal" tabindex="-1" aria-hidden="true">
+-    <div class="modal-dialog modal-dialog-centered modal-lg">
+-        <div class="modal-content bg-transparent border-0">
+-            <div class="modal-header border-0 pb-0 justify-content-end">
+-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+-            </div>
+-            <div class="modal-body p-0 text-center">
+-                <video id="videoModal" class="w-100 rounded-4 shadow-lg" controls style="max-height: 85vh; background: #000;">
+-                    <!-- El src se inyecta por JS al hacer clic -->
+-                </video>
+-            </div>
+-        </div>
+-    </div>
+-</div>
+ @* ═══════════════════════════════════════════
+      AVISOS — con nuevo estilo de tarjetas
+      ═══════════════════════════════════════════ *@
+@@ -314,27 +229,6 @@
+      ESTILOS SCOPED (solo en esta vista, no contamina el layout)
+      ════════════════════════════════════════════════════════════ *@
+ <style>
+-    /* ── Stat cards ──────────────────────────────────────── */
+-    .stat-card {
+-        transition: transform .22s ease, box-shadow .22s ease;
+-        cursor: default;
+-    }
+-    .stat-card:hover {
+-        transform: translateY(-5px);
+-        box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
+-    }
+-    .stat-card__accent {
+-        height: 5px;
+-        background: linear-gradient(90deg, var(--color-primary, #0d6efd), var(--color-primary-dark, #0a58ca));
+-    }
+-    .stat-card__accent--gold {
+-        background: linear-gradient(90deg, #f5a623, #f7c948);
+-    }
+-    .stat-card__number {
+-        color: var(--color-primary, #0d6efd);
+-        letter-spacing: -1px;
+-    }
+-
+     /* ── Quick-access cards ──────────────────────────────── */
+     .quick-card {
+         transition: transform .22s ease, box-shadow .22s ease, background-color .18s ease;
+@@ -359,86 +253,4 @@
+         transform: translateY(-4px);
+         box-shadow: 0 6px 18px rgba(0,0,0,.1) !important;
+     }
+-
+-    /* ── Podcast section ─────────────────────────────────── */
+-    .podcast-badge {
+-        background: linear-gradient(135deg, var(--color-primary, #0d6efd), #6610f2);
+-        color: #fff;
+-        font-weight: 600;
+-    }
+-    .podcast-card {
+-        transition: transform .25s ease, box-shadow .25s ease;
+-    }
+-    .podcast-card:hover {
+-        transform: translateY(-7px);
+-        box-shadow: 0 14px 36px rgba(0,0,0,.16) !important;
+-    }
+-
+-    /* Botón flotante de volumen */
+-    .btn-mute {
+-        position: absolute;
+-        bottom: 12px;
+-        right: 12px;
+-        width: 36px;
+-        height: 36px;
+-        border-radius: 50%;
+-        border: none;
+-        background: rgba(0, 0, 0, .55);
+-        color: #fff;
+-        font-size: 1rem;
+-        display: flex;
+-        align-items: center;
+-        justify-content: center;
+-        cursor: pointer;
+-        backdrop-filter: blur(4px);
+-        transition: background .18s ease, transform .18s ease;
+-        z-index: 10;
+-    }
+-    .btn-mute:hover {
+-        background: rgba(0, 0, 0, .82);
+-        transform: scale(1.12);
+-    }
+-    .btn-mute:focus-visible {
+-        outline: 2px solid #fff;
+-        outline-offset: 2px;
+-    }
+-</style>
+-
+- @section Scripts {
+-<script>
+-    // Datos de los episodios
+-    const episodios = [
+-        { src: '/videos/podcast-ep1.mp4', ep: 'Ep. 01', titulo: 'Historia de nuestra escuela', desc: 'Un recorrido por los 50 años de trayectoria educativa.' },
+-        { src: '/videos/podcast-ep2.mp4', ep: 'Ep. 02', titulo: 'Voces del aula', desc: 'Docentes y alumnos comparten su experiencia diaria.' },
+-        { src: '/videos/podcast-ep3.mp4', ep: 'Ep. 03', titulo: 'El futuro empieza aquí', desc: 'Proyectos y actividades que transforman la comunidad.' }
+-    ];
+-    let epActual = 0;
+-
+-    // Función para rotar la tarjeta central
+-    function siguienteEpisodio() {
+-        epActual = (epActual + 1) % episodios.length; // Cicla del 0 al 2 y vuelve a empezar
+-        const data = episodios[epActual];
+-        
+-        const video = document.getElementById('videoDestacado');
+-        video.src = data.src;
+-        video.load(); // fuerza a recargar el recurso; sin esto el frame queda congelado en el video anterior
+-        video.play();
+-
+-        document.getElementById('badgeEpisodio').innerText = data.ep;
+-        document.getElementById('tituloEpisodio').innerText = data.titulo;
+-        document.getElementById('descEpisodio').innerText = data.desc;
+-    }
+-
+-    // Función para abrir el video en grande con controles
+-    function abrirModalVideo() {
+-        const modalVideo = document.getElementById('videoModal');
+-        modalVideo.src = episodios[epActual].src;
+-        modalVideo.play();
+-    }
+-
+-    // Pausar el video automáticamente si el usuario cierra el Modal
+-    document.getElementById('podcastModal').addEventListener('hidden.bs.modal', function () {
+-        document.getElementById('videoModal').pause();
+-    });
+-</script>
+-}
+\ No newline at end of file
++</style>
+\ No newline at end of file
+diff --git a/pagos-administracion-mvc/Views/Home/Nosotros.cshtml b/pagos-administracion-mvc/Views/Home/Nosotros.cshtml
+index cc39ee6..899402e 100644
+--- a/pagos-administracion-mvc/Views/Home/Nosotros.cshtml
++++ b/pagos-administracion-mvc/Views/Home/Nosotros.cshtml
+@@ -2,8 +2,64 @@
+     ViewData["Title"] = "Nosotros";
+ }
+ 
+-<h1 class="mb-4">Nosotros</h1>
++@* ═══════════════════════════════════════════════════════════
++     HERO — mudado desde Home/Index, video de fondo intacto
++     ═══════════════════════════════════════════════════════════ *@
++<div class="position-relative rounded-4 overflow-hidden mb-5 text-white" style="min-height: 380px;">
++    <video autoplay muted loop playsinline class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover; object-position: center 20%; z-index: -2;">
++        <source src="~/videos/@ViewBag.HeroVideo" type="video/mp4">
++    </video>
++    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(0, 32, 69, 0.75); z-index: -1;"></div>
+ 
++    <div class="p-5 d-flex flex-column justify-content-center h-100">
++        <span class="badge bg-light text-dark mb-3 align-self-start">CICLO LECTIVO 2026</span>
++        <h1 class="display-6 fw-bold">Escuela José de San Martín</h1>
++        <p class="col-md-8 fs-5">Formando el futuro con valores y excelencia académica desde el nivel inicial hasta el secundario.</p>
++        <div class="d-flex gap-2 flex-wrap">
++            @if (User.IsInRole("Familia"))
++            {
++                <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
++            }
++            else if (User.IsInRole("Admin"))
++            {
++                <a asp-controller="Cuotas" asp-action="Index" class="btn btn-success btn-lg">Portal de Pagos</a>
++            }
++            else if (User.Identity?.IsAuthenticated != true)
++            {
++                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
++            }
++            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-light btn-lg">Ir al Panel de Inicio</a>
++        </div>
++    </div>
++</div>
++
++@* ═══════════════════════════════════════════════════
++     CONTADORES — mudados desde Home/Index
++     ═══════════════════════════════════════════════════ *@
++<div class="row g-4 mb-5">
++    <div class="col-6">
++        <div class="stat-card card rounded-4 shadow-sm border-0 h-100 overflow-hidden">
++            <div class="stat-card__accent"></div>
++            <div class="card-body text-center py-4">
++                <div class="stat-card__number fs-1 fw-bold lh-1 mb-1">@ViewBag.CantidadAlumnos</div>
++                <div class="text-muted text-uppercase small fw-semibold ls-wide">Alumnos</div>
++            </div>
++        </div>
++    </div>
++    <div class="col-6">
++        <div class="stat-card card rounded-4 shadow-sm border-0 h-100 overflow-hidden">
++            <div class="stat-card__accent stat-card__accent--gold"></div>
++            <div class="card-body text-center py-4">
++                <div class="stat-card__number fs-1 fw-bold lh-1 mb-1">50 Años</div>
++                <div class="text-muted text-uppercase small fw-semibold ls-wide">De excelencia</div>
++            </div>
++        </div>
++    </div>
++</div>
++
++@* ─────────────────────────────────────────────────────────
++     Contenido institucional ya existente en esta vista
++     ───────────────────────────────────────────────────── *@
+ <div class="card p-4 mb-4">
+     <h3>Nuestra Historia</h3>
+     <p class="text-muted">Fundada en 1976, la Escuela José de San Martín nace con el compromiso de brindar una educación de calidad, formando ciudadanos críticos, responsables y comprometidos con su comunidad. A lo largo de las décadas, hemos evolucionado, incorporando nuevas tecnologías y metodologías pedagógicas, pero manteniendo intacta nuestra esencia fundacional.</p>
+@@ -31,8 +87,184 @@
+     </div>
+ </div>
+ 
+-<div class="card p-4">
++<div class="card p-4 mb-5">
+     <span class="badge bg-success mb-2 align-self-start">Nivel Secundario</span>
+     <h5>Enfoque Educativo</h5>
+     <p class="text-muted">Nuestro enfoque para el nivel secundario se centra en preparar a los estudiantes para los desafíos del futuro, integrando una sólida formación académica con el desarrollo de habilidades blandas.</p>
+-</div>
+\ No newline at end of file
++</div>
++
++@* ═════════════════════════════════════════════
++     PODCAST — mudado desde Home/Index: video central, rotación y Modal
++     ═════════════════════════════════════════════ *@
++<section class="mb-5">
++    <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
++        <span class="podcast-badge badge rounded-pill px-3 py-2 fs-6">
++            <i class="bi bi-play-circle-fill me-1"></i>Podcast
++        </span>
++        <h2 class="h4 fw-bold mb-0">San Martín en Corto</h2>
++    </div>
++
++    <div class="row justify-content-center">
++        <div class="col-12 col-md-7 col-lg-5">
++            <div class="podcast-card card border-0 rounded-4 shadow-sm overflow-hidden">
++                @* Contenedor del video con botón Play superpuesto y control de mute *@
++                <div class="position-relative" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#podcastModal" onclick="abrirModalVideo()">
++                    <video id="videoDestacado" class="w-100" style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:380px;" autoplay loop muted playsinline>
++                        <source src="~/videos/podcast-ep1.mp4" type="video/mp4">
++                    </video>
++                    <div class="position-absolute top-50 start-50 translate-middle">
++                        <div class="bg-dark bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; backdrop-filter: blur(4px);">
++                            <i class="bi bi-play-fill text-white fs-1"></i>
++                        </div>
++                    </div>
++                    <button type="button" id="btnMuteDestacado" class="btn-mute" onclick="toggleMuteDestacado(event)" aria-label="Activar o silenciar sonido">
++                        <i class="bi bi-volume-mute-fill"></i>
++                    </button>
++                </div>
++
++                @* Descripción y botón rotativo *@
++                <div class="card-body pb-4">
++                    <div class="d-flex justify-content-between align-items-center mb-2">
++                        <span id="badgeEpisodio" class="badge bg-primary-subtle text-primary-emphasis rounded-pill">Ep. 01</span>
++                        <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="siguienteEpisodio()">Ver siguiente <i class="bi bi-arrow-right"></i></button>
++                    </div>
++                    <h6 id="tituloEpisodio" class="fw-semibold mb-1">Historia de nuestra escuela</h6>
++                    <p id="descEpisodio" class="text-muted small mb-0">Un recorrido por los 50 años de trayectoria educativa.</p>
++                </div>
++            </div>
++        </div>
++    </div>
++</section>
++
++@* ── Modal para reproducir el video en grande (con audio) ── *@
++<div class="modal fade" id="podcastModal" tabindex="-1" aria-hidden="true">
++    <div class="modal-dialog modal-dialog-centered modal-lg">
++        <div class="modal-content bg-transparent border-0">
++            <div class="modal-header border-0 pb-0 justify-content-end">
++                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
++            </div>
++            <div class="modal-body p-0 text-center">
++                <video id="videoModal" class="w-100 rounded-4 shadow-lg" controls style="max-height: 85vh; background: #000;">
++                    <!-- El src se inyecta por JS al hacer clic -->
++                </video>
++            </div>
++        </div>
++    </div>
++</div>
++
++@* ════════════════════════════════════════════════════════════
++     ESTILOS SCOPED (solo en esta vista, no contamina el layout)
++     ════════════════════════════════════════════════════════════ *@
++<style>
++    /* ── Stat cards ──────────────────────────────────────── */
++    .stat-card {
++        transition: transform .22s ease, box-shadow .22s ease;
++        cursor: default;
++    }
++    .stat-card:hover {
++        transform: translateY(-5px);
++        box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
++    }
++    .stat-card__accent {
++        height: 5px;
++        background: linear-gradient(90deg, var(--color-primary, #0d6efd), var(--color-primary-dark, #0a58ca));
++    }
++    .stat-card__accent--gold {
++        background: linear-gradient(90deg, #f5a623, #f7c948);
++    }
++    .stat-card__number {
++        color: var(--color-primary, #0d6efd);
++        letter-spacing: -1px;
++    }
++
++    /* ── Podcast section ─────────────────────────────────── */
++    .podcast-badge {
++        background: linear-gradient(135deg, var(--color-primary, #0d6efd), #6610f2);
++        color: #fff;
++        font-weight: 600;
++    }
++    .podcast-card {
++        transition: transform .25s ease, box-shadow .25s ease;
++    }
++    .podcast-card:hover {
++        transform: translateY(-7px);
++        box-shadow: 0 14px 36px rgba(0,0,0,.16) !important;
++    }
++
++    /* Botón flotante de volumen */
++    .btn-mute {
++        position: absolute;
++        bottom: 12px;
++        right: 12px;
++        width: 36px;
++        height: 36px;
++        border-radius: 50%;
++        border: none;
++        background: rgba(0, 0, 0, .55);
++        color: #fff;
++        font-size: 1rem;
++        display: flex;
++        align-items: center;
++        justify-content: center;
++        cursor: pointer;
++        backdrop-filter: blur(4px);
++        transition: background .18s ease, transform .18s ease;
++        z-index: 10;
++    }
++    .btn-mute:hover {
++        background: rgba(0, 0, 0, .82);
++        transform: scale(1.12);
++    }
++    .btn-mute:focus-visible {
++        outline: 2px solid #fff;
++        outline-offset: 2px;
++    }
++</style>
++
++@section Scripts {
++<script>
++    // Datos de los episodios
++    const episodios = [
++        { src: '/videos/podcast-ep1.mp4', ep: 'Ep. 01', titulo: 'Historia de nuestra escuela', desc: 'Un recorrido por los 50 años de trayectoria educativa.' },
++        { src: '/videos/podcast-ep2.mp4', ep: 'Ep. 02', titulo: 'Voces del aula', desc: 'Docentes y alumnos comparten su experiencia diaria.' },
++        { src: '/videos/podcast-ep3.mp4', ep: 'Ep. 03', titulo: 'El futuro empieza aquí', desc: 'Proyectos y actividades que transforman la comunidad.' }
++    ];
++    let epActual = 0;
++
++    // Función para rotar la tarjeta central
++    function siguienteEpisodio() {
++        epActual = (epActual + 1) % episodios.length; // Cicla del 0 al 2 y vuelve a empezar
++        const data = episodios[epActual];
++
++        const video = document.getElementById('videoDestacado');
++        video.src = data.src;
++        video.load(); // fuerza a recargar el recurso; sin esto el frame queda congelado en el video anterior
++        video.play();
++
++        document.getElementById('badgeEpisodio').innerText = data.ep;
++        document.getElementById('tituloEpisodio').innerText = data.titulo;
++        document.getElementById('descEpisodio').innerText = data.desc;
++    }
++
++    // Función para abrir el video en grande con controles
++    function abrirModalVideo() {
++        const modalVideo = document.getElementById('videoModal');
++        modalVideo.src = episodios[epActual].src;
++        modalVideo.play();
++    }
++
++    // Pausar el video automáticamente si el usuario cierra el Modal
++    document.getElementById('podcastModal').addEventListener('hidden.bs.modal', function () {
++        document.getElementById('videoModal').pause();
++    });
++
++    // Mute / unmute del video destacado, sin abrir el modal al tocar el botón
++    function toggleMuteDestacado(event) {
++        event.stopPropagation(); // evita que el click dispare la apertura del modal
++        const video = document.getElementById('videoDestacado');
++        const icono = document.querySelector('#btnMuteDestacado i');
++        video.muted = !video.muted;
++        icono.className = video.muted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
++    }
++</script>
++}
+diff --git a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
+index f9398b1..425c7da 100644
+--- a/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
++++ b/pagos-administracion-mvc/Views/Shared/_Layout.cshtml
+@@ -176,7 +176,7 @@
+             @RenderBody()
+         </main>
+     </div>
+-    <footer class="mt-5 py-4" style="background-color: var(--color-primary-dark);">
++    <footer class="mt-5 py-3" style="background-color: var(--color-primary-dark);">
+         <div class="container text-white">
+             <div class="row g-4 align-items-center">
+ 
+@@ -201,16 +201,10 @@
+ 
+                 <!-- Columna Derecha: Mapa (8 de 12) -->
+                 <div class="col-md-8">
+-                    <!-- ratio ratio-16x9 hace que el iframe sea 100% fluido y responsivo
+-                         sin necesidad de height fijo ni media queries adicionales. -->
+-                    <div class="ratio ratio-16x9 rounded-3 overflow-hidden shadow-sm">
+-                        <iframe
+-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13151.38393577407!2d-58.32!3d-34.78!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95a2d4b0e2e2e2e2%3A0x0!2sSan+Francisco+Solano%2C+Provincia+de+Buenos+Aires!5e0!3m2!1ses!2sar!4v1"
+-                            style="border:0;"
+-                            allowfullscreen=""
+-                            loading="lazy"
+-                            referrerpolicy="no-referrer-when-downgrade"
+-                            title="Ubicación - San Francisco Solano, Buenos Aires">
++                    <div class="ratio ratio-16x9 rounded-3 shadow-sm">
++                        <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=-58.35,-34.79,-58.28,-34.75&layer=mapnik"
++                                style="border:0;" loading="lazy"
++                                title="Ubicación - @Configuration["DatosEscuela:Direccion"]">
+                         </iframe>
+                     </div>
+                 </div>
