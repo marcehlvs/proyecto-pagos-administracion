@@ -172,3 +172,50 @@ h1 {
         /* El brillo se intensifica al hacer hover */
         box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
     }
+/* Buscador global (navbar) — resultados desplegables */
+#buscadorResultados {
+    border-radius: var(--bs-border-radius-lg, .5rem);
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--bs-border-color, rgba(0,0,0,.15));
+}
+
+    #buscadorResultados li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: .55rem .9rem;
+        background-color: var(--bs-body-bg, #fff);
+        border-bottom: 1px solid var(--bs-border-color-translucent, rgba(0,0,0,.08));
+        cursor: pointer;
+        line-height: 1.25;
+    }
+
+        #buscadorResultados li:last-child {
+            border-bottom: 0;
+        }
+
+        #buscadorResultados li:hover,
+        #buscadorResultados li.buscador-foco {
+            background-color: var(--bs-tertiary-bg, #f1f3f5);
+        }
+
+        #buscadorResultados li.buscador-vacio {
+            color: var(--color-text-muted, #6c757d);
+            font-style: italic;
+            cursor: default;
+        }
+
+            #buscadorResultados li.buscador-vacio:hover {
+                background-color: var(--bs-body-bg, #fff);
+            }
+
+.buscador-nombre {
+    font-weight: 600;
+    font-size: .9rem;
+}
+
+.buscador-dni {
+    font-size: .78rem;
+    color: var(--color-text-muted, #6c757d);
+}

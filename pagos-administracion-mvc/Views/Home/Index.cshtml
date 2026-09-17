@@ -6,7 +6,7 @@
 @* ══════════════════════════════════════════════════════════════════
      HERO — video de fondo con overlay oscuro, impacto institucional
      ══════════════════════════════════════════════════════════════════ *@
-<div class="hero-wrapper position-relative rounded-4 overflow-hidden mb-4 text-white" style="min-height: 480px;">
+<div class="hero-wrapper position-relative rounded-4 overflow-hidden mb-4 text-white" style="min-height: 320px;">
     <video autoplay muted loop playsinline
            class="position-absolute top-0 start-0 w-100 h-100"
            style="object-fit: cover; object-position: center 20%; z-index: -2;">
@@ -16,7 +16,7 @@
          style="background: linear-gradient(135deg, rgba(0,32,69,0.82) 0%, rgba(0,62,120,0.65) 100%); z-index: -1;">
     </div>
 
-    <div class="p-5 d-flex flex-column justify-content-center h-100" style="min-height: 480px;">
+    <div class="px-5 py-4 d-flex flex-column justify-content-center h-100" style="min-height: 320px;">
         <span class="badge bg-light text-dark mb-3 align-self-start animate-fadein">CICLO LECTIVO 2026</span>
         <h1 class="display-5 fw-bold mb-2 animate-fadein" style="animation-delay:.1s">
             Escuela José de San Martín
@@ -523,17 +523,41 @@
     }
 
     function abrirModalVideo() {
+        // El preview (videoDestacado) sigue reproduciéndose de fondo si no se
+        // pausa acá: al abrir el modal grande, quedaban los dos videos sonando
+        // y reproduciéndose al mismo tiempo ("se pisan el video y el sonido").
+        const videoPreview = document.getElementById('videoDestacado');
+        videoPreview.pause();
+
         const modalVideo = document.getElementById('videoModal');
         modalVideo.src = episodios[epActual].src;
+        modalVideo.muted = false;
         modalVideo.play();
     }
 
     document.getElementById('podcastModal').addEventListener('hidden.bs.modal', function () {
-        document.getElementById('videoModal').pause();
+        const modalVideo = document.getElementById('videoModal');
+        modalVideo.pause();
+        modalVideo.removeAttribute('src');
+        modalVideo.load();
+
+        // Al cerrar el modal, se retoma el preview silenciado como estaba
+        // originalmente (evita que arranque con sonido activado).
+        const videoPreview = document.getElementById('videoDestacado');
+        videoPreview.muted = true;
+        document.querySelector('#btnMuteDestacado i').className = 'bi bi-volume-mute-fill';
+        videoPreview.play();
     });
 
     function toggleMuteDestacado(event) {
+        // preventDefault + stopImmediatePropagation (no solo stopPropagation):
+        // el botón está anidado dentro del contenedor con data-bs-toggle="modal",
+        // y sin cortar la propagación acá el click terminaba también abriendo el
+        // modal grande ("al tocar el botón de sonido... sale un fondo negro").
+        event.preventDefault();
+        event.stopImmediatePropagation();
         event.stopPropagation();
+
         const video = document.getElementById('videoDestacado');
         const icono = document.querySelector('#btnMuteDestacado i');
         video.muted = !video.muted;

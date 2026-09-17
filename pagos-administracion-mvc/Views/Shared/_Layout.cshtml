@@ -201,12 +201,26 @@
 
                 <!-- Columna Derecha: Mapa (8 de 12) -->
                 <div class="col-md-8">
-                    <div style="height:220px; border-radius: var(--bs-border-radius-lg, .5rem); overflow:hidden;">
+                    @{
+                        // Antes había una dirección hardcodeada que no coincidía con la
+                        // configurada ("San Francisco Solano" vs. la dirección real de
+                        // DatosEscuela:Direccion), por eso Google Maps no encontraba el
+                        // lugar y mostraba el aviso de "contenido bloqueado". Se arma la
+                        // query siempre a partir de la dirección configurada.
+                        var direccionEscuela = Configuration["DatosEscuela:Direccion"] ?? "";
+                        var direccionCodificada = Uri.EscapeDataString(direccionEscuela);
+                    }
+                    <div style="height:220px; border-radius: var(--bs-border-radius-lg, .5rem); overflow:hidden; position:relative;">
                         <iframe class="w-100 h-100 rounded-3 shadow-sm" style="border:0;" loading="lazy"
-                                title="Ubicación - @Configuration["DatosEscuela:Direccion"]"
-                                src="https://maps.google.com/maps?q=Defensa%201600,%20San%20Francisco%20Solano&t=&z=15&ie=UTF8&iwloc=&output=embed">
+                                title="Ubicación - @direccionEscuela"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                src="https://www.google.com/maps?q=@direccionCodificada&t=&z=16&ie=UTF8&iwloc=&output=embed">
                         </iframe>
                     </div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=@direccionCodificada"
+                       target="_blank" rel="noopener" class="small text-white-50 d-inline-block mt-1">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Abrir en Google Maps
+                    </a>
                 </div>
 
 
