@@ -3,7 +3,10 @@
     ViewData["Title"] = "Inicio";
 }
 
-<div class="position-relative rounded-4 overflow-hidden mb-4 text-white" style="min-height: 380px;">
+@* ═══════════════════════════════════════════════════════════
+     HERO — intacto en estructura, mantenemos el video de fondo
+     ═══════════════════════════════════════════════════════════ *@
+<div class="position-relative rounded-4 overflow-hidden mb-5 text-white" style="min-height: 380px;">
     <video autoplay muted loop playsinline class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover; object-position: center 20%; z-index: -2;">
         <source src="~/videos/@ViewBag.HeroVideo" type="video/mp4">
     </video>
@@ -26,28 +29,36 @@
             {
                 <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success btn-lg">Portal de Pagos</a>
             }
-            @* Docente/Alumno ya logueados: sin botón. No tienen acceso al portal de pagos
-               (es solo para Familia/Admin) y mandarlos a Login ya no lleva a ningún lado
-               útil, porque un usuario autenticado vuelve directo a esta misma página. *@
             <a asp-controller="Home" asp-action="Nosotros" class="btn btn-outline-light btn-lg">Conocé nuestra propuesta</a>
         </div>
     </div>
 </div>
 
-<div class="row text-center mb-4">
+@* ═══════════════════════════════════════════════════
+     CONTADORES — tarjetas con acento de color, sombra
+     y animación de hover
+     ═══════════════════════════════════════════════════ *@
+<div class="row g-4 mb-5">
     <div class="col-6">
-        <div class="card p-3">
-            <div class="fs-3 fw-bold">@ViewBag.CantidadAlumnos</div>
-            <div class="text-muted text-uppercase small">Alumnos</div>
+        <div class="stat-card card rounded-4 shadow-sm border-0 h-100 overflow-hidden">
+            <div class="stat-card__accent"></div>
+            <div class="card-body text-center py-4">
+                <div class="stat-card__number fs-1 fw-bold lh-1 mb-1">@ViewBag.CantidadAlumnos</div>
+                <div class="text-muted text-uppercase small fw-semibold ls-wide">Alumnos</div>
+            </div>
         </div>
     </div>
     <div class="col-6">
-        <div class="card p-3">
-            <div class="fs-3 fw-bold">50 Años</div>
-            <div class="text-muted text-uppercase small">De excelencia</div>
+        <div class="stat-card card rounded-4 shadow-sm border-0 h-100 overflow-hidden">
+            <div class="stat-card__accent stat-card__accent--gold"></div>
+            <div class="card-body text-center py-4">
+                <div class="stat-card__number fs-1 fw-bold lh-1 mb-1">50 Años</div>
+                <div class="text-muted text-uppercase small fw-semibold ls-wide">De excelencia</div>
+            </div>
         </div>
     </div>
 </div>
+
 @if (User.IsInRole("Admin"))
 {
     var pagosRecientes = (List<pagos_administracion_mvc.Models.Pago>)ViewBag.PagosRecientes;
@@ -55,14 +66,14 @@
 
     @if (comprobantesPendientes.Any())
     {
-        <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
+        <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4 rounded-4 border-0 shadow-sm">
             <span><i class="bi bi-exclamation-triangle-fill"></i> Tenés <strong>@comprobantesPendientes.Count</strong> comprobante(s) esperando revisión.</span>
-            <a asp-controller="Pagos" asp-action="Index" class="btn btn-sm btn-warning">Revisar ahora</a>
+            <a asp-controller="Pagos" asp-action="Index" class="btn btn-sm btn-warning rounded-3">Revisar ahora</a>
         </div>
     }
 
-    <div class="card p-3 mb-4">
-        <h6 class="mb-3">Pagos aprobados (últimas 48hs)</h6>
+    <div class="card rounded-4 shadow-sm border-0 p-3 mb-5">
+        <h6 class="mb-3 fw-semibold"><i class="bi bi-clock-history me-2 text-primary"></i>Pagos aprobados (últimas 48hs)</h6>
         @if (!pagosRecientes.Any())
         {
             <p class="text-muted small mb-0">Sin pagos aprobados en este período.</p>
@@ -82,8 +93,68 @@
     </div>
 }
 
-<h4 class="mb-3">Novedades y Avisos</h4>
-<div class="row g-3 mb-4">
+@* ═════════════════════════════════════════════
+     PODCAST — Video central, rotación y Modal
+     ═════════════════════════════════════════════ *@
+<section class="mb-5">
+    <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
+        <span class="podcast-badge badge rounded-pill px-3 py-2 fs-6">
+            <i class="bi bi-play-circle-fill me-1"></i>Podcast
+        </span>
+        <h2 class="h4 fw-bold mb-0">San Martín en Corto</h2>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-7 col-lg-5">
+            <div class="podcast-card card border-0 rounded-4 shadow-sm overflow-hidden">
+                @* Contenedor del video con botón Play superpuesto *@
+                <div class="position-relative" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#podcastModal" onclick="abrirModalVideo()">
+                    <video id="videoDestacado" class="w-100" style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:450px;" autoplay loop muted playsinline>
+                        <source src="~/videos/podcast-ep1.mp4" type="video/mp4">
+                    </video>
+                    <div class="position-absolute top-50 start-50 translate-middle">
+                        <div class="bg-dark bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; backdrop-filter: blur(4px);">
+                            <i class="bi bi-play-fill text-white fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+
+                @* Descripción y botón rotativo *@
+                <div class="card-body pb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span id="badgeEpisodio" class="badge bg-primary-subtle text-primary-emphasis rounded-pill">Ep. 01</span>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="siguienteEpisodio()">Ver siguiente <i class="bi bi-arrow-right"></i></button>
+                    </div>
+                    <h6 id="tituloEpisodio" class="fw-semibold mb-1">Historia de nuestra escuela</h6>
+                    <p id="descEpisodio" class="text-muted small mb-0">Un recorrido por los 50 años de trayectoria educativa.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ── Modal para reproducir el video en grande (con audio) ── *@
+<div class="modal fade" id="podcastModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0 pb-0 justify-content-end">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0 text-center">
+                <video id="videoModal" class="w-100 rounded-4 shadow-lg" controls style="max-height: 85vh; background: #000;">
+                    <!-- El src se inyecta por JS al hacer clic -->
+                </video>
+            </div>
+        </div>
+    </div>
+</div>
+@* ═══════════════════════════════════════════
+     AVISOS — con nuevo estilo de tarjetas
+     ═══════════════════════════════════════════ *@
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="h4 fw-bold mb-0"><i class="bi bi-megaphone me-2"></i>Novedades y Avisos</h2>
+</div>
+<div class="row g-3 mb-5">
     @{
         var avisos = (List<Aviso>)ViewBag.Avisos;
     }
@@ -93,49 +164,59 @@
     }
     @foreach (var aviso in avisos)
     {
-        var (borderClass, badgeClass) = aviso.Tipo switch
+        var (borderClass, badgeClass, iconClass) = aviso.Tipo switch
         {
-            TipoAviso.Importante => ("border-success", "bg-success"),
-            TipoAviso.Calendario => ("border-warning", "bg-warning text-dark"),
-            _ => ("border-danger", "bg-danger")
+            TipoAviso.Importante => ("border-success", "bg-success", "bi-check-circle-fill text-success"),
+            TipoAviso.Calendario => ("border-warning", "bg-warning text-dark", "bi-calendar-event-fill text-warning"),
+            _                    => ("border-danger",  "bg-danger",  "bi-exclamation-circle-fill text-danger")
         };
         <div class="col-md-4">
-            <div class="card p-3 border-start @borderClass border-4">
-                <span class="badge @badgeClass mb-1 align-self-start">@aviso.Tipo</span>
-                <strong>@aviso.Titulo</strong>
-                <p class="text-muted mb-0 small">@aviso.Descripcion</p>
+            <div class="card rounded-4 shadow-sm border-0 border-start @borderClass border-4 h-100 aviso-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi @iconClass fs-5"></i>
+                        <span class="badge @badgeClass rounded-pill">@aviso.Tipo</span>
+                    </div>
+                    <strong class="d-block mb-1">@aviso.Titulo</strong>
+                    <p class="text-muted mb-0 small">@aviso.Descripcion</p>
+                </div>
             </div>
         </div>
     }
 </div>
 
-<h4 class="mb-3">Accesos Rápidos</h4>
-<div class="row g-3">
+@* ═══════════════════════════════════════════════════════════
+     ACCESOS RÁPIDOS — tarjetas con ícono grande y hover suave
+     ═══════════════════════════════════════════════════════════ *@
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="h4 fw-bold mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Accesos Rápidos</h2>
+</div>
+<div class="row g-3 mb-5">
     <div class="col-6 col-md-3">
-        <a asp-controller="Home" asp-action="Calendario" class="card p-3 text-center text-decoration-none">
-            <div class="fs-2">📅</div>
-            Calendario Escolar
+        <a asp-controller="Home" asp-action="Calendario" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+            <div class="quick-card__icon fs-1 mb-2">📅</div>
+            <div class="fw-semibold small">Calendario Escolar</div>
         </a>
     </div>
 
     @if (User.IsInRole("Familia"))
     {
         <div class="col-6 col-md-3">
-            <a asp-controller="MisCuotas" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">💳</div>
-                Mis Cuotas
+            <a asp-controller="MisCuotas" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">💳</div>
+                <div class="fw-semibold small">Mis Cuotas</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="MisTareas" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📝</div>
-                Tareas
+            <a asp-controller="MisTareas" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📝</div>
+                <div class="fw-semibold small">Tareas</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="Boletines" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📄</div>
-                Boletín
+            <a asp-controller="Boletines" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📄</div>
+                <div class="fw-semibold small">Boletín</div>
             </a>
         </div>
     }
@@ -143,21 +224,21 @@
     @if (User.IsInRole("Alumno"))
     {
         <div class="col-6 col-md-3">
-            <a asp-controller="MisAsistencias" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">✅</div>
-                Mis Asistencias
+            <a asp-controller="MisAsistencias" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">✅</div>
+                <div class="fw-semibold small">Mis Asistencias</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="MisTareas" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📝</div>
-                Tareas
+            <a asp-controller="MisTareas" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📝</div>
+                <div class="fw-semibold small">Tareas</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="Boletines" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📄</div>
-                Boletín
+            <a asp-controller="Boletines" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📄</div>
+                <div class="fw-semibold small">Boletín</div>
             </a>
         </div>
     }
@@ -165,15 +246,15 @@
     @if (User.IsInRole("Docente"))
     {
         <div class="col-6 col-md-3">
-            <a asp-controller="Notas" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">✏️</div>
-                Notas
+            <a asp-controller="Notas" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">✏️</div>
+                <div class="fw-semibold small">Notas</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="Tareas" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📝</div>
-                Tareas
+            <a asp-controller="Tareas" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📝</div>
+                <div class="fw-semibold small">Tareas</div>
             </a>
         </div>
     }
@@ -181,21 +262,21 @@
     @if (User.IsInRole("Preceptor"))
     {
         <div class="col-6 col-md-3">
-            <a asp-controller="Asistencias" asp-action="Resumen" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">🗓️</div>
-                Asistencias
+            <a asp-controller="Asistencias" asp-action="Resumen" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">🗓️</div>
+                <div class="fw-semibold small">Asistencias</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="MateriasPendientes" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📋</div>
-                Materias Pendientes
+            <a asp-controller="MateriasPendientes" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📋</div>
+                <div class="fw-semibold small">Materias Pendientes</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="Boletines" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📄</div>
-                Boletín
+            <a asp-controller="Boletines" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📄</div>
+                <div class="fw-semibold small">Boletín</div>
             </a>
         </div>
     }
@@ -203,28 +284,160 @@
     @if (User.IsInRole("Admin"))
     {
         <div class="col-6 col-md-3">
-            <a asp-controller="Dashboard" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📊</div>
-                Dashboard
+            <a asp-controller="Dashboard" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📊</div>
+                <div class="fw-semibold small">Dashboard</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="Cursos" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">🏫</div>
-                Cursos
+            <a asp-controller="Cursos" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">🏫</div>
+                <div class="fw-semibold small">Cursos</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="Boletines" asp-action="Publicaciones" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📄</div>
-                Publicar Boletines
+            <a asp-controller="Boletines" asp-action="Publicaciones" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📄</div>
+                <div class="fw-semibold small">Publicar Boletines</div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-controller="MateriasPendientes" asp-action="Index" class="card p-3 text-center text-decoration-none">
-                <div class="fs-2">📋</div>
-                Materias Pendientes
+            <a asp-controller="MateriasPendientes" asp-action="Index" class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                <div class="quick-card__icon fs-1 mb-2">📋</div>
+                <div class="fw-semibold small">Materias Pendientes</div>
             </a>
         </div>
     }
 </div>
+
+@* ════════════════════════════════════════════════════════════
+     ESTILOS SCOPED (solo en esta vista, no contamina el layout)
+     ════════════════════════════════════════════════════════════ *@
+<style>
+    /* ── Stat cards ──────────────────────────────────────── */
+    .stat-card {
+        transition: transform .22s ease, box-shadow .22s ease;
+        cursor: default;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
+    }
+    .stat-card__accent {
+        height: 5px;
+        background: linear-gradient(90deg, var(--color-primary, #0d6efd), var(--color-primary-dark, #0a58ca));
+    }
+    .stat-card__accent--gold {
+        background: linear-gradient(90deg, #f5a623, #f7c948);
+    }
+    .stat-card__number {
+        color: var(--color-primary, #0d6efd);
+        letter-spacing: -1px;
+    }
+
+    /* ── Quick-access cards ──────────────────────────────── */
+    .quick-card {
+        transition: transform .22s ease, box-shadow .22s ease, background-color .18s ease;
+    }
+    .quick-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 10px 28px rgba(0,0,0,.13) !important;
+        background-color: var(--bs-primary-bg-subtle, #e9f0ff) !important;
+    }
+    .quick-card__icon {
+        transition: transform .22s ease;
+    }
+    .quick-card:hover .quick-card__icon {
+        transform: scale(1.15);
+    }
+
+    /* ── Aviso cards ─────────────────────────────────────── */
+    .aviso-card {
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .aviso-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 18px rgba(0,0,0,.1) !important;
+    }
+
+    /* ── Podcast section ─────────────────────────────────── */
+    .podcast-badge {
+        background: linear-gradient(135deg, var(--color-primary, #0d6efd), #6610f2);
+        color: #fff;
+        font-weight: 600;
+    }
+    .podcast-card {
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .podcast-card:hover {
+        transform: translateY(-7px);
+        box-shadow: 0 14px 36px rgba(0,0,0,.16) !important;
+    }
+
+    /* Botón flotante de volumen */
+    .btn-mute {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0, 0, 0, .55);
+        color: #fff;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+        transition: background .18s ease, transform .18s ease;
+        z-index: 10;
+    }
+    .btn-mute:hover {
+        background: rgba(0, 0, 0, .82);
+        transform: scale(1.12);
+    }
+    .btn-mute:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+</style>
+
+ @section Scripts {
+<script>
+    // Datos de los episodios
+    const episodios = [
+        { src: '/videos/podcast-ep1.mp4', ep: 'Ep. 01', titulo: 'Historia de nuestra escuela', desc: 'Un recorrido por los 50 años de trayectoria educativa.' },
+        { src: '/videos/podcast-ep2.mp4', ep: 'Ep. 02', titulo: 'Voces del aula', desc: 'Docentes y alumnos comparten su experiencia diaria.' },
+        { src: '/videos/podcast-ep3.mp4', ep: 'Ep. 03', titulo: 'El futuro empieza aquí', desc: 'Proyectos y actividades que transforman la comunidad.' }
+    ];
+    let epActual = 0;
+
+    // Función para rotar la tarjeta central
+    function siguienteEpisodio() {
+        epActual = (epActual + 1) % episodios.length; // Cicla del 0 al 2 y vuelve a empezar
+        const data = episodios[epActual];
+        
+        const video = document.getElementById('videoDestacado');
+        video.src = data.src;
+        video.play();
+
+        document.getElementById('badgeEpisodio').innerText = data.ep;
+        document.getElementById('tituloEpisodio').innerText = data.titulo;
+        document.getElementById('descEpisodio').innerText = data.desc;
+    }
+
+    // Función para abrir el video en grande con controles
+    function abrirModalVideo() {
+        const modalVideo = document.getElementById('videoModal');
+        modalVideo.src = episodios[epActual].src;
+        modalVideo.play();
+    }
+
+    // Pausar el video automáticamente si el usuario cierra el Modal
+    document.getElementById('podcastModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('videoModal').pause();
+    });
+</script>
+}
