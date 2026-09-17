@@ -176,7 +176,7 @@
             @RenderBody()
         </main>
     </div>
-    <footer class="mt-5 py-4" style="background-color: var(--color-primary-dark);">
+    <footer class="mt-5 py-3" style="background-color: var(--color-primary-dark);">
         <div class="container text-white">
             <div class="row g-4 align-items-center">
 
@@ -201,18 +201,10 @@
 
                 <!-- Columna Derecha: Mapa (8 de 12) -->
                 <div class="col-md-8">
-                    <!-- ratio ratio-16x9 hace que el iframe sea 100% fluido y responsivo
-                         sin necesidad de height fijo ni media queries adicionales. -->
-                    <div class="ratio ratio-16x9 rounded-3 overflow-hidden shadow-sm">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13151.38393577407!2d-58.32!3d-34.78!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95a2d4b0e2e2e2e2%3A0x0!2sSan+Francisco+Solano%2C+Provincia+de+Buenos+Aires!5e0!3m2!1ses!2sar!4v1"
-                            style="border:0;"
-                            allowfullscreen=""
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            title="Ubicación - San Francisco Solano, Buenos Aires">
-                        </iframe>
-                    </div>
+                    <iframe src="https://www.google.com/maps?q=@(Uri.EscapeDataString(Configuration["DatosEscuela:Direccion"] ?? ""))&output=embed"
+                            class="w-100 rounded-3 shadow-sm" height="160" style="border:0;" loading="lazy"
+                            title="Ubicación - @Configuration["DatosEscuela:Direccion"]">
+                    </iframe>
                 </div>
 
 
