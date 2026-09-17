@@ -109,7 +109,7 @@
             <div class="podcast-card card border-0 rounded-4 shadow-sm overflow-hidden">
                 @* Contenedor del video con botón Play superpuesto *@
                 <div class="position-relative" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#podcastModal" onclick="abrirModalVideo()">
-                    <video id="videoDestacado" class="w-100" style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:450px;" autoplay loop muted playsinline>
+                    <video id="videoDestacado" class="w-100" style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:380px;" autoplay loop muted playsinline>
                         <source src="~/videos/podcast-ep1.mp4" type="video/mp4">
                     </video>
                     <div class="position-absolute top-50 start-50 translate-middle">
@@ -421,6 +421,7 @@
         
         const video = document.getElementById('videoDestacado');
         video.src = data.src;
+        video.load(); // fuerza a recargar el recurso; sin esto el frame queda congelado en el video anterior
         video.play();
 
         document.getElementById('badgeEpisodio').innerText = data.ep;
