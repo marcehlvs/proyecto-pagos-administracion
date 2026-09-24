@@ -1,0 +1,151 @@
+@model pagos_administracion_mvc.Models.RendirExamenViewModel
+@{
+    ViewData["Title"] = Model.Titulo;
+    var alumnoId = (int)ViewBag.AlumnoId;
+    var tieneTimer = Model.TiempoLimiteMinutos.HasValue;
+    var segundosTotales = (Model.TiempoLimiteMinutos ?? 0) * 60;
+    // Tiempo ya consumido desde el inicio del intento
+    var segundosConsumidos = (int)(DateTime.Now - Model.FechaInicio).TotalSeconds;
+    var segundosRestantes = tieneTimer ? Math.Max(0, segundosTotales - segundosConsumidos) : 0;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1">@Model.Titulo</h1>
+        @if (!string.IsNullOrEmpty(Model.Descripcion))
+        {
+            <p class="text-muted">@Model.Descripcion</p>
+        }
+    </div>
+    @if (tieneTimer)
+    {
+        <div class="card border-0 shadow-sm text-center px-3 py-2" id="timerCard">
+            <div class="small text-muted">Tiempo restante</div>
+            <div class="fw-bold fs-4" id="timerDisplay" style="font-variant-numeric: tabular-nums;">--:--</div>
+        </div>
+    }
+</div>
+
+<div class="alert alert-info small mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    Respondé todas las preguntas y presioná <strong>Enviar examen</strong> al finalizar.
+    @if (tieneTimer) { <span>El examen se enviará automáticamente cuando el tiempo expire.</span> }
+</div>
+
+<form asp-action="Enviar" method="post" id="formRendir">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="intentoExamenId" value="@Model.IntentoExamenId" />
+    <input type="hidden" name="alumnoId" value="@alumnoId" />
+
+    <div class="row g-4">
+        @for (int i = 0; i < Model.Preguntas.Count; i++)
+        {
+            var p = Model.Preguntas[i];
+            <div class="col-12">
+                <div class="card border-0 shadow-sm pregunta-item" id="pregunta-@i">
+                    <div class="card-header bg-transparent d-flex justify-content-between py-2">
+                        <span class="fw-semibold">
+                            <span class="badge bg-primary me-2">@p.Orden</span>@p.Enunciado
+                        </span>
+                        <small class="text-muted">@p.Puntaje pt(s)</small>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var op in p.Opciones)
+                        {
+                            <div class="form-check opcion-check mb-2 p-3 rounded-3 border"
+                                 style="cursor:pointer; transition: background .15s;">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="respuestas[@p.PreguntaExamenId]"
+                                       value="@op.Id"
+                                       id="op_@(p.PreguntaExamenId)_@op.Id" />
+                                <label class="form-check-label w-100" for="op_@(p.PreguntaExamenId)_@op.Id"
+                                       style="cursor:pointer;">
+                                    <span class="badge bg-secondary me-2">@op.Letra</span>
+                                    @op.Texto
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Barra de progreso y botón enviar -->
+    <div class="card border-0 shadow-sm mt-4 sticky-bottom mb-3" style="bottom:10px;">
+        <div class="card-body d-flex justify-content-between align-items-center gap-3">
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span id="labelRespondidas">0 de @Model.Preguntas.Count respondidas</span>
+                    <span id="pctRespondidas">0%</span>
+                </div>
+                <div class="progress" style="height:6px;">
+                    <div class="progress-bar bg-success" id="barraProgreso" style="width:0%;transition:width .3s;"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success px-4" id="btnEnviar"
+                    onclick="return confirm('¿Confirmar envío? No podrás modificar las respuestas después.')">
+                <i class="bi bi-send me-2"></i>Enviar examen
+            </button>
+        </div>
+    </div>
+</form>
+
+<style>
+    .opcion-check:has(input:checked) {
+        background: color-mix(in srgb, var(--color-primary, #1A365D) 10%, transparent);
+        border-color: var(--color-primary, #1A365D) !important;
+    }
+    .opcion-check:hover { background: var(--bs-light); }
+</style>
+
+@section Scripts {
+<script>
+    const total = @Model.Preguntas.Count;
+
+    // Progreso
+    function actualizarProgreso() {
+        const respondidas = document.querySelectorAll('input[type=radio]:checked').length;
+        const pct = total > 0 ? Math.round(respondidas * 100 / total) : 0;
+        document.getElementById('labelRespondidas').textContent = `${respondidas} de ${total} respondidas`;
+        document.getElementById('pctRespondidas').textContent = `${pct}%`;
+        document.getElementById('barraProgreso').style.width = pct + '%';
+    }
+    document.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', actualizarProgreso));
+    actualizarProgreso();
+
+    // Timer regresivo — activado solo si hayTimer es true
+    const hayTimer = @(tieneTimer ? "true" : "false");
+    const timerSegundos = @segundosRestantes;
+
+    if (hayTimer && timerSegundos > 0) {
+        let segundos = timerSegundos;
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timerCard    = document.getElementById('timerCard');
+
+        function formatear(s) {
+            const m = Math.floor(s / 60);
+            const ss = s % 60;
+            return String(m).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+        }
+
+        function tick() {
+            timerDisplay.textContent = formatear(segundos);
+            if (segundos - 60 < 1) {
+                timerCard.classList.add('bg-danger', 'text-white');
+                timerDisplay.classList.add('text-white');
+            }
+            if (segundos - 1 < 1) {
+                clearInterval(intervalo);
+                document.getElementById('formRendir').submit();
+                return;
+            }
+            segundos--;
+        }
+
+        tick();
+        const intervalo = setInterval(tick, 1000);
+    }
+</script>
+}

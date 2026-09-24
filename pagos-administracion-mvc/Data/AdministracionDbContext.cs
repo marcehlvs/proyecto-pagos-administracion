@@ -40,6 +40,12 @@ namespace pagos_administracion_mvc.Data
         public DbSet<Feriado> Feriados { get; set; }
         public DbSet<BoletinPublicacion> BoletinPublicaciones { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        // ── Módulo de Exámenes ────────────────────────────────────────────────────
+        public DbSet<Examen> Examenes { get; set; }
+        public DbSet<PreguntaExamen> PreguntasExamen { get; set; }
+        public DbSet<OpcionRespuesta> OpcionesRespuesta { get; set; }
+        public DbSet<IntentoExamen> IntentosExamen { get; set; }
+        public DbSet<IntentoPregunta> IntentosPreguntas { get; set; }
         // ── Audit Log ────────────────────────────────────────────────────────────
         // Tipos C# que queremos auditar. Cualquier cambio (Add/Modify/Delete) sobre
         // instancias de estos tipos genera automáticamente una fila en AuditLogs.
@@ -455,6 +461,89 @@ namespace pagos_administracion_mvc.Data
             modelBuilder.Entity<Cuota>().Property(c => c.Monto).HasPrecision(18, 2);
             modelBuilder.Entity<Cuota>().Property(c => c.MontoConDescuento).HasPrecision(18, 2);
             modelBuilder.Entity<Pago>().Property(p => p.Monto).HasPrecision(18, 2);
+
+            // ── Módulo de Exámenes ────────────────────────────────────────────────
+
+            modelBuilder.Entity<Examen>()
+                .HasOne(e => e.CursoAsignatura)
+                .WithMany()
+                .HasForeignKey(e => e.CursoAsignaturaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Examen>()
+                .HasOne(e => e.Periodo)
+                .WithMany()
+                .HasForeignKey(e => e.PeriodoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Examen>()
+                .Property(e => e.NotaMinimaAprobatoria)
+                .HasPrecision(4, 2);
+
+            modelBuilder.Entity<Examen>().HasQueryFilter(e =>
+                e.Activo && e.CursoAsignatura.Activo);
+
+            modelBuilder.Entity<PreguntaExamen>()
+                .HasOne(p => p.Examen)
+                .WithMany(e => e.Preguntas)
+                .HasForeignKey(p => p.ExamenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PreguntaExamen>().HasQueryFilter(p =>
+                p.Activo && p.Examen.Activo);
+
+            modelBuilder.Entity<OpcionRespuesta>()
+                .HasOne(o => o.PreguntaExamen)
+                .WithMany(p => p.Opciones)
+                .HasForeignKey(o => o.PreguntaExamenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<IntentoExamen>()
+                .HasOne(i => i.Examen)
+                .WithMany(e => e.Intentos)
+                .HasForeignKey(i => i.ExamenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<IntentoExamen>()
+                .HasOne(i => i.Inscripcion)
+                .WithMany()
+                .HasForeignKey(i => i.InscripcionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Restrict (no SetNull): mismo motivo que Entrega.NotaId — la Nota no debe borrar
+            // el intento si se da de baja; se desvincula desde el controller.
+            modelBuilder.Entity<IntentoExamen>()
+                .HasOne(i => i.NotaBoletín)
+                .WithMany()
+                .HasForeignKey(i => i.NotaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<IntentoExamen>()
+                .Property(i => i.NotaValor)
+                .HasPrecision(4, 2);
+
+            modelBuilder.Entity<IntentoPregunta>()
+                .HasOne(ip => ip.IntentoExamen)
+                .WithMany(i => i.Respuestas)
+                .HasForeignKey(ip => ip.IntentoExamenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<IntentoPregunta>()
+                .HasOne(ip => ip.PreguntaExamen)
+                .WithMany(p => p.IntentosPreguntas)
+                .HasForeignKey(ip => ip.PreguntaExamenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<IntentoPregunta>()
+                .HasOne(ip => ip.OpcionRespuesta)
+                .WithMany()
+                .HasForeignKey(ip => ip.OpcionRespuestaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Un alumno solo puede responder una vez por pregunta dentro del mismo intento.
+            modelBuilder.Entity<IntentoPregunta>()
+                .HasIndex(ip => new { ip.IntentoExamenId, ip.PreguntaExamenId })
+                .IsUnique();
         }
     }
 }

@@ -1,0 +1,129 @@
+@model List<pagos_administracion_mvc.Models.Examen>
+@{
+    var ca = ViewBag.CursoAsignatura as pagos_administracion_mvc.Models.CursoAsignatura;
+    var esDocentePropio = (bool)(ViewBag.EsDocentePropio ?? false);
+    ViewData["Title"] = $"Exámenes – {ca?.Asignatura?.Nombre}";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Exámenes</a></li>
+        <li class="breadcrumb-item active">@ca?.Asignatura?.Nombre – @ca?.Curso?.GradoAnio°  @ca?.Curso?.Nombre</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-journal-check me-2 text-primary"></i>@ca?.Asignatura?.Nombre
+        <small class="text-muted fs-6 ms-2">@ca?.Curso?.GradoAnio°  @ca?.Curso?.Nombre</small>
+    </h1>
+    @if (esDocentePropio)
+    {
+        <a asp-action="Crear" asp-route-cursoAsignaturaId="@ca?.Id" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Nuevo examen
+        </a>
+    }
+</div>
+
+@if (TempData["Exito"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Exito"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-journal-x display-4 text-muted"></i>
+            <p class="mt-3 text-muted">No hay exámenes creados para esta materia.</p>
+            @if (esDocentePropio)
+            {
+                <a asp-action="Crear" asp-route-cursoAsignaturaId="@ca?.Id" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Crear el primero
+                </a>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var examen in Model)
+        {
+            var ahora = DateTime.Now;
+            var disponible = ahora >= examen.FechaDesde && ahora <= examen.FechaHasta;
+            var vencido = ahora > examen.FechaHasta;
+            var intentos = examen.Intentos?.Count ?? 0;
+
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h5 class="mb-0 fw-semibold">@examen.Titulo</h5>
+                                    @if (disponible)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Activo</span>
+                                    }
+                                    else if (vencido)
+                                    {
+                                        <span class="badge bg-secondary">Vencido</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Próximamente</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(examen.Descripcion))
+                                {
+                                    <p class="text-muted small mb-1">@examen.Descripcion</p>
+                                }
+                                <div class="d-flex flex-wrap gap-3 small text-muted mt-1">
+                                    <span><i class="bi bi-calendar-event me-1"></i>@examen.FechaDesde.ToString("dd/MM/yyyy HH:mm") – @examen.FechaHasta.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span><i class="bi bi-question-circle me-1"></i>@examen.Preguntas.Count(p => p.Activo) preguntas</span>
+                                    @if (examen.TiempoLimiteMinutos.HasValue)
+                                    {
+                                        <span><i class="bi bi-clock me-1"></i>@examen.TiempoLimiteMinutos min</span>
+                                    }
+                                    <span><i class="bi bi-people me-1"></i>@intentos intento(s)</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                                <a asp-action="Resultados" asp-route-id="@examen.Id"
+                                   class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="bi bi-bar-chart me-1"></i>Resultados
+                                </a>
+                                @if (esDocentePropio && intentos == 0)
+                                {
+                                    <a asp-action="Editar" asp-route-id="@examen.Id"
+                                       class="btn btn-outline-primary btn-sm me-2">
+                                        <i class="bi bi-pencil me-1"></i>Editar
+                                    </a>
+                                    <form asp-action="Eliminar" asp-route-id="@examen.Id"
+                                          method="post" class="d-inline"
+                                          onsubmit="return confirm('¿Eliminar el examen «@examen.Titulo»?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-trash me-1"></i>Eliminar
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

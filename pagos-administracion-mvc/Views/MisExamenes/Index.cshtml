@@ -1,0 +1,183 @@
+@using pagos_administracion_mvc.Models
+@model List<pagos_administracion_mvc.Models.Examen>
+@{
+    ViewData["Title"] = "Mis Exámenes";
+    var alumno = ViewBag.AlumnoSeleccionado as pagos_administracion_mvc.Models.Alumno;
+    var misAlumnos = ViewBag.MisAlumnos as List<pagos_administracion_mvc.Models.Alumno>;
+    var inscripcionIds = ViewBag.InscripcionIds as List<int> ?? new List<int>();
+    var ahora = (DateTime)(ViewBag.Ahora ?? DateTime.Now);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>Mis Exámenes</h1>
+        @if (alumno != null)
+        {
+            <p class="text-muted small mb-0">@alumno.Nombre @alumno.Apellido</p>
+        }
+    </div>
+
+    @if (misAlumnos != null && misAlumnos.Count > 1)
+    {
+        <div class="d-flex gap-2 flex-wrap">
+            @foreach (var a in misAlumnos)
+            {
+                <a asp-action="Index" asp-route-alumnoId="@a.Id"
+                   class="btn btn-sm @(a.Id == alumno?.Id ? "btn-primary" : "btn-outline-secondary")">
+                    @a.Nombre @a.Apellido
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-journal-x display-4 text-muted"></i>
+            <p class="mt-3 text-muted">No hay exámenes disponibles por el momento.</p>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Separar en disponibles, próximos y vencidos -->
+    var disponibles = Model.Where(e => ahora >= e.FechaDesde && ahora <= e.FechaHasta).ToList();
+    var proximos   = Model.Where(e => ahora < e.FechaDesde).ToList();
+    var vencidos   = Model.Where(e => ahora > e.FechaHasta).ToList();
+
+    if (disponibles.Any())
+    {
+        <h5 class="mb-3 text-success"><i class="bi bi-circle-fill me-2" style="font-size:.6rem"></i>Disponibles ahora</h5>
+        <div class="row g-3 mb-4">
+            @foreach (var examen in disponibles)
+            {
+                var intento = examen.Intentos.FirstOrDefault(i => inscripcionIds.Contains(i.InscripcionId));
+                var completado = intento?.FechaFin != null;
+                var enCurso   = intento != null && intento.FechaFin == null;
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="fw-semibold mb-1">@examen.Titulo</h6>
+                            <small class="text-muted mb-2">@examen.CursoAsignatura.Asignatura.Nombre</small>
+                            @if (!string.IsNullOrEmpty(examen.Descripcion))
+                            {
+                                <p class="small text-muted mb-2">@examen.Descripcion</p>
+                            }
+                            <div class="d-flex flex-wrap gap-2 small text-muted mb-3">
+                                <span><i class="bi bi-clock me-1"></i>Cierra: @examen.FechaHasta.ToString("dd/MM HH:mm")</span>
+                                <span><i class="bi bi-question-circle me-1"></i>@examen.Preguntas.Count(p => p.Activo) preg.</span>
+                                @if (examen.TiempoLimiteMinutos.HasValue)
+                                {
+                                    <span><i class="bi bi-stopwatch me-1"></i>@examen.TiempoLimiteMinutos min</span>
+                                }
+                            </div>
+                            @if (completado)
+                            {
+                                <div class="mt-auto">
+                                    @if (intento!.Aprobado == true)
+                                    {
+                                        <span class="badge bg-success mb-2">✓ Aprobado – @intento.NotaValor?.ToString("F2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger mb-2">✗ Desaprobado – @intento.NotaValor?.ToString("F2")</span>
+                                    }
+                                    <a asp-action="Resultado" asp-route-id="@intento.Id" asp-route-alumnoId="@alumno!.Id"
+                                       class="btn btn-outline-secondary btn-sm w-100">
+                                        <i class="bi bi-eye me-1"></i>Ver resultado
+                                    </a>
+                                </div>
+                            }
+                            else if (enCurso)
+                            {
+                                <a asp-action="Rendir" asp-route-id="@examen.Id" asp-route-alumnoId="@alumno!.Id"
+                                   class="btn btn-warning btn-sm mt-auto">
+                                    <i class="bi bi-play-circle me-1"></i>Continuar examen
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="Rendir" asp-route-id="@examen.Id" asp-route-alumnoId="@alumno!.Id"
+                                   class="btn btn-success btn-sm mt-auto">
+                                    <i class="bi bi-pencil-square me-1"></i>Comenzar examen
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    if (proximos.Any())
+    {
+        <h5 class="mb-3 text-warning"><i class="bi bi-clock-history me-2"></i>Próximamente</h5>
+        <div class="row g-3 mb-4">
+            @foreach (var examen in proximos)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning opacity-75">
+                        <div class="card-body">
+                            <h6 class="fw-semibold mb-1">@examen.Titulo</h6>
+                            <small class="text-muted">@examen.CursoAsignatura.Asignatura.Nombre</small>
+                            <div class="mt-2 small text-muted">
+                                <i class="bi bi-calendar-event me-1"></i>Desde: @examen.FechaDesde.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    if (vencidos.Any())
+    {
+        <h5 class="mb-3 text-muted"><i class="bi bi-archive me-2"></i>Anteriores</h5>
+        <div class="row g-3">
+            @foreach (var examen in vencidos)
+            {
+                var intento = examen.Intentos.FirstOrDefault(i => inscripcionIds.Contains(i.InscripcionId) && i.FechaFin != null);
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100 opacity-75">
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="fw-semibold mb-1">@examen.Titulo</h6>
+                            <small class="text-muted mb-2">@examen.CursoAsignatura.Asignatura.Nombre</small>
+                            @if (intento != null)
+                            {
+                                <div class="mt-auto">
+                                    @if (intento.Aprobado == true)
+                                    {
+                                        <span class="badge bg-success mb-2">✓ Aprobado – @intento.NotaValor?.ToString("F2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger mb-2">✗ Desaprobado – @intento.NotaValor?.ToString("F2")</span>
+                                    }
+                                    <a asp-action="Resultado" asp-route-id="@intento.Id" asp-route-alumnoId="@alumno!.Id"
+                                       class="btn btn-outline-secondary btn-sm w-100">
+                                        <i class="bi bi-eye me-1"></i>Ver resultado
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary mt-auto">No rendido</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}

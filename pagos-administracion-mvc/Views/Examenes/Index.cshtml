@@ -1,0 +1,69 @@
+@model List<pagos_administracion_mvc.Models.CursoAsignatura>
+@{
+    ViewData["Title"] = "Exámenes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>Exámenes</h1>
+        <p class="text-muted small mb-0">Seleccioná una materia para gestionar sus exámenes</p>
+    </div>
+</div>
+
+@if (TempData["Exito"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Exito"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-journal-x display-4 text-muted"></i>
+            <p class="mt-3 text-muted">No tenés materias asignadas.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var ca in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100 hover-shadow">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                 style="width:44px;height:44px;background:var(--color-primary);color:white;font-size:1.2rem;">
+                                <i class="bi bi-journal-check"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-semibold">@ca.Asignatura.Nombre</h6>
+                                <small class="text-muted">@ca.Curso.GradoAnio°  @ca.Curso.Nombre</small>
+                            </div>
+                        </div>
+                        <a asp-action="ListarPorMateria" asp-route-id="@ca.Id"
+                           class="btn btn-outline-primary mt-auto btn-sm stretched-link">
+                            <i class="bi bi-arrow-right-circle me-1"></i>Ver exámenes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .hover-shadow { transition: box-shadow .2s, transform .2s; }
+    .hover-shadow:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12) !important; transform: translateY(-2px); }
+</style>

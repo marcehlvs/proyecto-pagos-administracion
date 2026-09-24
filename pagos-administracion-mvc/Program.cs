@@ -110,7 +110,7 @@ app.Use(async (context, next) =>
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data:; " +
-        "frame-src https://sdk.mercadopago.com; " +
+        "frame-src https://sdk.mercadopago.com https://www.google.com; " +
         "connect-src 'self';";
     await next();
 });

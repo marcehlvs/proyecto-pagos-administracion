@@ -1,0 +1,74 @@
+diff --git a/pagos-administracion-mvc/Program.cs b/pagos-administracion-mvc/Program.cs
+index 54197dd..637183d 100644
+--- a/pagos-administracion-mvc/Program.cs
++++ b/pagos-administracion-mvc/Program.cs
+@@ -110,7 +110,7 @@ app.Use(async (context, next) =>
+         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+         "font-src 'self' https://fonts.gstatic.com; " +
+         "img-src 'self' data:; " +
+-        "frame-src https://sdk.mercadopago.com; " +
++        "frame-src https://sdk.mercadopago.com https://www.google.com; " +
+         "connect-src 'self';";
+     await next();
+ });
+diff --git a/pagos-administracion-mvc/Views/Home/Index.cshtml b/pagos-administracion-mvc/Views/Home/Index.cshtml
+index e9f0cc7..7906256 100644
+--- a/pagos-administracion-mvc/Views/Home/Index.cshtml
++++ b/pagos-administracion-mvc/Views/Home/Index.cshtml
+@@ -326,9 +326,7 @@
+             <div class="podcast-card card border-0 rounded-4 shadow-sm overflow-hidden">
+                 <div class="position-relative"
+                      style="cursor: pointer;"
+-                     data-bs-toggle="modal"
+-                     data-bs-target="#podcastModal"
+-                     onclick="abrirModalVideo()">
++                     onclick="abrirModalVideo(event)">
+                     <video id="videoDestacado" class="w-100"
+                            style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:380px;"
+                            autoplay loop muted playsinline>
+@@ -522,7 +520,18 @@
+         document.getElementById('descEpisodio').innerText   = data.desc;
+     }
+ 
+-    function abrirModalVideo() {
++    function abrirModalVideo(event) {
++        // El botón de sonido está anidado dentro de este contenedor. Antes el
++        // contenedor tenía data-bs-toggle="modal", y Bootstrap 5 registra ese
++        // listener en document con addEventListener(type, fn, true) (capture),
++        // así que se disparaba ANTES de que el click llegara al botón: ningún
++        // stopPropagation/stopImmediatePropagation en el botón podía frenarlo.
++        // Solución: sacar data-bs-toggle del contenedor y abrir el modal acá a
++        // mano, ignorando el click si vino del botón de sonido.
++        if (event && event.target.closest('#btnMuteDestacado')) {
++            return;
++        }
++
+         // El preview (videoDestacado) sigue reproduciéndose de fondo si no se
+         // pausa acá: al abrir el modal grande, quedaban los dos videos sonando
+         // y reproduciéndose al mismo tiempo ("se pisan el video y el sonido").
+@@ -533,6 +542,9 @@
+         modalVideo.src = episodios[epActual].src;
+         modalVideo.muted = false;
+         modalVideo.play();
++
++        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('podcastModal'));
++        modal.show();
+     }
+ 
+     document.getElementById('podcastModal').addEventListener('hidden.bs.modal', function () {
+@@ -550,12 +562,10 @@
+     });
+ 
+     function toggleMuteDestacado(event) {
+-        // preventDefault + stopImmediatePropagation (no solo stopPropagation):
+-        // el botón está anidado dentro del contenedor con data-bs-toggle="modal",
+-        // y sin cortar la propagación acá el click terminaba también abriendo el
+-        // modal grande ("al tocar el botón de sonido... sale un fondo negro").
++        // El contenedor ya no tiene data-bs-toggle="modal" (ver abrirModalVideo);
++        // el modal grande no se abre más con este click. stopPropagation queda
++        // igual para que el click no burbujee hacia el onclick del contenedor.
+         event.preventDefault();
+-        event.stopImmediatePropagation();
+         event.stopPropagation();
+ 
+         const video = document.getElementById('videoDestacado');

@@ -1,0 +1,121 @@
+@model pagos_administracion_mvc.Models.ResultadoExamenViewModel
+@{
+    ViewData["Title"] = $"Resultado – {Model.Titulo}";
+    var alumnoId = (int)ViewBag.AlumnoId;
+    var aprobado = Model.Aprobado == true;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <!-- Tarjeta principal resultado -->
+        <div class="card border-0 shadow mb-4 overflow-hidden">
+            <div class="card-header py-4 text-center text-white"
+                 style="background: linear-gradient(135deg, @(aprobado ? "var(--color-success,#10B981)" : "#ef4444"), @(aprobado ? "#059669" : "#b91c1c"));">
+                <div style="font-size: 3.5rem;">@(aprobado ? "🎉" : "📚")</div>
+                <h2 class="h4 mt-2 mb-0">@(aprobado ? "¡Aprobaste!" : "No aprobaste esta vez")</h2>
+                <p class="small opacity-75 mb-0">@Model.Titulo</p>
+            </div>
+            <div class="card-body py-4">
+                <div class="row g-4 text-center">
+                    <div class="col-4">
+                        <div class="display-5 fw-bold @(aprobado ? "text-success" : "text-danger")">
+                            @Model.Nota?.ToString("F2")
+                        </div>
+                        <div class="small text-muted">Nota</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="display-5 fw-bold text-primary">
+                            @Model.PuntajeObtenido<span class="fs-6 text-muted">/@Model.PuntajeTotal</span>
+                        </div>
+                        <div class="small text-muted">Puntaje</div>
+                    </div>
+                    <div class="col-4">
+                        @if (Model.Duracion.HasValue)
+                        {
+                            <div class="display-5 fw-bold text-secondary">
+                                @((int)Model.Duracion.Value.TotalMinutes)<span class="fs-6">m @Model.Duracion.Value.Seconds<span class="text-muted">s</span></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="display-5 fw-bold text-secondary">—</div>
+                        }
+                        <div class="small text-muted">Duración</div>
+                    </div>
+                </div>
+
+                @if (Model.FechaFin.HasValue)
+                {
+                    <p class="text-center text-muted small mt-3 mb-0">
+                        <i class="bi bi-calendar-check me-1"></i>Entregado el @Model.FechaFin.Value.ToString("dd/MM/yyyy") a las @Model.FechaFin.Value.ToString("HH:mm")
+                    </p>
+                }
+            </div>
+        </div>
+
+        <!-- Detalle por pregunta (solo si MostrarResultado = true) -->
+        @if (Model.MostrarDetalle && Model.Preguntas.Any())
+        {
+            <h5 class="mb-3"><i class="bi bi-list-check me-2"></i>Detalle de respuestas</h5>
+
+            @foreach (var (p, idx) in Model.Preguntas.Select((x, i) => (x, i)))
+            {
+                <div class="card border-0 shadow-sm mb-3 border-start border-4 @(p.EsCorrecta ? "border-success" : "border-danger")">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <p class="fw-semibold mb-0">
+                                <span class="badge bg-secondary me-2">@(idx + 1)</span>@p.Enunciado
+                            </p>
+                            <span class="badge @(p.EsCorrecta ? "bg-success" : "bg-danger") ms-2 flex-shrink-0">
+                                @(p.EsCorrecta ? $"+{p.Puntaje} pt" : "0 pt")
+                            </span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(p.OpcionElegidaTexto))
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge @(p.EsCorrecta ? "bg-success" : "bg-danger")">
+                                    @p.OpcionElegidaLetra
+                                </span>
+                                <span class="small">Tu respuesta: <em>@p.OpcionElegidaTexto</em></span>
+                                @if (p.EsCorrecta)
+                                {
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-x-circle-fill text-danger"></i>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small text-muted mb-1"><i class="bi bi-dash-circle me-1"></i>Sin respuesta</div>
+                        }
+
+                        @if (!p.EsCorrecta && !string.IsNullOrEmpty(p.OpcionCorrectaTexto))
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success">@p.OpcionCorrectaLetra</span>
+                                <span class="small text-success">Respuesta correcta: <em>@p.OpcionCorrectaTexto</em></span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else if (!Model.MostrarDetalle)
+        {
+            <div class="alert alert-secondary">
+                <i class="bi bi-eye-slash me-2"></i>El docente no habilitó la visualización del detalle de respuestas.
+            </div>
+        }
+
+        <div class="text-center mt-4">
+            <a asp-action="Index" asp-route-alumnoId="@alumnoId" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-2"></i>Volver a mis exámenes
+            </a>
+        </div>
+    </div>
+</div>

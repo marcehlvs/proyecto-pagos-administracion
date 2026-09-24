@@ -54,7 +54,7 @@
                         Func<string, string> clase = c => "nav-link" + (string.Equals(controladorActual, c, StringComparison.OrdinalIgnoreCase) ? " active" : "");
                         var enGestion = new[] { "Alumnos", "Familias", "Cuotas", "GenerarCuotas", "Aranceles", "Avisos" }
     .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
-                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Feriados", "Notas", "Tareas", "Boletines", "MateriasPendientes" }
+                        var enAcademico = new[] { "Cursos", "Asistencias", "Docentes", "Preceptores", "Asignaturas", "Periodos", "Feriados", "Notas", "Tareas", "Boletines", "MateriasPendientes", "Examenes" }
                             .Contains(controladorActual, StringComparer.OrdinalIgnoreCase);
                     }
                     <ul class="navbar-nav flex-grow-1">
@@ -103,6 +103,7 @@
                                     <li><a class="dropdown-item" asp-controller="Feriados" asp-action="Index"><i class="bi bi-calendar-x"></i> Feriados</a></li>
                                     <li><a class="dropdown-item" asp-controller="Notas" asp-action="Index"><i class="bi bi-journal-check"></i> Notas</a></li>
                                     <li><a class="dropdown-item" asp-controller="Tareas" asp-action="Index"><i class="bi bi-list-task"></i> Tareas</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Examenes" asp-action="Index"><i class="bi bi-journal-check"></i> Exámenes</a></li>
                                     <li><a class="dropdown-item" asp-controller="MateriasPendientes" asp-action="Index"><i class="bi bi-hourglass-split"></i> Materias pendientes</a></li>
                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Index"><i class="bi bi-file-earmark-text"></i> Boletines</a></li>
                                     <li><a class="dropdown-item" asp-controller="Boletines" asp-action="Publicaciones"><i class="bi bi-send-check"></i> Publicar boletines</a></li>
@@ -113,12 +114,14 @@
                         {
                             <li class="nav-item"><a class="@clase("MisCuotas")" asp-controller="MisCuotas" asp-action="Index">Mis Cuotas</a></li>
                             <li class="nav-item"><a class="@clase("MisTareas")" asp-controller="MisTareas" asp-action="Index">Tareas</a></li>
+                            <li class="nav-item"><a class="@clase("MisExamenes")" asp-controller="MisExamenes" asp-action="Index">Exámenes</a></li>
                             <li class="nav-item"><a class="@clase("Boletines")" asp-controller="Boletines" asp-action="Index">Boletín</a></li>
                         }
                         else if (User.IsInRole("Alumno"))
                         {
                             <li class="nav-item"><a class="@clase("MisAsistencias")" asp-controller="MisAsistencias" asp-action="Index">Mis Asistencias</a></li>
                             <li class="nav-item"><a class="@clase("MisTareas")" asp-controller="MisTareas" asp-action="Index">Tareas</a></li>
+                            <li class="nav-item"><a class="@clase("MisExamenes")" asp-controller="MisExamenes" asp-action="Index">Exámenes</a></li>
                             <li class="nav-item"><a class="@clase("Boletines")" asp-controller="Boletines" asp-action="Index">Boletín</a></li>
                         }
                         else
@@ -142,6 +145,7 @@
                             {
                                 <li class="nav-item"><a class="@clase("Notas")" asp-controller="Notas" asp-action="Index">Notas</a></li>
                                 <li class="nav-item"><a class="@clase("Tareas")" asp-controller="Tareas" asp-action="Index">Tareas</a></li>
+                                <li class="nav-item"><a class="@clase("Examenes")" asp-controller="Examenes" asp-action="Index">Exámenes</a></li>
                             }
                         }
                     </ul>

@@ -1,0 +1,238 @@
+@model pagos_administracion_mvc.Models.ExamenCreateEditViewModel
+@{
+    ViewData["Title"] = "Nuevo Examen";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Exámenes</a></li>
+        <li class="breadcrumb-item">
+            <a asp-action="ListarPorMateria" asp-route-id="@Model.CursoAsignaturaId">@Model.NombreAsignatura</a>
+        </li>
+        <li class="breadcrumb-item active">Nuevo examen</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-4">
+    <i class="bi bi-plus-circle me-2 text-primary"></i>Nuevo Examen
+    <small class="text-muted fs-6 ms-2">@Model.NombreAsignatura – @Model.NombreCurso</small>
+</h1>
+
+<form asp-action="Crear" method="post" id="formExamen">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="CursoAsignaturaId" />
+
+    <div class="row g-4">
+        <!-- Columna izquierda: datos del examen -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top:80px">
+                <div class="card-header fw-semibold bg-transparent border-bottom">
+                    <i class="bi bi-sliders me-2"></i>Configuración
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Titulo" class="form-label fw-medium"></label>
+                        <input asp-for="Titulo" class="form-control" placeholder="Ej: Primer parcial – Fracciones" />
+                        <span asp-validation-for="Titulo" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Descripcion" class="form-label fw-medium"></label>
+                        <textarea asp-for="Descripcion" class="form-control" rows="2"
+                                  placeholder="Instrucciones para el alumno..."></textarea>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="FechaDesde" class="form-label fw-medium"></label>
+                            <input asp-for="FechaDesde" type="datetime-local" class="form-control"
+                                   value="@Model.FechaDesde.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="FechaDesde" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="FechaHasta" class="form-label fw-medium"></label>
+                            <input asp-for="FechaHasta" type="datetime-local" class="form-control"
+                                   value="@Model.FechaHasta.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="FechaHasta" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="TiempoLimiteMinutos" class="form-label fw-medium"></label>
+                        <div class="input-group">
+                            <input asp-for="TiempoLimiteMinutos" type="number" class="form-control"
+                                   placeholder="Sin límite" min="1" max="300" />
+                            <span class="input-group-text">min</span>
+                        </div>
+                        <span asp-validation-for="TiempoLimiteMinutos" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NotaMinimaAprobatoria" class="form-label fw-medium"></label>
+                        <input asp-for="NotaMinimaAprobatoria" type="number" step="0.5" min="1" max="10"
+                               class="form-control" placeholder="6 (por defecto)" />
+                        <span asp-validation-for="NotaMinimaAprobatoria" class="text-danger small"></span>
+                    </div>
+
+                    @if (Model.Periodos != null && Model.Periodos.Count() > 0)
+                    {
+                        <div class="mb-3">
+                            <label asp-for="PeriodoId" class="form-label fw-medium"></label>
+                            <select asp-for="PeriodoId" asp-items="Model.Periodos" class="form-select">
+                                <option value="">— No impactar en boletín —</option>
+                            </select>
+                        </div>
+                    }
+
+                    <div class="mb-2">
+                        <div class="form-check form-switch">
+                            <input asp-for="SoloUnIntento" class="form-check-input" type="checkbox" role="switch" />
+                            <label asp-for="SoloUnIntento" class="form-check-label"></label>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="form-check form-switch">
+                            <input asp-for="OrdenAleatorio" class="form-check-input" type="checkbox" role="switch" />
+                            <label asp-for="OrdenAleatorio" class="form-check-label"></label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="MostrarResultado" class="form-check-input" type="checkbox" role="switch" />
+                            <label asp-for="MostrarResultado" class="form-check-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Guardar examen
+                        </button>
+                        <a asp-action="ListarPorMateria" asp-route-id="@Model.CursoAsignaturaId"
+                           class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: preguntas -->
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Preguntas</h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnAgregarPregunta">
+                    <i class="bi bi-plus-circle me-1"></i>Agregar pregunta
+                </button>
+            </div>
+
+            <div id="contenedorPreguntas">
+                @for (int i = 0; i < Model.Preguntas.Count; i++)
+                {
+                    @await Html.PartialAsync("_PreguntaEditor", Model.Preguntas[i],
+                        new ViewDataDictionary(ViewData) { { "index", i } })
+                }
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Template para nueva pregunta (oculto) -->
+<template id="templatePregunta">
+    <div class="card border-0 shadow-sm mb-3 pregunta-card" data-index="__IDX__">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-2">
+            <span class="fw-semibold text-primary"><i class="bi bi-question-circle me-2"></i>Pregunta <span class="num-pregunta">__NUM__</span></span>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pregunta">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-medium">Enunciado <span class="text-danger">*</span></label>
+                <textarea name="Preguntas[__IDX__].Enunciado" class="form-control" rows="2"
+                          placeholder="Escribí la pregunta aquí..." required></textarea>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-medium">Puntaje</label>
+                    <input type="number" name="Preguntas[__IDX__].Puntaje" value="1" min="1" max="100" class="form-control" />
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label fw-medium">Opciones <span class="text-danger">*</span></label>
+                <p class="small text-muted mb-2">Marcá el botón de la izquierda para indicar la respuesta correcta.</p>
+            </div>
+            <div class="opciones-container">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="radio" name="Preguntas[__IDX__].OpcionCorrectaIndex" value="0" class="form-check-input mt-0 flex-shrink-0" required />
+                    <span class="badge bg-secondary" style="min-width:24px">A</span>
+                    <input type="text" name="Preguntas[__IDX__].Opciones[0].Texto" class="form-control form-control-sm" placeholder="Opción A" required />
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="radio" name="Preguntas[__IDX__].OpcionCorrectaIndex" value="1" class="form-check-input mt-0 flex-shrink-0" />
+                    <span class="badge bg-secondary" style="min-width:24px">B</span>
+                    <input type="text" name="Preguntas[__IDX__].Opciones[1].Texto" class="form-control form-control-sm" placeholder="Opción B" required />
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="radio" name="Preguntas[__IDX__].OpcionCorrectaIndex" value="2" class="form-check-input mt-0 flex-shrink-0" />
+                    <span class="badge bg-secondary" style="min-width:24px">C</span>
+                    <input type="text" name="Preguntas[__IDX__].Opciones[2].Texto" class="form-control form-control-sm" placeholder="Opción C (opcional)" />
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="radio" name="Preguntas[__IDX__].OpcionCorrectaIndex" value="3" class="form-check-input mt-0 flex-shrink-0" />
+                    <span class="badge bg-secondary" style="min-width:24px">D</span>
+                    <input type="text" name="Preguntas[__IDX__].Opciones[3].Texto" class="form-control form-control-sm" placeholder="Opción D (opcional)" />
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    let preguntaCount = @Model.Preguntas.Count;
+
+    document.getElementById('btnAgregarPregunta').addEventListener('click', () => {
+        const template = document.getElementById('templatePregunta');
+        const idx = preguntaCount;
+        const num = preguntaCount + 1;
+        const html = template.innerHTML
+            .replaceAll('__IDX__', idx)
+            .replaceAll('__NUM__', num);
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        document.getElementById('contenedorPreguntas').appendChild(div.firstElementChild);
+        preguntaCount++;
+        actualizarNumeros();
+    });
+
+    document.getElementById('contenedorPreguntas').addEventListener('click', e => {
+        if (e.target.closest('.btn-eliminar-pregunta')) {
+            const card = e.target.closest('.pregunta-card');
+            if (document.querySelectorAll('.pregunta-card').length <= 1) {
+                alert('El examen debe tener al menos una pregunta.');
+                return;
+            }
+            card.remove();
+            actualizarNumeros();
+        }
+    });
+
+    function actualizarNumeros() {
+        document.querySelectorAll('.pregunta-card').forEach((card, i) => {
+            card.querySelector('.num-pregunta').textContent = i + 1;
+        });
+    }
+
+    // Highlight opción correcta con color al seleccionar radio
+    document.addEventListener('change', e => {
+        if (e.target.type === 'radio' && e.target.name.includes('OpcionCorrectaIndex')) {
+            const container = e.target.closest('.opciones-container');
+            container.querySelectorAll('.badge').forEach(b => b.className = 'badge bg-secondary');
+            const idx = parseInt(e.target.value);
+            const badges = container.querySelectorAll('.badge');
+            if (badges[idx]) badges[idx].className = 'badge bg-success';
+        }
+    });
+</script>
+}
