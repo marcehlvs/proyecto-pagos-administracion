@@ -90,6 +90,24 @@ namespace pagos_administracion_mvc.Controllers
             return View(examenes);
         }
 
+        /// <summary>
+        /// Las opciones vacías (típicamente C y D) son válidas: quita los errores de "Texto requerido"
+        /// que el binder genera por el string no nulo y convierte null en cadena vacía.
+        /// </summary>
+        private void NormalizarOpciones(ExamenCreateEditViewModel vm)
+        {
+            for (int i = 0; i < vm.Preguntas.Count; i++)
+            {
+                var opciones = vm.Preguntas[i].Opciones;
+                for (int j = 0; j < opciones.Count; j++)
+                {
+                    opciones[j].Texto ??= string.Empty;
+                    if (string.IsNullOrWhiteSpace(opciones[j].Texto))
+                        ModelState.Remove($"Preguntas[{i}].Opciones[{j}].Texto");
+                }
+            }
+        }
+
         // GET: Examenes/Crear?cursoAsignaturaId=5
         [HttpGet]
         public async Task<IActionResult> Crear(int cursoAsignaturaId)
@@ -127,13 +145,19 @@ namespace pagos_administracion_mvc.Controllers
             var (ca, _, error) = await ObtenerConPermisoAsync(vm.CursoAsignaturaId, soloLectura: false);
             if (error != null) return error;
 
+            // Las opciones C y D son opcionales: limpiar errores de "Texto requerido" y normalizar nulos
+            NormalizarOpciones(vm);
+
             // Validar que cada pregunta tenga al menos 2 opciones con texto
-            foreach (var p in vm.Preguntas)
+            for (int n = 0; n < vm.Preguntas.Count; n++)
             {
+                var p = vm.Preguntas[n];
+                p.Orden = n + 1;
                 var opcionesConTexto = p.Opciones.Where(o => !string.IsNullOrWhiteSpace(o.Texto)).ToList();
                 if (opcionesConTexto.Count < 2)
                     ModelState.AddModelError("", $"La pregunta {p.Orden} debe tener al menos 2 opciones.");
-                if (p.OpcionCorrectaIndex < 0 || p.OpcionCorrectaIndex >= opcionesConTexto.Count)
+                var correcta = p.Opciones.ElementAtOrDefault(p.OpcionCorrectaIndex);
+                if (correcta == null || string.IsNullOrWhiteSpace(correcta.Texto))
                     ModelState.AddModelError("", $"La pregunta {p.Orden} debe tener una opción correcta válida.");
             }
 
@@ -171,6 +195,7 @@ namespace pagos_administracion_mvc.Controllers
                     Puntaje = pVm.Puntaje,
                 };
 
+                var opcionCorrecta = pVm.Opciones.ElementAtOrDefault(pVm.OpcionCorrectaIndex);
                 var opcionesConTexto = pVm.Opciones
                     .Where(o => !string.IsNullOrWhiteSpace(o.Texto))
                     .ToList();
@@ -182,7 +207,7 @@ namespace pagos_administracion_mvc.Controllers
                     {
                         Texto = opcionesConTexto[i].Texto,
                         Letra = letras[i],
-                        EsCorrecta = i == pVm.OpcionCorrectaIndex,
+                        EsCorrecta = ReferenceEquals(opcionesConTexto[i], opcionCorrecta),
                     });
                 }
                 examen.Preguntas.Add(pregunta);
@@ -280,6 +305,8 @@ namespace pagos_administracion_mvc.Controllers
 
             var (ca, _, error) = await ObtenerConPermisoAsync(examen.CursoAsignaturaId, soloLectura: false);
             if (error != null) return error;
+
+            NormalizarOpciones(vm);
 
             if (!ModelState.IsValid)
             {
