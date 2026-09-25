@@ -373,14 +373,19 @@
 @* ── Modal para reproducir el video en grande (con audio) ── *@
 <div class="modal fade" id="podcastModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-header border-0 pb-0 justify-content-end">
+        <div class="modal-content border-0 rounded-4 overflow-hidden" style="background:#111;">
+            <div class="modal-header border-0 pb-0 justify-content-end" style="background:#111;">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body p-0 text-center">
-                <video id="videoModal" class="w-100 rounded-4 shadow-lg"
-                       controls style="max-height:85vh; background:#000;">
-                </video>
+            <div class="modal-body p-0 text-center" style="background:#000;">
+                <div class="position-relative" style="line-height:0;">
+                    <video id="videoModal" class="w-100"
+                           controls
+                           disablepictureinpicture
+                           controlslist="nodownload nofullscreen"
+                           style="max-height:80vh; display:block; background:#000;">
+                    </video>
+                </div>
             </div>
         </div>
     </div>
