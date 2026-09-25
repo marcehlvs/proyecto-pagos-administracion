@@ -1,77 +1,165 @@
-﻿@model pagos_administracion_mvc.Models.Cuota
+@model pagos_administracion_mvc.Models.Cuota
 @using static pagos_administracion_mvc.Models.Enums
 
 @{
     ViewData["Title"] = "Detalle de cuota";
+
+    var (badgeCss, iconoCss, colorFg, colorBg) = Model.Estado switch
+    {
+        EstadoCuota.Pagada    => ("bg-success-subtle text-success-emphasis border-success-subtle",       "bi-check-circle-fill text-success",  "var(--bs-success)",  "rgba(25,135,84,.08)"),
+        EstadoCuota.Vencida   => ("bg-danger-subtle text-danger-emphasis border-danger-subtle",          "bi-exclamation-circle-fill text-danger", "var(--bs-danger)", "rgba(220,53,69,.08)"),
+        EstadoCuota.Parcial   => ("bg-primary-subtle text-primary-emphasis border-primary-subtle",       "bi-circle-half text-primary",        "var(--bs-primary)",  "rgba(13,110,253,.08)"),
+        _                     => ("bg-warning-subtle text-warning-emphasis border-warning-subtle",       "bi-clock-fill text-warning",         "var(--bs-warning)",  "rgba(255,193,7,.08)")
+    };
+
+    bool tieneDescuento = Model.MontoConDescuento.HasValue && Model.FechaLimiteDescuento.HasValue
+                          && DateTime.Today <= Model.FechaLimiteDescuento.Value;
+    bool puedesPagar    = Model.Estado == EstadoCuota.Pendiente
+                          || Model.Estado == EstadoCuota.Vencida
+                          || Model.Estado == EstadoCuota.Parcial;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Cuota @Model.Mes/@Model.Anio — @Model.Alumno.Apellido, @Model.Alumno.Nombre</h1>
+@* ── Encabezado ── *@
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div class="d-flex align-items-center gap-2">
+        <a asp-controller="MisCuotas" asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Mis cuotas
+        </a>
+        <h1 class="h5 fw-bold mb-0 text-body">
+            Cuota @Model.Mes/@Model.Anio
+        </h1>
+    </div>
+    @if (puedesPagar)
+    {
+        <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id"
+           class="btn btn-success rounded-pill px-4">
+            <i class="bi bi-credit-card me-2"></i>@(Model.Estado == EstadoCuota.Parcial ? "Pagar saldo restante" : "Pagar esta cuota")
+        </a>
+    }
 </div>
 
-<dl class="row">
-    <dt class="col-sm-3">Monto</dt>
-    <dd class="col-sm-9">
-        @if (Model.MontoConDescuento.HasValue && Model.FechaLimiteDescuento.HasValue && DateTime.Today <= Model.FechaLimiteDescuento.Value)
-        {
-            <span class="text-muted text-decoration-line-through me-2">@Model.Monto.ToString("C")</span>
-            <span class="fw-bold text-success">@Model.MontoConDescuento.Value.ToString("C")</span>
-            <span class="small text-muted ms-2">(Pagando antes del @Model.FechaLimiteDescuento.Value.ToString("dd/MM"))</span>
-        }
-        else
-        {
-            <span>@Model.Monto.ToString("C")</span>
-        }
-    </dd>
+<div class="row g-4 align-items-start" style="max-width:860px;">
 
-    @if (Model.Estado == EstadoCuota.Parcial)
-    {
-        <dt class="col-sm-3">Pagado</dt>
-        <dd class="col-sm-9">@Model.TotalPagado.ToString("C")</dd>
-
-        <dt class="col-sm-3">Saldo pendiente</dt>
-        <dd class="col-sm-9 fw-bold">@Model.SaldoPendiente.ToString("C")</dd>
-    }
-
-    <dt class="col-sm-3">Vencimiento</dt>
-    <dd class="col-sm-9">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</dd>
-
-    <dt class="col-sm-3">Estado</dt>
-    <dd class="col-sm-9">
-        <span class="badge @(Model.Estado == EstadoCuota.Pagada ? "bg-success" : Model.Estado == EstadoCuota.Vencida ? "bg-danger" : "bg-warning text-dark")">
-            @Model.Estado
-        </span>
-    </dd>
-</dl>
-
-@if (Model.Estado == EstadoCuota.Pendiente || Model.Estado == EstadoCuota.Vencida || Model.Estado == EstadoCuota.Parcial)
-{
-    <div class="mb-3">
-        <a asp-controller="Pagos" asp-action="Confirmar" asp-route-cuotaId="@Model.Id" class="btn btn-success">
-            @(Model.Estado == EstadoCuota.Parcial ? "Pagar saldo restante" : "Pagar esta cuota")
-        </a>
+    @* Columna izquierda: estado *@
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 text-center p-4 h-100" style="background:@colorBg;">
+            <div class="mb-3" style="font-size:2.6rem;"><i class="bi @iconoCss"></i></div>
+            <span class="badge rounded-pill px-3 py-2 border @badgeCss" style="font-size:.85rem;">@Model.Estado</span>
+            <hr class="my-3" />
+            @if (tieneDescuento)
+            {
+                <div class="text-muted text-decoration-line-through small">@Model.Monto.ToString("C")</div>
+                <div class="fs-3 fw-bold text-success">@Model.MontoConDescuento!.Value.ToString("C")</div>
+                <div class="badge bg-success-subtle text-success-emphasis rounded-pill mt-2 small">
+                    <i class="bi bi-tag-fill me-1"></i>Descuento hasta el @Model.FechaLimiteDescuento!.Value.ToString("dd/MM")
+                </div>
+            }
+            else
+            {
+                <div class="fs-3 fw-bold" style="color:@colorFg;">@Model.Monto.ToString("C")</div>
+            }
+            <div class="text-muted small mt-2">
+                <i class="bi bi-calendar3 me-1"></i>Vence el @Model.FechaVencimiento.ToString("dd/MM/yyyy")
+            </div>
+        </div>
     </div>
-}
 
-<hr />
+    @* Columna derecha *@
+    <div class="col-12 col-md-8 d-flex flex-column gap-4">
 
-<h4>Historial de pagos de esta cuota</h4>
+        @* Resumen financiero *@
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h3 class="h6 fw-semibold text-muted text-uppercase mb-3" style="letter-spacing:.06em;font-size:.72rem;">
+                <i class="bi bi-wallet2 me-2"></i>Resumen financiero
+            </h3>
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Alumno</span>
+                        <span class="det-info-value">@Model.Alumno.Apellido, @Model.Alumno.Nombre</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Período</span>
+                        <span class="det-info-value">@Model.Mes / @Model.Anio</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Monto total</span>
+                        <span class="det-info-value fw-semibold">@Model.Monto.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Vencimiento</span>
+                        <span class="det-info-value">@Model.FechaVencimiento.ToString("dd/MM/yyyy")</span>
+                    </div>
+                </div>
+                @if (Model.Estado == EstadoCuota.Parcial)
+                {
+                    <div class="col-6">
+                        <div class="det-info-item">
+                            <span class="det-info-label">Pagado</span>
+                            <span class="det-info-value text-success fw-semibold">@Model.TotalPagado.ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="det-info-item">
+                            <span class="det-info-label">Saldo pendiente</span>
+                            <span class="det-info-value text-danger fw-bold">@Model.SaldoPendiente.ToString("C")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
 
-@if (Model.Pagos == null || !Model.Pagos.Any())
-{
-    <p class="text-muted">Sin intentos de pago registrados.</p>
-}
-else
-{
-    <ul class="list-group mb-3">
-        @foreach (var pago in Model.Pagos.OrderByDescending(p => p.Fecha))
-        {
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>@pago.Fecha.ToString("dd/MM/yyyy HH:mm") — @pago.Monto.ToString("C")</span>
-                <span class="badge bg-secondary">@pago.Estado</span>
-            </li>
-        }
-    </ul>
-}
+        @* Historial de pagos *@
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h3 class="h6 fw-semibold text-muted text-uppercase mb-3" style="letter-spacing:.06em;font-size:.72rem;">
+                <i class="bi bi-clock-history me-2"></i>Historial de pagos
+            </h3>
+            @if (Model.Pagos == null || !Model.Pagos.Any())
+            {
+                <div class="text-muted small fst-italic py-2">Sin intentos de pago registrados.</div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var pago in Model.Pagos.OrderByDescending(p => p.Fecha))
+                    {
+                        var pBadge = pago.Estado switch
+                        {
+                            EstadoPago.Aprobado   => "bg-success-subtle text-success-emphasis",
+                            EstadoPago.Rechazado  => "bg-danger-subtle text-danger-emphasis",
+                            EstadoPago.EnRevision => "bg-warning-subtle text-warning-emphasis",
+                            _                     => "bg-secondary-subtle text-secondary-emphasis"
+                        };
+                        <div class="d-flex align-items-center justify-content-between gap-3 py-2 border-bottom">
+                            <div>
+                                <div class="small fw-semibold">@pago.Monto.ToString("C")</div>
+                                <div class="text-muted" style="font-size:.75rem;">@pago.Fecha.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+                            <span class="badge rounded-pill @pBadge px-2">@pago.Estado</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
 
-<a asp-controller="MisCuotas" asp-action="Index" class="btn btn-link px-0">← Volver</a>
+    </div>
+</div>
+
+<style>
+    .det-info-item {
+        display:flex; flex-direction:column; gap:2px;
+        padding:.55rem .75rem;
+        background:var(--bs-body-bg);
+        border:1px solid var(--bs-border-color-translucent);
+        border-radius:.6rem; transition:background .18s;
+    }
+    .det-info-item:hover { background:var(--bs-tertiary-bg); }
+    .det-info-label { font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--bs-secondary-color); }
+    .det-info-value { font-size:.92rem; font-weight:500; color:var(--bs-body-color); }
+</style>

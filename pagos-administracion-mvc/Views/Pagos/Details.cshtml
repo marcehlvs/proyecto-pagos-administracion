@@ -4,59 +4,137 @@
 @{
     ViewData["Title"] = "Detalle de pago";
 
-    var badgeClass = Model.Estado switch
+    var (badgeCss, iconoCss, colorFg, colorBg) = Model.Estado switch
     {
-        EstadoPago.Aprobado => "bg-success",
-        EstadoPago.Rechazado => "bg-danger",
-        EstadoPago.EnRevision => "bg-warning text-dark",
-        EstadoPago.Cancelado => "bg-secondary",
-        _ => "bg-secondary"
+        EstadoPago.Aprobado   => ("bg-success-subtle text-success-emphasis border-success-subtle",        "bi-check-circle-fill text-success",   "var(--bs-success)",   "rgba(25,135,84,.08)"),
+        EstadoPago.Rechazado  => ("bg-danger-subtle text-danger-emphasis border-danger-subtle",           "bi-x-circle-fill text-danger",        "var(--bs-danger)",    "rgba(220,53,69,.08)"),
+        EstadoPago.EnRevision => ("bg-warning-subtle text-warning-emphasis border-warning-subtle",        "bi-hourglass-split text-warning",     "var(--bs-warning)",   "rgba(255,193,7,.08)"),
+        EstadoPago.Cancelado  => ("bg-secondary-subtle text-secondary-emphasis border-secondary-subtle",  "bi-slash-circle text-secondary",      "var(--bs-secondary)", "rgba(108,117,125,.08)"),
+        _                     => ("bg-secondary-subtle text-secondary-emphasis border-secondary-subtle",  "bi-circle text-secondary",            "var(--bs-secondary)", "rgba(108,117,125,.08)")
     };
 }
 
-<h1>Pago #@Model.Id</h1>
+@* ── Encabezado ── *@
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div class="d-flex align-items-center gap-2">
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Lista
+        </a>
+        <h1 class="h5 fw-bold mb-0 text-body">Pago <span class="text-muted fw-normal">#@Model.Id</span></h1>
+    </div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary rounded-pill px-4">
+        <i class="bi bi-pencil-fill me-2"></i>Editar
+    </a>
+</div>
 
-<dl class="row">
-    <dt class="col-sm-3">Alumno</dt>
-    <dd class="col-sm-9">@Model.Cuota.Alumno.Apellido, @Model.Cuota.Alumno.Nombre</dd>
+<div class="row g-4 align-items-start" style="max-width:860px;">
 
-    <dt class="col-sm-3">Cuota</dt>
-    <dd class="col-sm-9">@Model.Cuota.Mes/@Model.Cuota.Anio</dd>
+    @* Columna izquierda: estado visual *@
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 text-center p-4 h-100" style="background:@colorBg;">
+            <div class="mb-3" style="font-size:3rem;"><i class="bi @iconoCss"></i></div>
+            <span class="badge rounded-pill px-3 py-2 border @badgeCss" style="font-size:.85rem;">@Model.Estado</span>
+            <hr class="my-3" />
+            <div class="fs-3 fw-bold" style="color:@colorFg;">@Model.Monto.ToString("C")</div>
+            <div class="text-muted small mt-1">@Model.Fecha.ToString("dd/MM/yyyy HH:mm")</div>
+        </div>
+    </div>
 
-    <dt class="col-sm-3">Monto</dt>
-    <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
+    @* Columna derecha *@
+    <div class="col-12 col-md-8 d-flex flex-column gap-4">
 
-    <dt class="col-sm-3">Fecha</dt>
-    <dd class="col-sm-9">@Model.Fecha.ToString("dd/MM/yyyy HH:mm")</dd>
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h3 class="h6 fw-semibold text-muted text-uppercase mb-3" style="letter-spacing:.06em;font-size:.72rem;">
+                <i class="bi bi-receipt me-2"></i>Datos del pago
+            </h3>
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Alumno</span>
+                        <span class="det-info-value">@Model.Cuota.Alumno.Apellido, @Model.Cuota.Alumno.Nombre</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Período</span>
+                        <span class="det-info-value">@Model.Cuota.Mes / @Model.Cuota.Anio</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Monto</span>
+                        <span class="det-info-value fw-semibold">@Model.Monto.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="det-info-item">
+                        <span class="det-info-label">Fecha</span>
+                        <span class="det-info-value">@Model.Fecha.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.MercadoPagoPaymentId))
+                {
+                    <div class="col-12">
+                        <div class="det-info-item">
+                            <span class="det-info-label">ID MercadoPago</span>
+                            <span class="det-info-value font-monospace small">@Model.MercadoPagoPaymentId</span>
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.ComprobanteRuta))
+                {
+                    <div class="col-12">
+                        <a asp-action="VerComprobante" asp-route-pagoId="@Model.Id" target="_blank"
+                           class="btn btn-sm btn-outline-primary rounded-pill">
+                            <i class="bi bi-file-earmark-arrow-down me-1"></i>Ver comprobante
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
 
-    <dt class="col-sm-3">Estado</dt>
-    <dd class="col-sm-9"><span class="badge @badgeClass">@Model.Estado</span></dd>
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h3 class="h6 fw-semibold text-muted text-uppercase mb-3" style="letter-spacing:.06em;font-size:.72rem;">
+                <i class="bi bi-clock-history me-2"></i>Auditoría
+            </h3>
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="det-access-icon" style="background:rgba(13,110,253,.1);">
+                        <i class="bi bi-person-check-fill text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold small">Registrado por</div>
+                        <div class="text-muted small">@(Model.RegistradoPorNombre ?? "—") · @Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                </div>
+                @if (Model.FechaActualizacion.HasValue)
+                {
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="det-access-icon" style="background:rgba(108,117,125,.1);">
+                            <i class="bi bi-pencil-square text-secondary"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small">Última actualización</div>
+                            <div class="text-muted small">@(Model.ActualizadoPorNombre ?? "—") · @Model.FechaActualizacion.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
 
-    @if (!string.IsNullOrEmpty(Model.MercadoPagoPaymentId))
-    {
-        <dt class="col-sm-3">ID de pago (MP)</dt>
-        <dd class="col-sm-9">@Model.MercadoPagoPaymentId</dd>
+    </div>
+</div>
+
+<style>
+    .det-info-item {
+        display:flex; flex-direction:column; gap:2px;
+        padding:.55rem .75rem;
+        background:var(--bs-body-bg);
+        border:1px solid var(--bs-border-color-translucent);
+        border-radius:.6rem; transition:background .18s;
     }
-
-    @if (!string.IsNullOrEmpty(Model.ComprobanteRuta))
-    {
-        <dt class="col-sm-3">Comprobante</dt>
-        <dd class="col-sm-9"><a asp-action="VerComprobante" asp-route-pagoId="@Model.Id" target="_blank">Ver archivo</a></dd>
-    }
-</dl>
-
-<hr />
-<h6 class="text-muted">Auditoría</h6>
-<dl class="row small text-muted">
-    <dt class="col-sm-3">Registrado por</dt>
-    <dd class="col-sm-9">@(Model.RegistradoPorNombre ?? "—") · @Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</dd>
-
-    @if (Model.FechaActualizacion.HasValue)
-    {
-        <dt class="col-sm-3">Última actualización</dt>
-        <dd class="col-sm-9">@(Model.ActualizadoPorNombre ?? "—") · @Model.FechaActualizacion.Value.ToString("dd/MM/yyyy HH:mm")</dd>
-    }
-</dl>
-
-<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">Editar</a>
-<a asp-action="Index" class="btn btn-link btn-sm">Volver al listado</a>
+    .det-info-item:hover { background:var(--bs-tertiary-bg); }
+    .det-info-label { font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--bs-secondary-color); }
+    .det-info-value { font-size:.92rem; font-weight:500; color:var(--bs-body-color); }
+    .det-access-icon { width:40px; height:40px; border-radius:.6rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+</style>
