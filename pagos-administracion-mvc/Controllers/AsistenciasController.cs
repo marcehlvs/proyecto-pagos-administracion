@@ -9,12 +9,11 @@ using static pagos_administracion_mvc.Models.Enums;
 
 namespace pagos_administracion_mvc.Controllers
 {
-    // Admin puede tomar asistencia de cualquier curso. Preceptor solo del curso que tiene
-    // asignado como Curso.ProfesorUserId (se valida en cada acción, no solo con el atributo de
-    // Roles, para evitar que un Preceptor tome asistencia de un curso ajeno cambiando el
-    // cursoId en la URL). Es un rol aparte de Docente: Docente carga notas por materia
-    // (CursoAsignatura), Preceptor está a cargo de la asistencia y los boletines del curso.
-    [Authorize(Roles = "Admin,Preceptor")]
+    // Admin: cualquier curso.
+    // Preceptor: solo el curso asignado en Curso.ProfesorUserId.
+    // Docente: los cursos donde dicta al menos una materia (CursoAsignatura.DocenteUserId).
+    // La validación se hace por acción (ObtenerCursoConPermiso) para impedir acceso por URL.
+    [Authorize(Roles = "Admin,Preceptor,Docente")]
     public class AsistenciasController : Controller
     {
         private readonly AdministracionDbContext _context;
@@ -31,13 +30,26 @@ namespace pagos_administracion_mvc.Controllers
             var curso = await _context.Cursos.FindAsync(cursoId);
             if (curso == null) return (null, NotFound());
 
-            if (User.IsInRole("Preceptor") && !User.IsInRole("Admin"))
+            if (User.IsInRole("Admin")) return (curso, null);
+
+            var userId = _userManager.GetUserId(User);
+
+            if (User.IsInRole("Preceptor"))
             {
-                var userId = _userManager.GetUserId(User);
                 if (curso.ProfesorUserId != userId) return (null, Forbid());
+                return (curso, null);
             }
 
-            return (curso, null);
+            if (User.IsInRole("Docente"))
+            {
+                // El docente solo puede acceder a cursos donde dicta al menos una materia.
+                var dicataEnCurso = await _context.CursosAsignaturas
+                    .AnyAsync(ca => ca.CursoId == cursoId && ca.DocenteUserId == userId);
+                if (!dicataEnCurso) return (null, Forbid());
+                return (curso, null);
+            }
+
+            return (null, Forbid());
         }
 
         // GET: Asistencias/Tomar?cursoId=1&fecha=2026-08-31
@@ -133,10 +145,24 @@ namespace pagos_administracion_mvc.Controllers
         {
             var cursosQuery = _context.Cursos.AsQueryable();
 
-            if (User.IsInRole("Preceptor") && !User.IsInRole("Admin"))
+            if (!User.IsInRole("Admin"))
             {
                 var userId = _userManager.GetUserId(User);
-                cursosQuery = cursosQuery.Where(c => c.ProfesorUserId == userId);
+
+                if (User.IsInRole("Preceptor"))
+                {
+                    cursosQuery = cursosQuery.Where(c => c.ProfesorUserId == userId);
+                }
+                else if (User.IsInRole("Docente"))
+                {
+                    // El docente ve solo los cursos donde dicta al menos una materia.
+                    var cursoIdsDocente = await _context.CursosAsignaturas
+                        .Where(ca => ca.DocenteUserId == userId)
+                        .Select(ca => ca.CursoId)
+                        .Distinct()
+                        .ToListAsync();
+                    cursosQuery = cursosQuery.Where(c => cursoIdsDocente.Contains(c.Id));
+                }
             }
 
             var cursos = await cursosQuery

@@ -197,6 +197,13 @@
             @if (User.IsInRole("Docente"))
             {
                 <div class="col-6 col-md-3">
+                    <a asp-controller="Asistencias" asp-action="Resumen"
+                       class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
+                        <div class="quick-card__icon fs-1 mb-2">🗓️</div>
+                        <div class="fw-semibold small">Asistencias</div>
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
                     <a asp-controller="Notas" asp-action="Index"
                        class="quick-card card rounded-4 shadow-sm border-0 p-4 text-center text-decoration-none d-block h-100">
                         <div class="quick-card__icon fs-1 mb-2">✏️</div>
@@ -329,8 +336,9 @@
                      onclick="abrirModalVideo(event)">
                     <video id="videoDestacado" class="w-100"
                            style="display:block; aspect-ratio:9/16; object-fit:cover; max-height:380px;"
-                           autoplay loop muted playsinline>
-                        <source src="~/videos/podcast-ep1.mp4" type="video/mp4">
+                           autoplay loop muted playsinline
+                           poster="@(Url.Content("~/images/podcast-poster.jpg"))">
+                        <source src="@(Url.Content("~/videos/podcast-ep1.mp4"))" type="video/mp4">
                     </video>
                     <div class="position-absolute top-50 start-50 translate-middle">
                         <div class="bg-dark bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center"
@@ -502,9 +510,9 @@
 @section Scripts {
 <script>
     const episodios = [
-        { src: '/videos/podcast-ep1.mp4', ep: 'Ep. 01', titulo: 'Historia de nuestra escuela',   desc: 'Un recorrido por los 50 años de trayectoria educativa.' },
-        { src: '/videos/podcast-ep2.mp4', ep: 'Ep. 02', titulo: 'Voces del aula',                desc: 'Docentes y alumnos comparten su experiencia diaria.' },
-        { src: '/videos/podcast-ep3.mp4', ep: 'Ep. 03', titulo: 'El futuro empieza aquí',        desc: 'Proyectos y actividades que transforman la comunidad.' }
+        { src: '@(Url.Content("~/videos/podcast-ep1.mp4"))', ep: 'Ep. 01', titulo: 'Historia de nuestra escuela',   desc: 'Un recorrido por los 50 años de trayectoria educativa.' },
+        { src: '@(Url.Content("~/videos/podcast-ep2.mp4"))', ep: 'Ep. 02', titulo: 'Voces del aula',                desc: 'Docentes y alumnos comparten su experiencia diaria.' },
+        { src: '@(Url.Content("~/videos/podcast-ep3.mp4"))', ep: 'Ep. 03', titulo: 'El futuro empieza aquí',        desc: 'Proyectos y actividades que transforman la comunidad.' }
     ];
     let epActual = 0;
 
@@ -512,39 +520,43 @@
         epActual = (epActual + 1) % episodios.length;
         const data = episodios[epActual];
         const video = document.getElementById('videoDestacado');
+        // Asignar src directamente en el elemento <video> es más confiable
+        // en todos los browsers que modificar el <source> hijo.
         video.src = data.src;
         video.load();
-        video.play();
+        video.play().catch(() => {});
         document.getElementById('badgeEpisodio').innerText  = data.ep;
         document.getElementById('tituloEpisodio').innerText = data.titulo;
         document.getElementById('descEpisodio').innerText   = data.desc;
     }
 
     function abrirModalVideo(event) {
-        // El botón de sonido está anidado dentro de este contenedor. Antes el
-        // contenedor tenía data-bs-toggle="modal", y Bootstrap 5 registra ese
-        // listener en document con addEventListener(type, fn, true) (capture),
-        // así que se disparaba ANTES de que el click llegara al botón: ningún
-        // stopPropagation/stopImmediatePropagation en el botón podía frenarlo.
-        // Solución: sacar data-bs-toggle del contenedor y abrir el modal acá a
-        // mano, ignorando el click si vino del botón de sonido.
-        if (event && event.target.closest('#btnMuteDestacado')) {
-            return;
-        }
+        if (event && event.target.closest('#btnMuteDestacado')) return;
 
-        // El preview (videoDestacado) sigue reproduciéndose de fondo si no se
-        // pausa acá: al abrir el modal grande, quedaban los dos videos sonando
-        // y reproduciéndose al mismo tiempo ("se pisan el video y el sonido").
-        const videoPreview = document.getElementById('videoDestacado');
-        videoPreview.pause();
+        document.getElementById('videoDestacado').pause();
 
+        // ── CLAVE: asignar src + load() AQUÍ, dentro del click handler donde
+        // el "user gesture" del navegador está activo. Si se hace en setTimeout
+        // o en cualquier callback asíncrono, el browser pierde ese contexto y
+        // bloquea el play() con audio → video negro sin error visible.
         const modalVideo = document.getElementById('videoModal');
-        modalVideo.src = episodios[epActual].src;
+        modalVideo.src   = episodios[epActual].src;
         modalVideo.muted = false;
-        modalVideo.play();
+        modalVideo.load();
 
-        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('podcastModal'));
-        modal.show();
+        // play() se llama en shown.bs.modal para que el elemento ya sea visible
+        // cuando el browser renderiza el primer frame (evita pantalla negra).
+        const modalEl = document.getElementById('podcastModal');
+        modalEl.addEventListener('shown.bs.modal', function handler() {
+            modalEl.removeEventListener('shown.bs.modal', handler);
+            modalVideo.play().catch(function () {
+                // Fallback: si el browser bloquea el audio, reproducir silenciado.
+                modalVideo.muted = true;
+                modalVideo.play().catch(() => {});
+            });
+        });
+
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     document.getElementById('podcastModal').addEventListener('hidden.bs.modal', function () {
