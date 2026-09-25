@@ -115,19 +115,22 @@ app.Use(async (context, next) =>
     await next();
 });
 
+
+
+
 app.UseRouting();
+app.UseStaticFiles();
 app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
-app.MapStaticAssets();
+//app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 //Seeding / Migraciones de Base de Datos
 using (var scope = app.Services.CreateScope())
