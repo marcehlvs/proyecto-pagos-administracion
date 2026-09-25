@@ -535,13 +535,15 @@
 
         document.getElementById('videoDestacado').pause();
 
-        // ── CLAVE: asignar src + load() AQUÍ, dentro del click handler donde
-        // el "user gesture" del navegador está activo. Si se hace en setTimeout
-        // o en cualquier callback asíncrono, el browser pierde ese contexto y
-        // bloquea el play() con audio → video negro sin error visible.
+        // ── CLAVE: arrancar SIEMPRE silenciado. Es la única reproducción
+        // automática que todos los navegadores garantizan (incluido modo
+        // incógnito, donde Chrome es mucho más estricto con el audio y el
+        // intento de reproducir con sonido puede fallar en silencio, sin
+        // error visible, dejando el video pausado). El usuario activa el
+        // sonido con el botón de volumen de los controles nativos.
         const modalVideo = document.getElementById('videoModal');
+        modalVideo.muted = true;
         modalVideo.src   = episodios[epActual].src;
-        modalVideo.muted = false;
         modalVideo.load();
 
         // play() se llama en shown.bs.modal para que el elemento ya sea visible
@@ -549,10 +551,10 @@
         const modalEl = document.getElementById('podcastModal');
         modalEl.addEventListener('shown.bs.modal', function handler() {
             modalEl.removeEventListener('shown.bs.modal', handler);
-            modalVideo.play().catch(function () {
-                // Fallback: si el browser bloquea el audio, reproducir silenciado.
-                modalVideo.muted = true;
-                modalVideo.play().catch(() => {});
+            modalVideo.play().catch(function (err) {
+                // Si esto falla, va a quedar registrado en la consola del
+                // navegador (F12 → Console) en vez de fallar en silencio.
+                console.error('No se pudo reproducir el podcast:', err);
             });
         });
 
