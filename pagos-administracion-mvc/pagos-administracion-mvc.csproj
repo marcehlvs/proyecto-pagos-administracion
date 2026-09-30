@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>pagos_administracion_mvc</RootNamespace>
     <UserSecretsId>88265eb7-9d75-497d-9c6c-9e06da31af09</UserSecretsId>
+    <!-- OutOfProcess: requerido para hosting compartido (IIS como reverse proxy). -->
+    <!-- En desarrollo local no tiene efecto. -->
+    <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
   </PropertyGroup>
 
   <ItemGroup>

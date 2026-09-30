@@ -442,3 +442,7 @@ pagos-administracion-mvc/App_Data/tareas/*
 
 # Sobras de patches aplicados con "git apply" que fallaron parcialmente.
 *.rej*.patch
+
+# Videos de wwwroot — binarios pesados que se suben al servidor por FTP/Web Deploy.
+# No deben estar en el repositorio. Subir manualmente en cada deploy si se cambian.
+pagos-administracion-mvc/wwwroot/videos/
